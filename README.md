@@ -1,8 +1,8 @@
-# Legal AI Compliance Assistant
+# Patchwork Assurance
 
-> **Working name only.** The directory `legal-ai-compliance/` is a placeholder. The real
-> two-word name is still being chosen (see `docs/NAMING_2026-06-14.md`). Renaming the repo and
-> folder later is a one-command operation, so the name is deliberately *not* blocking the build.
+> **Working name (chosen 2026-06-16, not locked).** The local folder and the GitHub repo are both
+> now `patchwork-assurance` / `Patchwork-Assurance`. Final name-lock stays open until the build is
+> further along (see `docs/NAMING_2026-06-14.md`); the name is deliberately *not* blocking the build.
 
 Created June 14, 2026 — the afternoon after job application #1 went out.
 
@@ -49,7 +49,7 @@ built.
 | `docs/BRAINSTORM.md` | The original project brainstorm + the legal substance of the CO/CT laws and the federal-preemption landscape. Reference material. |
 | `docs/ROADMAP_AB.md` | The execution roadmap: the four growth seams, the week-by-week Masterclass mapping, and the v1 build plan. |
 | `docs/FEASIBILITY_AND_VISION_2026-06-14.md` | The honest feasibility analysis of the AI-native vision: what AI can and cannot autonomously do here, and why the human-in-the-loop boundary is a feature. |
-| `docs/NAMING_2026-06-14.md` | The naming exploration so far: the two-word convention, the constraints, what's been ruled out, and the surviving favorites. Decision deferred. |
+| `docs/NAMING_2026-06-14.md` | The naming exploration: the two-word convention, the constraints, what's been ruled out. Working name chosen 6/16: **Patchwork Assurance** (not yet locked). |
 | `corpus/` | Where the statute text + metadata records will live (Seam 1). See its README. |
 
 ## Stack (planned — verify versions at build time)
