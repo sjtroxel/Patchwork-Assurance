@@ -6,10 +6,10 @@ name: CI
 on:
   push:
     branches: [main]
-    paths: [pyproject.toml, "src/**", "tests/**", ".github/workflows/ci.yml"]
+    paths: [pyproject.toml, "src/**", "tests/**"]
   pull_request:
     branches: [main]
-    paths: [pyproject.toml, "src/**", "tests/**", ".github/workflows/ci.yml"]
+    paths: [pyproject.toml, "src/**", "tests/**"]
 
 jobs:
   ci:
