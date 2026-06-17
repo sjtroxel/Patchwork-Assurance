@@ -25,6 +25,10 @@ venv/
 chroma/
 *.sqlite3
 
+# Raw statute source PDFs — provenance only, reproducible from source_url in metadata.
+# The cleaned corpus/*.md (and *.meta.yaml) ARE committed; the heavy binaries are not.
+corpus/sources/
+
 # Frontend (Angular/Node)
 node_modules/
 dist/

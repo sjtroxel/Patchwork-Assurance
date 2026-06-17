@@ -56,16 +56,23 @@ Two surfaces over one shared retrieval core, grounded in the actual statutory te
 
 **v1 corpus: two laws.**
 - **Colorado SB 26-189** — signed May 14 2026; repeals and replaces the original Colorado AI Act
-  (SB 24-205). Regulates ADMT used as a substantial factor in consequential decisions. Effective
-  **Jan 1 2027**. Colorado AG enforcement.
-- **Connecticut SB 5** ("AI Responsibility and Transparency Act") — signed May 27 2026. Regulates
-  automated employment-related decision technology (AERDT) as a substantial factor in employment
-  decisions, and is broader than employment alone (healthcare, online safety, AI companions), with
-  staggered effective dates (employment AI obligations **Oct 1 2027**). Connecticut AG under CUTPA.
+  (SB 24-205); codified at C.R.S. §§ 6-1-1701 to 6-1-1709. Regulates ADMT used to **materially
+  influence** a consequential decision across seven covered domains (education, employment, housing,
+  financial/lending, insurance, health care, government services). Effective **Jan 1 2027**. Colorado
+  AG enforcement under the Colorado Consumer Protection Act; 60-day cure through 2030; no private right
+  of action.
+- **Connecticut SB 5 / Public Act 26-15** — signed May 27 2026; official title *"An Act Concerning
+  Online Safety."* Regulates automated employment-related decision technology (AERDT) that is a
+  **substantial factor** in an employment-related decision, within a broader omnibus (minors' online
+  safety, AI companions, generative-AI provenance, frontier models). Staggered dates: employment
+  provisions (Sec. 7-12) effective **Oct 1 2026**; the deployer pre-decision notice obligation applies
+  to AERDT deployed on or after **Oct 1 2027**. Connecticut AG under CUTPA (§ 42-110b).
 
-> The exact obligations, triggers, and dates are pinned down from primary sources during Phase 1 and
-> recorded in the corpus metadata and `SPEC_V1.md`. The Connecticut details above correct errors in
-> the archived brainstorm (it is SB 5, not "PA 26-15"; "substantial" not "material" factor).
+> The two laws use *different* operative terms — Colorado "materially influence," Connecticut
+> "substantial factor" — and must not be harmonized. Full obligations, triggers, and dates are pinned
+> in `SPEC_V1.md` §5, verified against the official enacted texts on 2026-06-17. "SB 5" and "PA 26-15"
+> are both correct (bill number and public-act number for the same Connecticut law). For v1 the
+> Connecticut corpus is the employment subset (Sec. 7-12); see `SPEC_V1.md` §2.
 
 Every surface carries a visible "educational tool, not legal advice" banner (Part 5, Part 9).
 
@@ -182,10 +189,23 @@ phases actually turned out).
 | **3 — FastAPI** | `/analyze` + `/chat` over `core/`; Pydantic models; SSE streaming for chat | FastAPI; async; SSE (the backend rep) |
 | **4 — Streamlit UI** | Memo-form page; chat page; the "not legal advice" banner; made presentable | Streamlit; multi-page; `st.chat` |
 | **5 — Deploy + README** | Streamlit Cloud (UI) + free host (API); public repo; Python-dominant `.gitattributes` backstop. **Shippable v1.** | Deploy; secrets; env config |
-| **6 — Evals** | Gold set of situations → expected scope/obligations; retrieval hit-rate, scope accuracy, citation groundedness; LLM-judge — run against the same API path | Evals; the goals/loops material |
-| **7 — Monitoring/ingestion agent (v2)** | Scheduled poll → free diff → LLM-on-change → agent writes into `corpus/` → human gate surfaces changes for review; prove it by adding a 3rd jurisdiction | Agents; agent loops; the AI-native engine |
+| **6 — Evals** | Gold set of situations → expected scope/obligations; retrieval hit-rate, scope accuracy, citation groundedness; LLM-as-judge — run against the same API path | Evals; LLM-as-judge |
+| **7 — Observability & security** | Tracing + token-cost/latency instrumentation over the API path; prompt-injection and poisoned-document defenses for the chat surface and the corpus loader | Observability tooling; LLM security |
+| **8 — Retrieval quality (hybrid RAG)** | Add structured / text→SQL retrieval over the corpus metadata (jurisdiction, scope domains, dates) alongside semantic search; route queries; compare flavors of RAG, measured against the Phase 6 evals | Hybrid + agentic RAG; retrieval tuning |
+| **9 — Monitoring/ingestion agent (v2 headline)** | Scheduled poll → free diff → LLM-on-change → agent writes into `corpus/` → human gate surfaces changes for review; prove it by adding a 3rd jurisdiction | Agents; agent loops; the AI-native engine |
+| **10 — MCP server** | Expose Patchwork's tools (scope check, memo, retrieval) as an MCP server usable from Claude / Cursor | MCP; tool + server design |
 
-**v1 = Phases 0–5. v1.x = Phase 6. v2 = Phase 7 and beyond.**
+**v1 = Phases 0–5. v1.x = Phases 6–8 (measure, harden, improve retrieval). v2 = Phases 9–10 (the
+self-updating engine + MCP).**
+
+*Ordering rationale for 6–10:* ship v1 first, then **measure** it (evals), then **harden** it
+(observability + security), then **improve retrieval** (hybrid RAG) now that evals can tell whether the
+improvement is real, then build the big **monitoring agent** on top of that proven infrastructure, and
+finally expose the whole thing over **MCP**. Phases 7, 8, and 10 were added 2026-06-17 to deliberately
+cover the job-relevant parts of a public AI-engineering curriculum (RAG flavors, observability,
+security, MCP) on a real app rather than in a paid cohort. If the monitoring agent (the project's
+headline) needs to come sooner for motivation, it can move up — it is sequenced here for support, not
+priority.
 
 ---
 
@@ -211,15 +231,30 @@ Verified 2026-06-17. The whole project fits a free-tier / penny-level budget.
 
 ---
 
-## 8. Scope discipline — explicitly OUT of v1
+## 8. Scope discipline and the auth decision
 
-- No auth, no accounts, no saved history.
-- No jurisdictions beyond CO and CT (more come via the Phase 7 agent, not by hand).
-- No eval suite in v1 (Phase 6).
-- No monitoring or arbitrary-statute ingestion in v1 (Phase 7).
+Explicitly OUT of v1 (Phases 0–5):
+- No jurisdictions beyond CO and CT (more come via the Phase 9 agent, not by hand).
+- No evals, observability, or hybrid retrieval in v1 (Phases 6–8).
+- No monitoring or arbitrary-statute ingestion in v1 (Phase 9).
 - No payment, no multi-tenant anything.
 
-If any of these is being built before v1 (Phases 0–5) works end to end, binding rule 1 is being
+**No auth, by design — and statelessness is the reason, framed as a feature.** The instinct that this
+app "feels like it wants auth" (users entering private-ish business details, the way Heritage Odyssey
+users entered private-ish family details) is real, but it points at the wrong fix. Auth exists to
+protect data *at rest* and to separate *tenants*. Patchwork v1 stores nothing: each analysis runs
+in-session from the user's input and is discarded; there is no saved history and no per-user data to
+guard. With nothing retained, there is nothing for auth to protect, so the clunky "log in OR click the
+demo button" dual-mode is unnecessary. Better, it is a selling point for a compliance-privacy-sensitive
+audience: the app advertises that it does not retain the business information you enter. Keep a visible
+"we don't store your inputs" line in the UI next to the legal disclaimer.
+
+Auth / RBAC is therefore parked, not skipped for laziness. The only thing that would justify it is a
+real "save my memos / history" feature, which is a deliberate scope expansion to choose later, never a
+default. (RBAC as a standalone skill, from the medical-records example in public AI curricula, does not
+fit this app's single-user model and is better demonstrated elsewhere if wanted.)
+
+If any OUT-of-v1 item is being built before v1 (Phases 0–5) works end to end, binding rule 1 is being
 violated.
 
 ---
@@ -251,8 +286,13 @@ This roadmap replaces `ROADMAP_AB.md` because of three decisions and one correct
    into the phase spine and learned by building them.
 3. **FastAPI + Streamlit are both built from the start** (not phased), because the build is
    learning-first and not time-pressured.
-4. **Connecticut law corrected** to SB 5 (signed May 27 2026; "substantial factor"; broader than
-   employment), replacing the archived brainstorm's "PA 26-15 / material factor."
+4. **Legal facts reconciled to the official enacted texts** (verified 2026-06-17, recorded in
+   `SPEC_V1.md` §5, §9). Net corrections: Colorado's operative term is **"materially influence"** (not
+   "substantial factor" — that is Connecticut's term, for employment); Connecticut is **SB 5 = Public
+   Act 26-15** (both identifiers are correct), official title *"An Act Concerning Online Safety,"*
+   signed May 27 2026, with staggered employment dates (Sec. 7-12 effective Oct 1 2026; deployer notice
+   duty for AERDT deployed on/after Oct 1 2027). An earlier draft of this section had over-corrected
+   the brainstorm and wrongly applied "substantial factor" to Colorado.
 
 Open decisions tracked going forward: exact embedding model for production; exact Claude model ID at
 build time; free FastAPI host choice (HF Spaces vs Render); whether the federal-landscape notes join
