@@ -1,3 +1,5 @@
+> **ARCHIVED / SUPERSEDED REFERENCE — not controlling as of 2026-06-17.** The still-valid reasoning here (the Layer 1 / Layer 2 human-in-the-loop boundary) is carried forward into `docs/ROADMAP.md`. Kept for history only. See `docs/archive/README.md`.
+
 # Feasibility & Vision — Is the AI-Native Compliance App Actually Possible?
 
 *Written 2026-06-14. The question behind this doc: is the whole idea fundamentally flawed? The

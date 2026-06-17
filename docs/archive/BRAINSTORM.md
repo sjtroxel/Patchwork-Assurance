@@ -1,3 +1,5 @@
+> **ARCHIVED / SUPERSEDED REFERENCE — not controlling as of 2026-06-17.** The legal-substance research and fork analysis remain useful background; current project decisions live in `docs/ROADMAP.md`. Note: the Connecticut law has since been corrected (it is **SB 5**, signed May 27 2026, trigger "substantial factor," broader than employment) — see `docs/ROADMAP.md`. Kept for history only. See `docs/archive/README.md`.
+
 # Legal AI Project — Brainstorm & Spec (CO/CT AI Compliance Assistant)
 
 *Written June 11, 2026, as AI Masterclass round 2 was getting underway. Captures a two-part exploration: (1) the substance of recent state AI-regulation law, and (2) a project idea built on top of it. A jumping-off point, not a commitment. The project is meant to run in parallel with an active job search, not in place of it — see Part 7.*

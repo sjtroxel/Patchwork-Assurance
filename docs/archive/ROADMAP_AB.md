@@ -1,3 +1,5 @@
+> **ARCHIVED / SUPERSEDED REFERENCE — not controlling as of 2026-06-17.** Superseded by `docs/ROADMAP.md`. The Angular-22 frontend and the week-by-week AI Masterclass schedule in this document are both void (frontend changed to Streamlit; the Masterclass was cancelled). Kept for history only. See `docs/archive/README.md`.
+
 # Legal AI App — Fork AB+ Roadmap
 
 ### CO/CT AI Compliance Assistant, built as the AI Masterclass capstone

@@ -1,0 +1,259 @@
+# Patchwork Assurance — Master Roadmap
+
+*Current controlling plan, written 2026-06-17. Supersedes `docs/archive/ROADMAP_AB.md`. The detailed,
+phase-by-phase plans live in `docs/roadmap/`; the canonical data/API contracts live in
+`docs/SPEC_V1.md`. This document is the strategy those two layers hang from.*
+
+---
+
+## 0. How to read this
+
+- **Part 1** is the one-paragraph thesis and the binding rules.
+- **Part 2** is the product (what v1 actually is).
+- **Part 3** is the stack and why it is all Python now.
+- **Part 4** is the architecture: the four growth seams, the `core/` keystone, the two-service layout.
+- **Part 5** is the human-in-the-loop boundary — the line that keeps this credible and shippable.
+- **Part 6** is the phase spine (the heart of the plan), pointing to `docs/roadmap/` for detail.
+- **Part 7** is the cost model. **Part 8** is scope discipline. **Part 9** is the legal framing.
+- **Part 10** is what changed on 2026-06-17 and why this replaced the old roadmap.
+
+---
+
+## 1. Thesis and binding rules
+
+**Thesis.** Build a genuinely AI-native interface to a constantly shifting legal-compliance landscape.
+v1 is small and concrete: two state AI laws, one shared retrieval core, two surfaces (a structured
+compliance memo generator and a chatbot), built on a full Python stack and architected so that adding
+jurisdictions, evals, and an autonomous monitoring agent later is *additive*, not a rewrite.
+
+**Binding rule 1 — the architecture is designed to grow, but v1 stays small.** "Designed to grow"
+means do not hardcode two statutes; it does not license building the monitoring agent into v1.
+Everything past v1 (Phases 6+) is gated behind "v1 is deployed and works end to end."
+
+**Binding rule 2 — this is a learning-first build.** This is the builder's first true Python
+full-stack project. The point is to learn the backend and frontend patterns properly *and* apply them
+legitimately in a real product, going slowly enough to understand every part. Speed to a live URL is
+not the optimization target; understanding is. (This is a deliberate change from the old roadmap's
+"ship in a weekend" framing, and it is why FastAPI and Streamlit are both built from the start rather
+than phased.)
+
+**Binding rule 3 — this runs in parallel with the job search, not instead of it.** The job search
+keeps its own track and its own priority. This project is a portfolio and skills asset that feeds the
+search; if it ever becomes the reason no applications go out, it has failed regardless of code quality.
+
+---
+
+## 2. The product (v1)
+
+Two surfaces over one shared retrieval core, grounded in the actual statutory text with citations:
+
+1. **Memo generator (the demoable surface).** A short form — where you operate, what AI tools touch
+   consequential or employment decisions, company size — produces a structured compliance memo:
+   in-scope yes/no per law, the specific obligations, draft pre-decision / pre-use notice language, and
+   a deadline checklist. Grounded in statute text with citations.
+2. **Chatbot (the flexible surface).** Conversational retrieval-augmented Q&A over the same indexed
+   corpus, for the edge-case question the form does not cover.
+
+**v1 corpus: two laws.**
+- **Colorado SB 26-189** — signed May 14 2026; repeals and replaces the original Colorado AI Act
+  (SB 24-205). Regulates ADMT used as a substantial factor in consequential decisions. Effective
+  **Jan 1 2027**. Colorado AG enforcement.
+- **Connecticut SB 5** ("AI Responsibility and Transparency Act") — signed May 27 2026. Regulates
+  automated employment-related decision technology (AERDT) as a substantial factor in employment
+  decisions, and is broader than employment alone (healthcare, online safety, AI companions), with
+  staggered effective dates (employment AI obligations **Oct 1 2027**). Connecticut AG under CUTPA.
+
+> The exact obligations, triggers, and dates are pinned down from primary sources during Phase 1 and
+> recorded in the corpus metadata and `SPEC_V1.md`. The Connecticut details above correct errors in
+> the archived brainstorm (it is SB 5, not "PA 26-15"; "substantial" not "material" factor).
+
+Every surface carries a visible "educational tool, not legal advice" banner (Part 5, Part 9).
+
+---
+
+## 3. The stack (all Python)
+
+Chosen for one deliberate reason beyond fit: the repository should read **Python-dominant on GitHub**,
+a clear "I build in Python" signal against a TypeScript-heavy prior portfolio, in a Python-heavy AI job
+market. Verify all versions and model IDs at build time; they churn.
+
+- **Language:** Python, end to end.
+- **Backend:** **FastAPI** — exposes the core logic as an API (`/analyze`, `/chat`), with Pydantic
+  request/response models and SSE streaming for the chat surface.
+- **Frontend:** **Streamlit** — a form-driven memo page plus a chat page, calling the API. Chosen over
+  Gradio because the product has two distinct surfaces and Streamlit fits a multi-page/form product
+  shape; Gradio is better suited to single-demo model playgrounds. Streamlit has native chat
+  (`st.chat_input` / `st.chat_message`).
+- **Retrieval core (`core/`):** a clean, importable Python package holding all real logic (corpus
+  loader, retrieval, memo generation, chat). The web layers are thin shells over it.
+- **Vector store:** **Chroma**, local and persistent (a file on disk), behind a thin retrieval
+  interface so a hosted store is a later swap if ever needed.
+- **Embeddings:** local `sentence-transformers` for development (free); optionally OpenAI
+  `text-embedding-3-small` for production. Query and corpus embeddings must use the *same* model.
+- **Generation:** a Claude model — Haiku-class for the demo path (cheap), with a local model (Ollama)
+  or a free-tier model usable for development to keep costs near zero.
+- **Deploy:** Streamlit Community Cloud for the UI (free; requires a public repo, which is wanted
+  anyway); the FastAPI service on a free tier (Hugging Face Spaces or Render).
+- **Dev runner:** a single command boots both processes (FastAPI + Streamlit) together. Two services
+  must not mean two terminals.
+
+**Why both FastAPI and Streamlit from the start** (decided 2026-06-17): the builder is optimizing for
+learning both stacks properly, and FastAPI earns its place beyond the resume signal — it becomes the
+single path that multiple consumers hit (the Streamlit UI now; the eval harness and the v2 monitoring
+agent later), it is the natural home for SSE streaming, and it hosts background jobs for v2. The cost
+of the two-service choice is honest and accepted: two deploys and two cold-starts on free tiers.
+
+---
+
+## 4. Architecture designed to grow
+
+The growth strategy is four design seams plus one keystone. Get these right and adding jurisdictions,
+evals, and the monitoring agent is configuration and addition, never a rebuild.
+
+**Keystone — the `core/` package.** All real logic lives in an importable Python package, independent
+of FastAPI and Streamlit. The API imports it; the eval harness imports it; the monitoring agent imports
+it. Everything tests and runs against the same logic, so evals exercise the real production path.
+
+**Seam 1 — Corpus as a folder with metadata, never hardcoded statutes.** Each law is a cleaned text
+file plus a metadata record (`jurisdiction`, `citation`, `law_name`, `effective_date`,
+`cure_deadline`, `enforcement_authority`, `scope_domains`, `source_url`). One loader ingests every file
+in the directory and attaches metadata to every chunk. Adding a state, a federal rule, or a court
+decision later is: drop a file, add a metadata record, re-run the loader. Zero code change.
+
+**Seam 2 — Retrieval generic over N statutes.** Query, embed, similarity search with optional metadata
+filters (by jurisdiction, by scope domain). Never "search CO and CT"; always "search the corpus,
+optionally filtered." Two statutes and twenty hit the same code path.
+
+**Seam 3 — Memo logic keyed off "which laws apply," derived not hardcoded.** Scope is computed from the
+user's situation against corpus metadata, not branched on `if colorado`. The memo generator is one
+template taking `{situation, retrieved_chunks, applicable_statutes}`. Add a statute and it participates
+automatically.
+
+**Seam 4 — Thin interfaces around the vector store and the LLM.** Retrieval behind a small interface
+so the backend can be swapped; generation behind a small interface so the eval harness calls the same
+path the app uses.
+
+**Two-service layout** (detail in `SPEC_V1.md`):
+```
+patchwork_assurance/
+  core/      # the keystone: corpus loader, retrieval, memo, chat — pure Python
+  api/       # FastAPI: /analyze, /chat (imports core/)
+  ui/        # Streamlit: memo page, chat page (calls api/ over HTTP)
+  corpus/    # statute text files + metadata records (Seam 1)
+  eval/      # gold set + harness (added Phase 6)
+```
+
+---
+
+## 5. The human-in-the-loop boundary (load-bearing)
+
+The AI-native vision splits into two layers with opposite answers (full reasoning in
+`docs/archive/FEASIBILITY_AND_VISION_2026-06-14.md`):
+
+- **Layer 1 — what AI does well here, and what this product is:** monitor legislative feeds, court
+  dockets, and news; detect change; ingest new statutes/rulings into clean text plus metadata;
+  synthesize against a user's situation; present grounded, cited analysis that updates as the landscape
+  moves. This is fully buildable with today's tools and is more than a non-AI app could do.
+- **Layer 2 — what is correctly excluded:** autonomous, unsupervised, authoritative legal judgment on
+  brand-new, unlitigated, contested law, with no human and no disclaimer. It fails for concrete
+  reasons: high-stakes interpretation is where hallucination hurts most; the landscape is contested,
+  not merely additive (laws get enjoined, rulemaking is pending); and legal correctness on unlitigated
+  law cannot be autonomously verified, because the courts have not ruled yet.
+
+So the system does the monitoring, ingestion, drafting, and grounded synthesis; a human gates the
+authoritative changes; every surface tells the user it is decision-support, not legal advice. That
+boundary is the senior engineering move and a first-class feature, not a limitation bolted on.
+
+---
+
+## 6. The phase spine
+
+Self-directed phases (these replace the cancelled Masterclass's week-by-week schedule, and deliberately
+fold the advanced topics the builder wanted — evals, goals, loops, agents — into the back half, learned
+by building them). Each phase gets a detailed plan in `docs/roadmap/phase-N-*.md`, and a companion
+`IMPLEMENTATION.md` written when the phase begins (so each phase's real steps reflect how the prior
+phases actually turned out).
+
+| Phase | Builds | Primary learning |
+|---|---|---|
+| **0 — Scaffold & spine** | Repo layout, Python env, the one-command dev runner, a trivial end-to-end slice (Streamlit → FastAPI → `core/` stub → back) | Project structure; two-service wiring |
+| **1 — Corpus (Seam 1)** | Source + clean CO SB 26-189 and CT SB 5; write metadata records; the loader (chunk → embed → Chroma) | Ingestion; embeddings; vector store |
+| **2 — `core/` logic (Seams 2–4)** | `retrieve(query, filters)`; structured memo generation; chat RAG — pure Python, testable without the web layer | RAG; prompting; structured output |
+| **3 — FastAPI** | `/analyze` + `/chat` over `core/`; Pydantic models; SSE streaming for chat | FastAPI; async; SSE (the backend rep) |
+| **4 — Streamlit UI** | Memo-form page; chat page; the "not legal advice" banner; made presentable | Streamlit; multi-page; `st.chat` |
+| **5 — Deploy + README** | Streamlit Cloud (UI) + free host (API); public repo; Python-dominant `.gitattributes` backstop. **Shippable v1.** | Deploy; secrets; env config |
+| **6 — Evals** | Gold set of situations → expected scope/obligations; retrieval hit-rate, scope accuracy, citation groundedness; LLM-judge — run against the same API path | Evals; the goals/loops material |
+| **7 — Monitoring/ingestion agent (v2)** | Scheduled poll → free diff → LLM-on-change → agent writes into `corpus/` → human gate surfaces changes for review; prove it by adding a 3rd jurisdiction | Agents; agent loops; the AI-native engine |
+
+**v1 = Phases 0–5. v1.x = Phase 6. v2 = Phase 7 and beyond.**
+
+---
+
+## 7. Cost model
+
+Verified 2026-06-17. The whole project fits a free-tier / penny-level budget.
+
+- **v1 costs effectively nothing and uses no hosted database.** No accounts, no saved history, so no
+  Postgres — zero use of any shared database quota.
+- **Vector store:** Chroma local/embedded — free, fine from 2 to 50+ statutes.
+- **Embeddings:** local `sentence-transformers` (free) for dev; OpenAI `text-embedding-3-small` is
+  about $0.02 per million tokens, so embedding the entire CO+CT corpus once is a fraction of a cent.
+- **Generation:** Claude Haiku-class is roughly under a cent per memo; development can run on a local
+  model or a free-tier model and switch to the paid model only for the demo path. (A Claude Pro
+  subscription does not include API credits; API generation is separate pay-as-you-go, but pennies.)
+- **Hosting:** Streamlit Community Cloud (free) + a free FastAPI host. Both sleep when idle.
+- **v2 monitoring is not 50 always-on LLM calls.** The cheap architecture is: poll cheap sources →
+  detect change with free text-diff/hashing → spend an LLM call only when something actually changed.
+  Cost then scales with the rate of legal change (a handful of events per week across all states), not
+  with the number of jurisdictions: pennies to low single dollars per month on a free scheduler
+  (e.g. GitHub Actions cron). The things that would get expensive — an always-on hosted vector DB,
+  re-embedding loops — are deliberately avoided.
+
+---
+
+## 8. Scope discipline — explicitly OUT of v1
+
+- No auth, no accounts, no saved history.
+- No jurisdictions beyond CO and CT (more come via the Phase 7 agent, not by hand).
+- No eval suite in v1 (Phase 6).
+- No monitoring or arbitrary-statute ingestion in v1 (Phase 7).
+- No payment, no multi-tenant anything.
+
+If any of these is being built before v1 (Phases 0–5) works end to end, binding rule 1 is being
+violated.
+
+---
+
+## 9. Not legal advice
+
+Everything here is an educational / portfolio tool, not a compliance product and not legal advice. The
+"doing business" thresholds are subject to AG rulemaking, the laws are unlitigated, and the federal
+picture is in flux. Every surface carries a visible disclaimer, and the README says plainly: built to
+demonstrate RAG/agent engineering on a real, current legal corpus; consult a licensed attorney for
+actual compliance decisions.
+
+**The honest framing of the builder's background.** The builder holds a J.D. earned 10–15 years ago and
+has worked well away from law since. The value it brings is narrow and honest: an edge on reading
+statutory text and turning it into a grounded spec faster than most engineers. It is not a credential
+claim, not current legal expertise, and not a claim to practice law or offer legal services. Keep that
+framing in any public writeup. The name "Patchwork Assurance" deliberately means *reasonable* assurance
+(the auditor's term of art that disclaims absolute assurance), not certainty.
+
+---
+
+## 10. What changed on 2026-06-17
+
+This roadmap replaces `ROADMAP_AB.md` because of three decisions and one correction:
+
+1. **Frontend: Angular 22 → Streamlit.** Full Python stack, for the Python-dominant GitHub signal.
+2. **AI Masterclass round 2 was cancelled.** Its week-by-week schedule (which the old roadmap was built
+   around) is void. The advanced topics it would have taught (evals, goals, loops, agents) are folded
+   into the phase spine and learned by building them.
+3. **FastAPI + Streamlit are both built from the start** (not phased), because the build is
+   learning-first and not time-pressured.
+4. **Connecticut law corrected** to SB 5 (signed May 27 2026; "substantial factor"; broader than
+   employment), replacing the archived brainstorm's "PA 26-15 / material factor."
+
+Open decisions tracked going forward: exact embedding model for production; exact Claude model ID at
+build time; free FastAPI host choice (HF Spaces vs Render); whether the federal-landscape notes join
+the corpus as retrievable context. These are resolved in the relevant phase docs, not here.
