@@ -49,6 +49,8 @@ Phase 0 is complete when all of these are true:
 - [ ] `pytest` runs green: at least one pure-`core` test and one API test via `TestClient` (no running
       server required).
 - [ ] `ruff check` and `ruff format --check` pass.
+- [ ] `pre-commit install` is done and the hooks run on commit; CI (`ruff` + `pytest`) is green on the
+      first push.
 - [ ] A new contributor (or future-you) can clone, run `make install && make dev`, and see the slice
       work, guided only by a short "Developing" note.
 
@@ -87,6 +89,12 @@ patchwork-assurance/                 (repo root)
 ├── .env.example                     documents env vars; copied to .env locally
 ├── .gitignore                       (exists) ensure .venv/, .env, __pycache__/, .chroma/
 ├── README.md                        (exists) minimal; a short "Developing" note added
+├── LICENSE                          (exists) proprietary, all rights reserved
+├── CLAUDE.md                        (exists) agent operating manual
+├── .editorconfig                    (exists) cross-editor whitespace/indent
+├── .pre-commit-config.yaml          (exists) ruff hooks; activated this phase
+├── .claude/                         (exists) settings.json (git-deny) + rules/ + commands/
+├── .github/workflows/ci.yml         (exists) ruff + pytest; goes green this phase
 ├── corpus/                          DATA — Seam 1 (exists). Not code. Loader takes a path to it.
 ├── docs/                            ROADMAP.md, roadmap/, archive/, (later) SPEC_V1.md
 ├── tests/
@@ -171,6 +179,13 @@ Established now, not retrofitted. Two tiny tests prove the two seams that matter
 with no web layer, and the API is testable with FastAPI's `TestClient` (no running server, no UI). This
 is the habit the Phase 6 eval work is built on; starting it here makes that phase a continuation rather
 than a new discipline. `ruff` handles both linting and formatting, configured in `pyproject.toml`.
+
+The same gates run in two more places, both scaffolded in the repo already (from the 2026-06-17 hygiene
+pass) and *activated* in this phase: **`pre-commit`** (`.pre-commit-config.yaml`, ruff hooks + a
+large-file guard) runs them before each commit, and **CI** (`.github/workflows/ci.yml`) runs
+`ruff check` + `ruff format --check` + `pytest` on every push/PR to `main`. CI has nothing to run until
+this phase lands `pyproject.toml` and the first tests, so do not push before the skeleton exists. Pin
+the ruff version consistently across `pyproject.toml`, the pre-commit rev, and CI.
 
 ### 5.5 Pydantic from the first endpoint
 
@@ -310,6 +325,8 @@ get recorded in `IMPLEMENTATION.md`.)
    button returns live data.
 8. `.gitignore` sweep (`.venv/`, `.env`, `__pycache__/`, `.chroma/`); a short "Developing" note in the
    README. Run `ruff` and `pytest` once more clean.
+9. Activate the gates: `pre-commit install`; pin the ruff version across `pyproject.toml` / pre-commit /
+   CI; first push and confirm CI is green.
 
 ---
 

@@ -22,6 +22,10 @@ Python stack. It is an **educational / portfolio tool, not legal advice** (see b
 - `docs/archive/` — superseded docs. **Not controlling.** Never cite as current (the archived
   `ROADMAP_AB.md` has a dead Angular stack and a wrong CT citation — ignore it).
 - `corpus/README.md` — the Seam 1 data convention.
+- `.claude/rules/` — focused hard-rule files this manual references: `corpus.md` (Seam 1),
+  `rag.md` (retrieval/embeddings), `legal-content.md` (the not-legal-advice boundary + permitted/
+  prohibited language). Read the relevant one before working in that area.
+- `.claude/commands/phase-check.md` — `/phase-check` audits the active phase against its plan.
 
 ## Architecture invariants (do not violate)
 
@@ -64,8 +68,10 @@ These are load-bearing. Breaking one is a real bug, not a style choice.
   inline HTML only for the footer. (Phase 0 doc §6.2.)
 - **No new emoji** in code or docs. No template-y markdown decoration.
 - **Git is the user's to run.** Never run `git commit` or `git push` — provide the command for the user
-  to run. Commit messages are a single short one-liner (no multi-line bodies). **No Claude/Anthropic
-  attribution or `Co-Authored-By` lines** in commits.
+  to run (this is enforced in `.claude/settings.json`). Commit messages are a single short one-liner
+  (no multi-line bodies). **No Claude/Anthropic attribution or `Co-Authored-By` lines** in commits.
+- **Quality gates:** `ruff` (lint + format) and `pytest`, run locally via `pre-commit` and in CI
+  (`.github/workflows/ci.yml`). Both are set up in Phase 0; keep them green.
 
 ## Not legal advice
 
