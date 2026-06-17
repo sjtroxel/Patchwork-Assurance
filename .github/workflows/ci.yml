@@ -1,12 +1,15 @@
 name: CI
 
-# Activates once Phase 0 lands pyproject.toml + tests. Until then there is nothing to run;
-# do not push to a branch CI watches before the Phase 0 skeleton exists.
+# Runs only when Python code/config changes. Before Phase 0 creates these paths, no
+# commit touches them, so CI never fires on the docs-only repo (no failing runs). The
+# commit that adds pyproject.toml + src/ + tests/ triggers the first real run.
 on:
   push:
     branches: [main]
+    paths: [pyproject.toml, "src/**", "tests/**", ".github/workflows/ci.yml"]
   pull_request:
     branches: [main]
+    paths: [pyproject.toml, "src/**", "tests/**", ".github/workflows/ci.yml"]
 
 jobs:
   ci:

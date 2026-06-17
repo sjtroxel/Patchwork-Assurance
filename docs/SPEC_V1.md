@@ -207,11 +207,18 @@ every chunk of that law.
 
 ---
 
-## 8. Reserved — API contracts (added in Phase 3)
+## 8. Reserved — core output + API contracts (filled in Phases 2–3)
 
-The FastAPI request/response shapes (`/analyze`, `/chat`) are defined here when the API is built in
-Phase 3. Until then this section is intentionally empty; the only live endpoint is `/health`, whose
-shape is a throwaway (Phase 0) and is not a pinned contract.
+**Terminology — "memo".** Throughout Patchwork, a "memo" is a **structured statutory-compliance memo**:
+a per-law in-scope finding, obligations cited to **statute sections** (not case law — these laws are
+unlitigated, so no case law exists), draft notice language, and a deadline checklist. It is
+decision-support, **not** the predictive IRAC legal memo of legal practice, and not legal advice
+(ROADMAP §9). Frame it publicly as a "grounded compliance summary."
+
+The `ComplianceMemo`, `Situation`, `RetrievedChunk`, and chat request/response shapes are pinned here
+when `core/` is built in **Phase 2**; the FastAPI `/analyze` and `/chat` request/response wrappers are
+added in **Phase 3**. Until then the only live endpoint is `/health`, a Phase 0 throwaway that is not a
+pinned contract.
 
 ---
 

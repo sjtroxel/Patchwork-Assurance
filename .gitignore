@@ -29,7 +29,6 @@ chroma/
 # The cleaned corpus/*.md (and *.meta.yaml) ARE committed; the heavy binaries are not.
 corpus/sources/
 
-# Frontend (Angular/Node)
-node_modules/
-dist/
-.angular/
+# Downloaded CI run logs (e.g. logs_<run-id>.zip from the GitHub Actions UI)
+logs_*.zip
+*.zip
