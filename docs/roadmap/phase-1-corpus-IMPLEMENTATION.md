@@ -488,6 +488,54 @@ once.)
   Sec. 3 (government sandbox directive) and Sec. 16+ (research/administrative) deliberately excluded.
   CT `.meta.yaml` `scope_domains` updated to `[employment, ai_companion, generative_ai_provenance, frontier_models]`.
 - **`corpus_size` in `/health`** is a per-call stopgap; Phase 3's lifespan replaces it.
-- **Phase 1 complete — 2026-06-18.** 47 chunks indexed (CO: 9 sections + 2 amendments; CT: 14 sections).
 
-**Phase 1 complete — 2026-06-18.**
+### Colorado text integrity — re-OCR remediation (2026-06-18, Opus review)
+
+A critical-eye review found the first CO `co-sb26-189.md` was **not faithful to the statute**. Root
+cause: the official signed-act PDF is a **scanned image with a corrupt embedded OCR text layer** (CO
+sets new statutory material in an all-caps font that the state's OCR mishandled). Every text extractor
+(pypdf, PyMuPDF) faithfully returned that corruption — 3 page headers embedded mid-statute, ~11
+run-together words, dozens of split words (`FERP A`, `ST A TE`), and **corrupted subsection enumerators**
+(`(II)`→`(11)`, `(III)`→`(111)`, `(IX)`→`(LX)`), which is a citation-integrity defect for a compliance
+tool. CT (mixed-case PDF) was unaffected.
+
+**Fix:** re-OCR the PDF's 400-DPI page images with Tesseract 5 (working from the clean *visual*
+document, which is the official source — not the corrupt embedded layer). This eliminated all
+systematic corruption. Tesseract then left a small, bounded residual: it systematically misreads
+leading roman numerals as digits/letters (`(I)`→`(1)`, `(II)`→`(I)`, `(IX)`→`(LX)`). Because CO
+statutory nesting is **strictly sequential** (`(1)`→`(a)`→`(I)`→`(A)`), every residual was identified
+with certainty from sequence position and corrected: **18 enumerator fixes + 9 text-glyph fixes**, all
+applied as unique, asserted, context-anchored replacements (each must match exactly once). These are
+OCR *corrections* (faithful to the statute's own structure), **not** LLM authoring — auditable against
+the page images at `corpus/sources/co-sb26-189-signed-act.pdf`. Post-fix verification: all enumerator
+sequences valid, zero non-ASCII, all 11 section headings intact, key operative text spot-checked.
+
+> Reproduction (throwaway scripts not retained): render each PDF page at 400 DPI via PyMuPDF
+> (`page.get_pixmap(dpi=400)`), OCR with `pytesseract` (`--psm 3`), strip page headers/footnote/preamble,
+> emit `## <section>` headings, then apply the 27-item correction map above. The committed
+> `corpus/co-sb26-189.md` is the source of truth going forward.
+
+### CT completeness — Sec. 17 added (2026-06-18)
+
+The Opus review found one genuine dangling internal reference: included Sec. 1 and Sec. 4 reference
+"artificial intelligence, as defined in **section 17** of this act," but Sec. 17 was excluded. (The
+other cross-references — `section 31-51m`, `section 35-51`, `section 42-110b` — are external Connecticut
+General Statutes citations, not internal, so they're correctly out of scope.) Full Sec. 17 added (the
+"artificial intelligence" definition + the Connecticut AI Academy provisions; effective July 1, 2026).
+CT `.meta.yaml` citation + `effective_dates` updated accordingly.
+
+### CT text integrity — re-OCR'd to match the CO gold standard (2026-06-18)
+
+The first CT `.md` (pypdf-extracted) had ~40 spurious mid-word space splits (`membersh ip`,
+`consu mers`, `applicati on`, `occ upational`) — surfaced by diffing the pypdf words against a clean
+re-OCR vocabulary. Rather than whack-a-mole, CT was **re-OCR'd wholesale** at 400 DPI (Tesseract 5),
+same as CO. Mixed-case OCR preserved the enumerators cleanly (verified: `(A)/(B)`, `(i)/(ii)/(iii)`,
+`(I)/(II)` sequences all intact). Residual: only **2 glyph fixes** (`(A)(i1)`→`(A)(ii)`, a cent-sign in
+the CUTPA cite `42-110¢g`→`42-110g`) — far fewer than CO because mixed-case text doesn't trigger the
+roman-numeral confusion. Sections kept: 1-2, 4-15, 17 (skip 3, 16, 18+). Final: zero non-ASCII, all
+15 headings, AI definition (Sec. 17) intact.
+
+- **Phase 1 complete — 2026-06-18.** 50 chunks indexed. Both statutes re-OCR'd from their official
+  page images and integrity-verified (CO: 9 sections + 2 amendments, 18 enumerator + 9 glyph fixes;
+  CT: 15 sections incl. Sec. 17, 2 glyph fixes). All gates green; the corpus is the trustworthy,
+  citation-faithful foundation the rest of v1 builds on.

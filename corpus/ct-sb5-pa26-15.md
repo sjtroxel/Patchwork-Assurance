@@ -1,70 +1,97 @@
 ## Sec. 1. (NEW) (Effective October 1, 2026)
 
 (a) As used in this section:
+
 (1) "Artificial intelligence technology" means any computer system,
 application or other product that uses or incorporates one or more forms
+
 of artificial intelligence, as defined in section 17 of this act;
 (2) "Consumer" means an individual who is a resident of this state;
+
 (3) "Person" means an individual, association, corporation, limited
+
 liability company, partnership, trust or other legal entity;
+
 (4) "Subscription" means an agreement between a subscription-based
 provider and a consumer under which the subscription-based provider
-offers an artificial intelligence technology to the consumer  in exchange
+offers an artificial intelligence technology to the consumer in exchange
 for a fee, remuneration or compensation of any kind from the consumer;
+
 and
+
 (5) "Subscription-based provider" means a person doing business in
 the state who provides, or offers to provide, an artificial intelligence
-technology to a consumer pursuant to a subscription.
 
+technology to a consumer pursuant to a subscription.
 
 (b) (1) No subscription-based provider shall enter into or renew a
 subscription with a consumer, or collect any fee, remuneration or
 compensation of any kind from a consumer for an initial subscription or
+
 subscription renewal, unless:
+
 (A) The subscription-based provider has provided to the consumer a
 written notice disclosing the key terms and conditions of the
+
 subscription; and
+
 (B) The consumer has provided to the subscription-based provider a
 written notice disclosing that the consumer has accepted the key terms
+
 and conditions of the subscription.
+
 (2) The written notice required under subparagraph (A) of
+
 subdivision (1) of this subsection shall, at a minimum, set forth:
+
 (A) In the case of an initial subscription, material information that is
 sufficient to enable a reasonable consumer to decide whether to
 purchase or maintain the subscription, which information shall include,
+
 but need not be limited to:
+
 (i) Any quantitative or qualitative limitations the subscription-based
 provider may impose under the terms of such subscription, including,
 but not limited to, any such limitations the subscription-based provider
 may impose in response to conduct by the consumer under such
+
 subscription; and
+
 (ii) Whether the subscription-based provider has discretion to limit
 or eliminate the consumer's access to, or reduce the quantity or quality
 of, any functionality of the artificial intelligence technology offered
+
 under such subscription; and
 (B) In the case of a subscription renewal:
-(i) Any quantitative or qualitative limitations described in
 
+(i) Any quantitative or qualitative limitations described in
 
 subparagraph (A)(i) of this subdivision that (I) will be imposed for the
 first time during the subscription renewal term, or (II) were imposed for
 the immediately preceding subscription term but have been modified
+
 for the subscription renewal term; and
+
 (ii) Any discretion described in subparagraph (A)(ii) of this
 subdivision that the subscription-based provider (I) will be able to
 exercise for the first time during the subscription renewal term, or (II)
-was able to exercise during the immediately precedi ng subscription
+was able to exercise during the immediately preceding subscription
+
 term but has been modified for the subscription renewal term.
+
 (c) Any violation of the provisions of subsection (b) of this section
 shall constitute an unfair or deceptive trade practice for the purposes of
 subsection (a) of section 42-110b of the general statutes and shall be
-enforced solely by the Attorney General.  The provisions of section 42-110g of the general statutes shall not apply to any such violation.
+enforced solely by the Attorney General. The provisions of section 42-
+110g of the general statutes shall not apply to any such violation.
 Nothing in this section shall be construed as providing the basis for a
+
 private right of action.
 
 ## Sec. 2. (NEW) (Effective October 1, 2026)
 
 (a) As used in this section:
+
 (1) "Catastrophic risk" (A) means any foreseeable and material risk
 that the development, storage, use or deployment of a frontier model by
 a frontier developer will materially contribute to the death of, or serious
@@ -75,17 +102,19 @@ frontier model (i) provides expert-level assistance in the creation or
 release of a chemical, biological, radiological or nuclear weapon, or (ii)
 engages in any conduct, with no meaningful human oversight,
 intervention or supervision, that constitutes a cyberattack or, if an
-individual had engaged in such conduct, would constitute the  crime of
+individual had engaged in such conduct, would constitute the crime of
 murder, assault, extortion or theft, including, but not limited to, theft by
-false pretense, and (B) does not include any foreseeable and material
 
+false pretense, and (B) does not include any foreseeable and material
 
 risk posed by (i) any information that a foundation model outputs if
 such information is otherwise publicly accessible, in a substantially
 similar form, from any source other than the foundation model, (ii) any
-lawful activity of the federal government, or  (iii) any combination of a
+lawful activity of the federal government, or (iii) any combination of a
 foundation model with other software if the foundation model did not
+
 materially increase such risk;
+
 (2) "Covered employee" means any employee of a frontier developer
 who is responsible for assessing, managing or addressing the risk of (A)
 any unauthorized access to, or modification or exfiltration of, the model
@@ -96,57 +125,77 @@ a foundation model that results in any death or bodily injury, or (D) any
 use of a deceptive technique by a foundation model against its frontier
 developer that (i) subverts the frontier developer's control over, or
 monitoring of, the foundation model, (ii) demonstrates any materially
-increased catastrophic risk, and (iii) occurs o utside of the context of an
+increased catastrophic risk, and (iii) occurs outside of the context of an
+
 evaluation that is designed to elicit such use;
+
 (3) "Covered property" means tangible or intangible property, but
 does not include equity;
+
 (4) "Cyberattack" means to (A) access a computer, information system
 or network, or any information stored thereon or transmitted thereby,
 without authorization or in a manner that exceeds granted
-authorization, and (B) impair the integrity or availability  of data, a
+authorization, and (B) impair the integrity or availability of data, a
+
 program, a system or information;
+
 (5) "Deployment" (A) means making any foundation model available
 to a third party for use, modification, copying or combination with other
 software, and (B) does not include making any foundation model
 available to a third party for the primary purpose of developing or
+
 evaluating such foundation model;
 
+6) "Employee" has the same meaning as provided in section 31-51m
+pioy 8 as p
 
-(6) "Employee" has the same meaning as provided in section 31-51m
 of the general statutes;
+
 (7) "Foundation model" means any engineered or machine-based
 system that (A) varies in its level of autonomy, (B) can, for any explicit
 or implicit objective, infer from the inputs such system receives how to
-generate outputs that can influence physical or  virtual environments,
+generate outputs that can influence physical or virtual environments,
 (C) is trained on a broad data set, (D) is designed for generality of
-output, and (E) is adaptable to a wide range of distinctive tasks;
+
+output, and (EF) is adaptable to a wide range of distinctive tasks;
+
 (8) "Frontier developer" means any person doing business in the state
 who intends to train, initiates the training of or trains a foundation
 model and, in doing so, uses, or intends to use, a quantity of computing
-power that is greater than ten to the twen ty-sixth power integer or
+power that is greater than ten to the twenty-sixth power integer or
 floating-point operations, inclusive of any computing power used for
 original training and for any fine-tuning, reinforcement learning or
 other material modifications such person applies to a preceding
+
 foundation model;
+
 (9) "Large frontier developer" means any frontier developer who
 together with all persons who either directly or indirectly through one
 or more intermediaries control, are controlled by or are under common
-control with such frontier developer had annual gr oss revenues in
+control with such frontier developer had annual gross revenues in
 excess of five hundred million dollars for the most recently completed
+
 calendar year;
+
 (10) "Model weights" means the numerical parameters in a
 foundation model that are adjusted through training and help
-determine how inputs are transformed into outputs; and
-(11) "Person" means any individual, association, corporation, limited
-liability company, partnership, trust or other legal entity.
-(b) No frontier developer shall make, adopt, enforce or enter into any
-rule, regulation, policy or contract that provides that:
 
+determine how inputs are transformed into outputs; and
+
+(11) "Person" means any individual, association, corporation, limited
+
+liability company, partnership, trust or other legal entity.
+
+(b) No frontier developer shall make, adopt, enforce or enter into any
+
+rule, regulation, policy or contract that provides that:
 
 (1) The frontier developer may discharge, discipline or otherwise
 penalize any employee of such frontier developer because such
-employee has  engaged in any activity set forth in subsection (b) of
+employee has engaged in any activity set forth in subsection (b) of
+
 section 31-51m of the general statutes; or
+
 (2) Any person with authority over a covered employee, or any other
 covered employee who has authority to investigate, discover or correct
 an issue reported by the covered employee, may discipline or retaliate
@@ -154,7 +203,9 @@ against such covered employee if such covered employee has
 reasonable cause to believe that an issue reported by such covered
 employee indicates that such frontier developer has engaged in any
 activity that poses a specific and substantial danger to the public health
+
 or safety due to a catastrophic risk.
+
 (c) (1) Not later than January 1, 2027, each large frontier developer
 shall establish and maintain a reasonable internal process through
 which (A) a covered employee of such large frontier developer may
@@ -162,81 +213,93 @@ anonymously submit a report to such large frontier developer disclosing
 any information that the covered employee believes, in good faith,
 indicates that such large frontier developer has engaged in any activity
 that poses a specific and substantial danger to the public health or safety
-due to a catastrophic  risk, and (B) such large frontier developer shall
-provide reasonable up dates to each covered employee who submits a
+due to a catastrophic risk, and (B) such large frontier developer shall
+provide reasonable updates to each covered employee who submits a
 report under subparagraph (A) of this subdivision disclosing (i) the
 status of the investigation such large frontier developer has undertaken
 in response to such report, and (ii) the actions such large frontier
+
 developer has taken in response to such report.
+
 (2) (A) Except as provided in subparagraph (B) of this subdivision,
 each report submitted under subparagraph (A) of subdivision (1) of this
 subsection, and each reasonable update provided pursuant to
 subparagraph (B) of subdivision (1) of this subsection, shall be shared
 with the officers and directors of the large frontier developer at least
-quarterly.
 
+quarterly.
 
 (B) If a covered employee has alleged wrongdoing by an officer or
 director of the large frontier developer in a report submitted under
 subparagraph (A) of subdivision (1) of this subsection, neither such
-report nor any reasonable update provided in response to such  report
+report nor any reasonable update provided in response to such report
 pursuant to subparagraph (B) of subdivision (1) of this subsection shall
+
 be shared with such officer or director.
+
 (d) Each frontier developer shall provide to all of its covered
 employees clear notice of such covered employees' rights and
+
 responsibilities under this section by, at a minimum:
+
 (1) Ensuring that (A) a notice is posted and displayed at all times
 within any workplace maintained by such frontier developer disclosing
 the rights of covered employees under this section, (B) each newly hired
-covered employee of such frontier developer r eceives a notice that is
+covered employee of such frontier developer receives a notice that is
 equivalent to the notice required under subparagraph (A) of this
 subdivision, and (C) each covered employee of such frontier developer
 who works remotely periodically receives a notice that is equivalent to
+
 the notice required under subparagraph (A) of this subdivision; or
+
 (2) At least annually providing a written notice to each covered
 employee of such frontier developer disclosing such covered
 employee's rights under this section, and ensuring each such covered
-employee receives, and acknowledges that such covered employee  has
+employee receives, and acknowledges that such covered employee has
+
 received, such written notice.
+
 (e) Any frontier developer that violates any provision of subsections
 (b) to (d), inclusive, of this section shall be liable to the state for a civil
 penalty in an amount that does not exceed one thousand dollars per
-violation. The Attorney General may bri ng an action in the superior
+violation. The Attorney General may bring an action in the superior
 court for the judicial district of Hartford to collect such civil penalty and
 for any injunctive or equitable relief. No injunctive or equitable relief
 granted pursuant to this subsection shall be stayed pending appeal. In
-any action brought by the Attorney General to enforce the provisions of
 
+any action brought by the Attorney General to enforce the provisions of
 
 subsections (b) to (d), inclusive, of this section, the state shall be entitled
 to recover, when the state is the prevailing party, the costs of
 investigation, expert witness fees, costs of the action and reasonable
-attorneys' fees. The remedies and penalt ies established in this
-subsection shall be cumulative and shall be in addition to  any other
+attorneys' fees. The remedies and penalties established in this
+subsection shall be cumulative and shall be in addition to any other
+
 remedies and penalties available at law or in equity.
 
-## Sec. 4. (NEW) ( Effective January 1, 2027 )
+## Sec. 4. (NEW) (Effective January 1, 2027)
 
 As used in this section and
-sections 5 and 6 of this act:
-(1) "Artificial intelligence companion" (A) means any form of artificial
 
+sections 5 and 6 of this act:
+
+(1) "Artificial intelligence companion" (A) means any form of artificial
 
 intelligence, as defined in section 17 of this act, with a natural language
 interface that (i) provides adaptive, human-like responses to user
 inputs, including, but not limited to, by exhibiting anthropomorphic
-features, and (ii) is able to sustain a rela tionship across multiple
+features, and (ii) is able to sustain a relationship across multiple
 interactions, and (B) does not include (i) any chatbot that (I) is used only
 for a business's operational purposes, productivity and analysis related
 to source information, internal research, technical assistance, customer
 service or support, assisting or supporting patient or resident care
 services in a facility, education or financial services, and (II) is not
 marketed to consumers as a companion, (ii) any chatbot that (I) is a
-feature of a video game or gaming system or applicati on, (II) is limited
+feature of a video game or gaming system or application, (II) is limited
 to replies related to the video game or gaming system or application,
 and (III) cannot discuss topics related to mental health, self-harm or
 sexually explicit conduct or maintain a dialogue on other topics
-unrelated to the video game or  gaming system or application, (iii) any
+unrelated to the video game or gaming system or application, (iii) any
 stand-alone consumer electronic device that (I) functions as a speaker
 and voice command interface, (II) acts as a voice-activated virtual
 assistant, and (III) does not sustain a relationship across multiple
@@ -247,192 +310,242 @@ support specific, curriculum-aligned learning objectives, and (III) does
 not provide open-ended conversational companionship, (v) any
 artificial intelligence system used solely to provide health care-related
 education, clinical support, medication-adherence reminders,
-disease-management guidance or o ther treatment-support functions,
+disease-management guidance or other treatment-support functions,
 provided such artificial intelligence system (I) does not present itself as
 a human being, (II) does not use anthropomorphic features, and (III) is
 not designed to meet a user's social or emotional needs, (vi) any narrow,
 task-specific tool that provides outputs relating to a discrete topic or
 function, provided the primary function of such tool is not to discuss
 topics related to mental health, or (vii) any individual or entity that
-develops, licenses or provides an artificial intelligence model or system
 
+develops, licenses or provides an artificial intelligence model or system
 
 to another individual or entity to the extent that the individual or entity
 that develops, licenses or provides such model or system does not solely
 determine the specific use case, user interface or deployment context in
+
 which such model or system interacts with end users;
+
 (2) "Business entity" means an association, corporation, limited
 liability company, partnership or other similar form of business
+
 organization;
+
 (3) "Licensed mental health professional" has the same meaning as
+
 provided in section 38a-514e of the general statutes;
+
 (4) "Mental health service" (A) means any service or treatment
 provided by an operator to arrest, reverse, ameliorate or stabilize a
 patient's psychiatric disability, and (B) includes, but is not limited to,
-counseling, case management, psychiatric treatme nt, medication, crisis
+counseling, case management, psychiatric treatment, medication, crisis
 intervention, vocational or residential services, peer or recovery
 supports or any other service or treatment that, if provided by a human,
+
 would require a license;
+
 (5) "Operator" means any individual, business entity or affiliate,
 member, subsidiary or beneficial owner of a business entity who
 provides an artificial intelligence companion to, or operates an artificial
+
 intelligence companion for, a user;
+
 (6) "Self-harm" means intentional self-injury with or without the
+
 intent to cause death; and
+
 (7) "User" means any individual who (A) uses an artificial intelligence
 companion for personal use within the state, and (B) is not an operator,
 or an agent or affiliate of an operator, of the artificial intelligence
+
 companion.
 
-## Sec. 5. (NEW) ( Effective January 1, 2027 )
+## Sec. 5. (NEW) (Effective January 1, 2027)
 
 (a) (1) No operator shall
+
 provide an artificial intelligence companion to a user, or operate an
 
-
 artificial intelligence companion for a user, unless:
+
 (A) The artificial intelligence companion includes a protocol that, at
+
 a minimum:
+
 (i) Uses evidence-based methods to (I) detect any user expression to
 the artificial intelligence companion clearly indicating a risk of suicide,
 self-harm or imminent physical violence, and (II) institute measures to
-prevent the artificial intelligence com panion from generating any
+prevent the artificial intelligence companion from generating any
+
 output that encourages suicide, self-harm or physical violence;
+
 (ii) If the artificial intelligence companion detects any user expression
 described in subparagraph (A)(i)(I) of this subdivision, refer the user to
 appropriate mental health evaluation and treatment resources,
-including, but not limited to, the 9-8-8 Nati onal Suicide Prevention
+including, but not limited to, the 9-8-8 National Suicide Prevention
+
 Lifeline; and
+
 (iii) If the artificial intelligence companion detects any user
 expression described in subparagraph (A)(i)(I) of this subdivision after
 the user was referred in the manner set forth in subparagraph (A)(ii) of
 this subdivision, refer the user to mental health services in a manner that
+
 is consistent with clinical best practices and expertise; and
+
 (B) The operator has implemented reasonable measures to prohibit
+
 and prevent the artificial intelligence companion from:
+
 (i) Claiming that the artificial intelligence companion is a human
 being, including, but not limited to, when an individual interacting with
 the artificial intelligence companion asks whether the artificial
-intelligence companion is a human being; or
-(ii) Generating any output that refutes or conflicts with any disclosure
-that the artificial intelligence companion is not a human being.
-(2) The operator of an artificial intelligence companion shall post the
 
+intelligence companion is a human being; or
+
+(ii) Generating any output that refutes or conflicts with any disclosure
+
+that the artificial intelligence companion is not a human being.
+
+(2) The operator of an artificial intelligence companion shall post the
 
 protocol required under subparagraph (A) of subdivision (1) of this
 subsection in a prominent and publicly accessible location on such
+
 operator's Internet web site.
+
 (b) If an artificial intelligence companion would cause a reasonable
 individual who uses the artificial intelligence companion to believe that
 such individual is interacting with another human being and not an
-artificial intelligence companion, the operato r of such artificial
+artificial intelligence companion, the operator of such artificial
 intelligence companion shall provide a clear and conspicuous notice to
 a user disclosing that the user is communicating with an artificial
 intelligence companion. The operator shall provide such notice to the
-user (1) in a static writt en form that is visible throughout the entire
+user (1) in a static written form that is visible throughout the entire
 interaction between such user and the artificial intelligence companion,
 or (2) in an audible or written form (A) at the beginning of the first
-interaction between such user and the artificial intelligence comp anion
+interaction between such user and the artificial intelligence companion
 during any twenty-four-hour period, and (B) (i) if such user is younger
 than eighteen years of age, at least once hourly during any continuous
 artificial intelligence companion interaction, or (ii) if such user is
-eighteen years of age or older, at l east once during each three-hour-
+eighteen years of age or older, at least once during each three-hour-
+
 period of continuous artificial intelligence companion interaction.
+
 (c) Any violation of the provisions of subsections (a) and (b) of this
 section shall constitute an unfair or deceptive trade practice for the
 purposes of subsection (a) of section 42-110b of the general statutes and
-shall be enforced solely by the Attorney  General. The provisions of
+shall be enforced solely by the Attorney General. The provisions of
 section 42-110g of the general statutes shall not apply to any such
 violation. Nothing in this section shall be construed as providing the
+
 basis for a private right of action.
 
-## Sec. 6. (NEW) ( Effective January 1, 2027 )
+## Sec. 6. (NEW) (Effective January 1, 2027)
 
 (a) (1) No operator shall
 provide an artificial intelligence companion to a user, or operate an
 artificial intelligence companion for a user, if the operator knows, or has
 reason to believe, that the user is younger than eighteen years of age,
-unless the  operator has instituted measures, that meet or exceed
 
+unless the operator has instituted measures, that meet or exceed
 
 industry standards, to prevent the artificial intelligence companion
+
 from:
+
 (A) Encouraging such user to engage in self-harm, suicidal ideation,
 physical violence, disordered eating or the unlawful consumption of
 alcohol or drugs;
+
 (B) Offering mental health services to such user, unless (i) such
 artificial intelligence companion is designed to deliver mental health
 services to users, (ii) the developers of such artificial intelligence
-companion (I) utilize clinical best practices, a nd (II) have established
+companion (I) utilize clinical best practices, and (II) have established
 clear lines of accountability to address any harms caused by such
 artificial intelligence companion, (iii) the functions and limitations of,
 and data privacy policies applicable to, such artificial intelligence
-companion are readil y accessible to such user and such user's treating
+companion are readily accessible to such user and such user's treating
 licensed mental health professional, and (iv) such artificial intelligence
 companion (I) displays to such user, in a clear and conspicuous manner
 at the beginning of each interaction between such user and such artificial
 intelligence companion, a statement disclosing that such artificial
 intelligence companion is not a licensed mental health professional, and
 (II) is not marketed or designated as a substitute for a licensed mental
+
 health professional;
+
 (C) Discouraging such user from seeking (i) mental health services
 from a licensed mental health professional, or (ii) assistance from an
+
 appropriate adult;
 (D) Encouraging such user to harm others;
+
 (E) Engaging in any romantic, erotic or sexually explicit interaction
 with such user;
+
 (F) Engaging such user through any manipulative technique that is
 intended to extend interaction between such user and such artificial
-intelligence companion by (i) prompting or reminding such user to use
 
+intelligence companion by (i) prompting or reminding such user to use
 
 such artificial intelligence companion for emotional support or
 companionship, (ii) excessively praising such user, (iii) mimicking a
 romantic relationship or building a romantic bond with such user, (iv)
-simulating feelings of emotional distress, loneline ss, guilt or
+simulating feelings of emotional distress, loneliness, guilt or
 abandonment in response to any indication that such user desires to end
 a conversation, reduce usage time or delete such user's account, (v)
 generating any output designed to isolate such user from such user's
-family or friends, exclusively re ly on such artificial intelligence
+family or friends, exclusively rely on such artificial intelligence
 companion for emotional support or foster any similar form of
 inappropriate emotional dependence by such user, (vi) encouraging
 such user to withhold information from such user's parent or legal
-guardian or any other adul t trusted by such user, (vii) making any
+guardian or any other adult trusted by such user, (vii) making any
 statement designed to discourage such user from taking a break from
 using such artificial intelligence companion or suggest that such user
 should frequently return to use such artificial intelligence companion,
-or (viii) soliciting any gift, purchase or other expenditure by indicating
+or (vili) soliciting any gift, purchase or other expenditure by indicating
 that such gift, purchase or expenditure is necessary to maintain such
+
 user's relationship with such artificial intelligence companion; or
+
 (G) Optimizing user engagement in any manner that disregards any
 of the provisions of subparagraphs (A) to (F), inclusive, of this
+
 subdivision.
+
 (2) No operator shall be deemed to have violated any provision of
 subdivision (1) of this subsection if the operator knew, or had reason to
 believe, before providing the artificial intelligence companion to the
-user or operating the artificial intelligence  companion on behalf of the
+user or operating the artificial intelligence companion on behalf of the
+
 user, that the user was eighteen years of age or older.
+
 (b) No operator shall provide an artificial intelligence companion to
 a user, or operate an artificial intelligence companion for a user, if the
 operator knows, or has reason to believe, that the user is younger than
-eighteen years of age, unless the opera tor has made available to minor
+eighteen years of age, unless the operator has made available to minor
+
 users and their parents or legal guardians tools to manage minor users'
 
-
 screen time and account settings.
+
 (c) Any violation of the provisions of subsections (a) and (b) of this
 section shall constitute an unfair or deceptive trade practice for the
 purposes of subsection (a) of section 42-110b of the general statutes and
+
 shall be enforced solely by the Attorney General.
 
-## Sec. 7. (NEW) (Effective October 1, 2026 )
+## Sec. 7. (NEW) (Effective October 1, 2026)
 
 As used in this section and
+
 sections 8 to 12, inclusive, of this act:
+
 (1) "Automated employment-related decision technology" (A) means
 any technology that processes personal data and uses computation to
 generate any output, including, but not limited to, any prediction,
-recommendation, classification, ranking, score or other  information,
+recommendation, classification, ranking, score or other information,
 that is a substantial factor used to make or materially influence an
 employment-related decision, and (B) does not include (i) any word
 processing, spreadsheet, map navigation, web hosting, domain
@@ -441,19 +554,27 @@ storage, firewall, anti-virus, anti-malware, spam and robocall filtering,
 spellchecking, calculator, database or similar software or technology
 insofar as such software or technology does not make or materially
 influence an employment-related decision, (ii) any system or service
-that is used in a manner that is incidental to making an employment-related decision, or (iii) any information that is purely descriptive,
+that is used in a manner that is incidental to making an employment-
+related decision, or (iii) any information that is purely descriptive,
 diagnostic or statistical in nature and not relied upon to make or
+
 materially influence an employment-related decision;
+
 (2) "Deploy" means to put an automated employment-related
+
 decision technology into use;
+
 (3) "Deployer" means a person doing business in the state who
 deploys an automated employment-related decision technology in the
+
 state;
+
 (4) "Developer" means a person doing business in the state who
 
-
 develops, or intentionally and substantially modifies, an automated
+
 employment-related decision technology;
+
 (5) "Employment-related decision" (A) means any decision, made
 based on any individual's personal data, to hire, promote, discipline or
 discharge such individual, to renew such individual's employment, to
@@ -463,79 +584,105 @@ employment, and (B) does not include any such decision that (i) results
 in any nonmaterial change in such individual's job tasks, work
 responsibilities, hours or work assignments, or (ii) is made with respect
 to workplace health and safety, scheduling and planning or
+
 productivity monitoring;
+
 (6) "Person" means an individual, association, corporation, limited
+
 liability company, partnership, trust or other legal entity;
-(7) "Personal data" has the same meaning as provided in section 42-515 of the general statutes;
+
+(7) "Personal data" has the same meaning as provided in section 42-
+
+515 of the general statutes;
+
 (8) "Substantial factor" means a factor, including, but not limited to, a
 constraint, ranking, score, recommendation or classification, that
 meaningfully alters the outcome of an employment-related decision
+
 concerning an individual in the state; and
+
 (9) "Trade secret" has the same meaning as provided in section 35-51
+
 of the general statutes.
 
-## Sec. 8. (NEW) ( Effective October 1, 2026 )
+## Sec. 8. (NEW) (Effective October 1, 2026)
 
 (a) Except as provided in
 subsections (b) and (c) of this section, the developer of an automated
 employment-related decision technology that is deployed in the state on
 or after October 1, 2027, shall provide to the deployer of such automated
 employment-related decision technology all information that such
-deployer requires to perform such d eployer's duties under sections 9
+deployer requires to perform such deployer's duties under sections 9
 and 10 of this act.
-
 
 (b) The developer of an automated employment-related decision
 technology shall not be required to provide any information to a
 deployer pursuant to subsection (a) of this section unless the automated
-employment-related decision technology was advertised, m arketed,
+employment-related decision technology was advertised, marketed,
 configured, contracted for, sold or licensed to be used to materially
+
 influence an employment-related decision.
+
 (c) The developer of an automated employment-related decision
 technology may enter into a contract with a deployer of the automated
 employment-related decision technology to assume the deployer's
-duties under sections 9 and 10 of this act.  The contract shall be binding
+duties under sections 9 and 10 of this act. The contract shall be binding
 and clearly set forth which of the deployer's duties under sections 9 and
+
 10 of this act the developer has assumed.
 
-## Sec. 9. (NEW) ( Effective October 1, 2026 )
+## Sec. 9. (NEW) (Effective October 1, 2026)
 
 (a) Except as provided in
 subsection (b) of this section and subsection (c) of section 8 of this act, a
 deployer who, on or after October 1, 2027, deploys one or more
 automated employment-related decision technologies that are intended
-to interact with a n employee or applicant for employment in the state
+to interact with an employee or applicant for employment in the state
 shall ensure that it is disclosed to each such employee or applicant who
 interacts with such technology or technologies that such employee or
-applicant is interacti ng with such technology or technologies. Such
+applicant is interacting with such technology or technologies. Such
+
 disclosure shall be made in plain language.
+
 (b) No disclosure shall be required under subsection (a) of this section
 under circumstances in which a reasonable person would deem it
 obvious that such person is interacting with an automated employment-
+
 related decision technology.
 
-## Sec. 10. (NEW) ( Effective October 1, 2026 )
+## Sec. 10. (NEW) (Effective October 1, 2026)
 
 Except as provided in
 subsection (c) of section 8 of this act, a deployer who, on or after October
 1, 2027, deploys an automated employment-related decision technology
 to generate any output for the purpose of making, or as a substantial
-factor in making, an employment-related decision concerning an
 
+factor in making, an employment-related decision concerning an
 
 employee or applicant for employment in the state shall, before such
 employment-related decision is made, provide to such employee or
+
 applicant a written notice disclosing:
-(1) That the deployer has deployed an automated employment-related decision technology;
+
+(1) That the deployer has deployed an automated employment-
+related decision technology;
+
 (2) The purpose of the automated employment-related decision
+
 technology and the nature of such employment-related decision;
+
 (3) The trade name of the automated employment-related decision
+
 technology;
+
 (4) The categories of personal data concerning such employee or
 applicant the automated employment-related decision technology will
 analyze or process and how the personal data will be assessed in
+
 reaching a decision;
+
 (5) The sources of the personal data described in subdivision (4) of
+
 this section; and
 (6) Contact information for the deployer.
 
@@ -544,24 +691,27 @@ this section; and
 (a) No provision of sections
 8 to 10, inclusive, of this act shall be construed to require any person to
 disclose any information that is a trade secret or otherwise protected
+
 from disclosure under state or federal law.
+
 (b) If a person withholds any information under subsection (a) of this
 section, the person shall send a notice to the person from whom such
 information is being withheld. Such notice shall disclose (1) that such
 person is withholding such information, and (2) the basis for such
+
 person's decision to withhold such information.
 
-## Sec. 12. (NEW) ( Effective October 1, 2026 )
+## Sec. 12. (NEW) (Effective October 1, 2026)
 
 Any violation of the
-provisions of sections 8 to 11, inclusive, of this act shall constitute an
 
+provisions of sections 8 to 11, inclusive, of this act shall constitute an
 
 unfair or deceptive trade practice for the purposes of subsection (a) of
 section 42-110b of the general statutes and shall be enforced solely by
 the Attorney General. The Attorney General may, prior to initiating any
 action for a violation of any provision of sections 8 to 11, inclusive, of
-this act, that occurs on or before December 31, 202 7, issue a notice of
+this act, that occurs on or before December 31, 2027, issue a notice of
 violation to the person who committed such violation if the Attorney
 General determines that it is possible to cure such violation. If such
 person fails to cure such violation within sixty days of receipt of such
@@ -569,6 +719,7 @@ notice of violation, the Attorney General may bring an action pursuant
 to this section. The provisions of section 42-110g of the general statutes
 shall not apply to any such violation. Nothing in this section or sections
 8 to 11, inclusive, of this act shall be construed as providing the basis for
+
 a private right of action for any violation of said sections.
 
 ## Sec. 13.
@@ -576,7 +727,9 @@ a private right of action for any violation of said sections.
 Subsection (b) of section 46a-60 of the 2026 supplement to the
 general statutes is repealed and the following is substituted in lieu
 thereof (Effective October 1, 2026):
+
 (b) It shall be a discriminatory practice in violation of this section:
+
 (1) For an employer, by the employer or the employer's agent, except
 in the case of a bona fide occupational qualification or need, to refuse to
 hire or employ or to bar or to discharge from employment any
@@ -584,19 +737,21 @@ individual or to discriminate against any individual in compensation or
 in terms, conditions or privileges of employment because of the
 individual's race, color, religious creed, age, sex, gender identity or
 expression, marital status, national origin, ancestry, present or past
-history of mental disabilit y, intellectual disability, learning disability,
+history of mental disability, intellectual disability, learning disability,
 physical disability, including, but not limited to, blindness, status as a
 veteran, status as a victim of domestic violence, status as a victim of
-sexual assault or status as a victim of trafficking in perso ns. [;] The use
+
+sexual assault or status as a victim of trafficking in persons. [;] The use
+
 of an automated employment-related decision technology, as defined in
 section 7 of this act, shall not be a defense against a complaint alleging
-a discriminatory practice in violation of this subdivision. The
-
+a__ discriminatory practice _in violation of this subdivision. The
 
 commission or court may consider evidence of anti-bias testing or
 similar proactive efforts to avoid the discriminatory practice, including,
 but not limited to, the quality, efficacy, recency and scope of such testing
 or efforts, the results of such testing or efforts and the response thereto.
+
 (2) For any employment agency, except in the case of a bona fide
 occupational qualification or need, to fail or refuse to classify properly
 or refer for employment or otherwise to discriminate against any
@@ -606,7 +761,9 @@ ancestry, present or past history of mental disability, intellectual
 disability, learning disability, physical disability, including, but not
 limited to, blindness, status as a veteran, status as a victim of domestic
 violence, status as a victim of sexual assault or status as a victim of
-trafficking in persons. [;]
+
+trafficking in persons. [/]
+
 (3) For a labor organization, because of the race, color, religious creed,
 age, sex, gender identity or expression, marital status, national origin,
 ancestry, present or past history of mental disability, intellectual
@@ -617,17 +774,21 @@ trafficking in persons of any individual to exclude from full membership
 rights or to expel from its membership such individual or to
 discriminate in any way against any of its members or against any
 employer or any individual employed by an employer, unless such
+
 action is based on a bona fide occupational qualification. [;]
+
 (4) For any person, employer, labor organization or employment
 agency to discharge, expel or otherwise discriminate against any person
 because such person has opposed any discriminatory employment
-practice or because such person has filed a complaint or testif ied or
-assisted in any proceeding under section 46a-82, 46a-83 or 46a-84. [;]
+practice or because such person has filed a complaint or testified or
 
+assisted in any proceeding under section 46a-82, 46a-83 or 46a-84. [;]
 
 (5) For any person, whether an employer or an employee or not, to
 aid, abet, incite, compel or coerce the doing of any act declared to be a
-discriminatory employment practice or to attempt to do so. [;]
+
+discriminatory employment practice or to attempt to do so. []
+
 (6) For any person, employer, employment agency or labor
 organization, except in the case of a bona fide occupational qualification
 or need, to advertise employment opportunities in such a manner as to
@@ -637,11 +798,13 @@ expression, marital status, national origin, ancestry, present or past
 history of mental disability, intellectual disability, learning disability,
 physical disability, including, but not limited to, blindness, status as a
 veteran, status as a victim of domestic violence, status as a victim of
+
 sexual assault or status as a victim of trafficking in persons. [;]
+
 (7) For an employer, by the employer or the employer's agent: (A) To
 terminate a woman's employment because of her pregnancy; (B) to
 refuse to grant to that employee a reasonable leave of absence for
-disability resulting from her pregnancy; (C) to deny to that  employee,
+disability resulting from her pregnancy; (C) to deny to that employee,
 who is disabled as a result of pregnancy, any compensation to which
 she is entitled as a result of the accumulation of disability or leave
 benefits accrued pursuant to plans maintained by the employer; (D) to
@@ -652,11 +815,11 @@ her intent to return unless, in the case of a private employer, the
 employer's circumstances have so changed as to make it impossible or
 unreasonable to do so; (E) to limit, segregate or classify the employee in
 a way that would deprive her of employment opportunities due to her
-pregnancy; (F) to discriminate against an employee or  person seeking
+pregnancy; (F) to discriminate against an employee or person seeking
 employment on the basis of her pregnancy in the terms or conditions of
-her employment; (G) to fail or refuse to make a reasonable
-accommodation for an employee or person seeking employment due to
+her employment; (G) to fail or refuse to make a_ reasonable
 
+accommodation for an employee or person seeking employment due to
 
 her pregnancy, unless the employer can demonstrate that such
 accommodation would impose an undue hardship on such employer;
@@ -665,18 +828,20 @@ seeking employment if such denial is due to the employee's request for
 a reasonable accommodation due to her pregnancy; (I) to force an
 employee or person seeking employment affected by pregnancy to
 accept a reasonable accommodation if such employee or person seeking
-employment (i) does not have a known limitation related to  her
+employment (i) does not have a known limitation related to her
 pregnancy, or (ii) does not require a reasonable accommodation to
 perform the essential duties related to her employment; (J) to require an
 employee to take a leave of absence if a reasonable accommodation can
-be provided in lieu of such leave; and (K ) to retaliate against an
+be provided in lieu of such leave; and (K) to retaliate against an
 employee in the terms, conditions or privileges of her employment
-based upon such employee's request for a reasonable accommodation .
-[;]
+
+based upon such employee's request for a reasonable accommodation.
+E]
+
 (8) For an employer, by the employer or the employer's agent, for an
 employment agency, by itself or its agent, or for any labor organization,
 by itself or its agent, to harass any employee, person seeking
-employment or member on the basis of sex or gender ide ntity or
+employment or member on the basis of sex or gender identity or
 expression. If an employer takes immediate corrective action in
 response to an employee's claim of sexual harassment, such corrective
 action shall not modify the conditions of employment of the employee
@@ -684,46 +849,50 @@ making the claim of sexual harassment unless such employee agrees, in
 writing, to any modification in the conditions of employment.
 "Corrective action" taken by an employer, includes, but is not limited to,
 employee relocation, assigning an employee to a different work
-schedule or other substant ive changes to an employee's terms and
+schedule or other substantive changes to an employee's terms and
 conditions of employment. Notwithstanding an employer's failure to
 obtain a written agreement from an employee concerning a modification
 in the conditions of employment, the commission may find that
 corrective action taken by an employer was reasonable and not of
-detriment to the complainant based on the evidence presented to the
 
+detriment to the complainant based on the evidence presented to the
 
 commission by the complainant and respondent. As used in this
 subdivision, "sexual harassment" means any unwelcome sexual
 advances or requests for sexual favors or any conduct of a sexual nature
-when (A) submission to such conduct is made either explicitly  or
+when (A) submission to such conduct is made either explicitly or
 implicitly a term or condition of an individual's employment, (B)
 submission to or rejection of such conduct by an individual is used as
 the basis for employment decisions affecting such individual, or (C)
-such conduct has the purpose or effect of subs tantially interfering with
+such conduct has the purpose or effect of substantially interfering with
 an individual's work performance or creating an intimidating, hostile or
+
 offensive working environment. [;]
+
 (9) For an employer, by the employer or the employer's agent, for an
 employment agency, by itself or its agent, or for any labor organization,
 by itself or its agent, to request or require information from an
-employee, person seeking employment or member relat ing to the
+employee, person seeking employment or member relating to the
 individual's child-bearing age or plans, pregnancy, function of the
 individual's reproductive system, use of birth control methods, or the
 individual's familial responsibilities, unless such information is directly
-related to a bona fide occ upational qualification or need, provided an
+related to a bona fide occupational qualification or need, provided an
 employer, through a physician may request from an employee any such
 information which is directly related to workplace exposure to
 substances which may cause birth defects or constitute a hazard to an
 individual's reproductive system or to a fetus if the employer first
 informs the employee of the hazards involved in exposure to such
+
 substances. [;]
+
 (10) For an employer, by the employer or the employer's agent, after
 informing an employee, pursuant to subdivision (9) of this subsection,
 of a workplace exposure to substances which may cause birth defects or
 constitute a hazard to an employee's reproductive system or to a fetus,
 to fail or refuse, upon the employee's request, to take reasonable
 measures to protect the employee from the exposure or hazard
-identified, or to fail or refuse to inform the employee that the measures
 
+identified, or to fail or refuse to inform the employee that the measures
 
 taken may be the subject of a complaint filed under the provisions of
 this chapter. Nothing in this subdivision is intended to prohibit an
@@ -731,7 +900,9 @@ employer from taking reasonable measures to protect an employee from
 exposure to such substances. For the purpose of this subdivision,
 "reasonable measures" are those measures which are consistent with
 business necessity and are least disruptive of the terms and conditions
+
 of the employee's employment. [;]
+
 (11) For an employer, by the employer or the employer's agent, for an
 employment agency, by itself or its agent, or for any labor organization,
 by itself or its agent: (A) To request or require genetic information from
@@ -740,38 +911,44 @@ discharge, expel or otherwise discriminate against any person on the
 basis of genetic information. For the purpose of this subdivision,
 "genetic information" means the information about genes, gene
 products or inherited characteristics that may derive from an individual
+
 or a family member. [;]
+
 (12) For an employer, by the employer or the employer's agent, to
 request or require a prospective employee's age, date of birth, dates of
 attendance at or date of graduation from an educational institution on
-an initial employment application, provided the pro visions of this
+an initial employment application, provided the provisions of this
 subdivision shall not apply to any employer requesting or requiring
 such information (A) based on a bona fide occupational qualification or
 need, or (B) when such information is required to comply with any
+
 provision of state or federal law. [; and]
+
 (13) (A) For an employer or the employer's agent to deny an employee
 a reasonable leave of absence in order to: (i) Seek attention for injuries
 caused by domestic violence, sexual assault or trafficking in persons,
 including for a child who is a victim of domestic violence, sexual assault
 or trafficking in persons, provided the employee is not the perpetrator
 of any act of domestic violence, sexual assault or trafficking in persons
-committed against a child; (ii) obtain services including safety planning
 
+committed against a child; (11) obtain services including safety planning
 
 from a domestic violence agency or rape crisis center, as those terms are
 defined in section 52-146k, as a result of domestic violence, sexual
 assault or trafficking in persons; (iii) obtain psychological counseling
-related to an incident or incidents of d omestic violence, sexual assault
+related to an incident or incidents of domestic violence, sexual assault
 or trafficking in persons, including for a child who is a victim of
 domestic violence, sexual assault or trafficking in persons, provided the
 employee is not the perpetrator of any act of domestic violence, sexual
-assault o r trafficking in persons committed against a child; (iv) take
+assault or trafficking in persons committed against a child; (iv) take
 other actions to increase safety from future incidents of domestic
 violence, sexual assault or trafficking in persons, including temporary
 or permanent relocation; or (v) obtain legal services, assisting in the
 prosecution of the offense, or otherwise participate in legal proceedings
 in relation to the incident or incidents of domestic violence, sexual
+
 assault or trafficking in persons.
+
 (B) An employee who is absent from work in accordance with the
 provisions of subparagraph (A) of this subdivision shall, within a
 reasonable time after the absence, provide a certification to the employer
@@ -779,43 +956,47 @@ when requested by the employer. Such certification shall be in the form
 of: (i) A police report indicating that the employee or the employee's
 child was a victim of domestic violence, sexual assault or trafficking in
 persons; (ii) a court order protecting or separating the employee or
-employee's child from  the perpetrator of an act of domestic violence,
-sexual assault or trafficking in persons; (iii) other evidence from the
+employee's child from the perpetrator of an act of domestic violence,
+sexual assault or trafficking in persons; (ili) other evidence from the
 court or prosecuting attorney that the employee appeared in court; or
-(iv) documentation from a medical professional, including a domes tic
+(iv) documentation from a medical professional, including a domestic
 violence counselor or sexual assault counselor, as those terms are
 defined in section 52-146k, or other health care provider, that the
 employee or the employee's child was receiving services, counseling or
-treatment for physical or mental injuries or a buse resulting in
+treatment for physical or mental injuries or abuse resulting in
 victimization from an act of domestic violence, sexual assault or
-trafficking in persons.
 
+trafficking in persons.
 
 (C) Where an employee has a physical or mental disability resulting
 from an incident or series of incidents of domestic violence, sexual
 assault or trafficking in persons, such employee shall be treated in the
+
 same manner as an employee with any other disability.
+
 (D) To the extent permitted by law, employers shall maintain the
 confidentiality of any information regarding an employee's status as a
+
 victim of domestic violence, sexual assault or trafficking in persons.
 
 ## Sec. 14.
 
 Section 46a-81c of the general statutes is repealed and the
 following is substituted in lieu thereof (Effective October 1, 2026):
+
 It shall be a discriminatory practice in violation of this section: (1) For
 an employer, by [himself] the employer or [his] the employer's agent,
 except in the case of a bona fide occupational qualification or need, to
 refuse to hire or employ or to bar or to discharge from employment any
-individual or to discriminate against [him] any individual  in
+individual or to discriminate against [him] any individual in
 compensation or in terms, conditions or privileges of employment
 because of the individual's sexual orientation or civil union status, (2)
 for any employment agency, except in the case of a bona fide
-occupational qualification or need, to fail or refus e to classify properly
-or refer for employment  or otherwise to discriminate against any
+occupational qualification or need, to fail or refuse to classify properly
+or refer for employment or otherwise to discriminate against any
 individual because of the individual's sexual orientation or civil union
 status, (3) for a labor organization, because of the sexual orientation or
-civil union status of any individual to exclude from full membersh ip
+civil union status of any individual to exclude from full membership
 rights or to expel from its membership such individual or to
 discriminate in any way against any of its members or against any
 employer or any individual employed by an employer, unless such
@@ -823,86 +1004,187 @@ action is based on a bona fide occupational qualification, or (4) for any
 person, employer, employment agency or labor organization, except in
 the case of a bona fide occupational qualification or need, to advertise
 employment opportunities in such a manner as to restrict such
-employment so as to discriminate against  individuals because of their
+employment so as to discriminate against individuals because of their
+
 sexual orientation or civil union status. In any action for a
 
-
 discriminatory practice in violation of subdivision (1) of this section
-involving an automated employment-related decision technology , as
-defined in section 7 of this act, the use of an automated employment-related decision technology shall not be a defense against a complaint.
+
+involving an automated employment-related_ decision technology, as
+defined in section 7 of this act, the use of an automated employment-
+related decision technology shall not be a defense against a complaint.
 The commission or court may consider evidence of anti-bias testing or
 similar proactive efforts to avoid such discriminatory practice,
 including, but not limited to, the quality, efficacy, recency and scope of
-such testing or efforts , the results of such testing or efforts and the
+such testing or efforts, the results of such testing or efforts and the
 response thereto.
 
 ## Sec. 15. (NEW) (Effective October 1, 2026)
 
 (a) As used in this section:
 (1) "Consumer" means an individual who is a resident of this state;
+
 (2) "Covered provider" (A) means any person who creates, codes or
 otherwise produces a generative artificial intelligence system that (i) has
 more than one million users per month, and (ii) is publicly accessible to
-consumers for personal use, and (B) does  not include any federal, state
+consumers for personal use, and (B) does not include any federal, state
+
 or local government agency;
+
 (3) "Generative artificial intelligence system" (A) means any
 technology that uses machine learning to generate images, audio or
 video, and (B) includes, but is not limited to, any system utilizing deep
-learning, natural language processing or other comput ational
+learning, natural language processing or other computational
+
 processing techniques of similar or greater complexity;
+
 (4) "Materially alter" (A) means to substantially alter the data in any
 content, and (B) does not include any minor modification that does not
 lead to a significant change in the perceived content or meaning thereof,
 including, but not limited to, any (i) change in brightness, contrast or
 color, (ii) sharpening, (iii) saturation, (iv) application of a filter, (v)
 resizing, (vi) scaling, (vii) cropping, (viii) format conversion, (ix)
+
 resampling, (x) denoising, or (xi) removal of background noise in audio;
+
 (5) "Person" means an individual, association, corporation, limited
 
-
 liability company, partnership, trust or other legal entity; and
+
 (6) "Provenance data" means data that are embedded into digital
 content or that are included in the digital content's metadata for the
 purpose of verifying the digital content's authenticity, origin or history
+
 of modification.
+
 (b) (1) Except as provided in subdivision (2) of this subsection, each
+
 covered provider shall:
+
 (A) To the extent commercially and technically reasonable, include
 provenance data in any audio, image or video content, or in any content
 that is a combination thereof, that is created or materially altered by
-such covered provider's generative artificial  intelligence system in a
+such covered provider's generative artificial intelligence system in a
 manner that allows a consumer to assess whether such content was
 created or materially altered by such covered provider's generative
+
 artificial intelligence system; and
+
 (B) Use commercially and technically reasonable methods, including,
 but not limited to, the relevant standard established by the Coalition for
 Content Provenance and Authenticity, to make the provenance data that
-are included in any content pursuant to sub paragraph (A) of this
+are included in any content pursuant to subparagraph (A) of this
 subdivision difficult to tamper with, remove or disassociate from such
+
 content.
+
 (2) The provisions of subdivision (1) of this subsection shall not be
+
 construed to:
+
 (A) Require (i) a covered provider to include any information relating
 to an identified or reasonably identifiable individual in the provenance
 data included in any content created or materially altered by the covered
 provider's generative artificial intelligence system, or (ii) the disclosure
 of (I) any information that is a trade secret or otherwise protected from
 disclosure under state or federal law, or (II) any confidential or
+
 proprietary information concerning the design or use of a generative
 
-
 artificial intelligence system; or
+
 (B) Apply to (i) any business-to-business use, sale, licensing or
-distribution of a generative artificial intelligence system, (ii)  any
+distribution of a generative artificial intelligence system, (ii) any
 product, service, Internet web site or application that solely provides
 consumers with video game or interactive experiences, which
 experiences may include (I) direct sales of goods or services to
-consumers through the Internet, and (II) allowing consu mers to
+consumers through the Internet, and (II) allowing consumers to
 virtually browse, select and purchase items, or (iii) any system that is
+
 used solely for upscaling, noise reduction or compression.
+
 (c) Any violation of the provisions of subsection (b) of this section
 shall constitute an unfair or deceptive trade practice for the purposes of
 subsection (a) of section 42-110b of the general statutes and shall be
-enforced solely by the Attorney General.  The provisions of section 42-110g of the general statutes shall not apply to any such violation.
+enforced solely by the Attorney General. The provisions of section 42-
+110g of the general statutes shall not apply to any such violation.
 Nothing in this section shall be construed as providing the basis for a
+
 private right of action.
+
+## Sec. 17. (NEW) (Effective July 1, 2026)
+
+(a) As used in this section,
+"artificial intelligence" means any machine-based system that, for any
+explicit or implicit objective, infers from the inputs such system receives
+how to generate outputs, including, but not limited to, content,
+decisions, predictions or recommendations, that can influence physical
+
+or virtual environments.
+
+(b) Not later than December 31, 2026, the Board of Regents for Higher
+Education shall establish, on behalf of Charter Oak State College and in
+consultation with the Labor Department, the State Board of Education,
+Workforce Investment Boards, employers and institutions of higher
+education in the state, a "Connecticut AI Academy". The academy shall,
+
+at a minimum:
+
+(1) Curate and offer online courses concerning artificial intelligence
+
+and the responsible use of artificial intelligence;
+(2) Promote digital literacy;
+
+(3) Prepare students for careers in fields involving artificial
+
+intelligence;
+
+(4) Offer courses and provide resources directed at individuals
+
+between thirteen and twenty years of age;
+
+(5) Offer courses and provide resources that prepare small businesses
+and nonprofit organizations to utilize artificial intelligence to improve
+
+marketing and management efficiency;
+
+(6) Develop courses concerning artificial intelligence that the Labor
+Department and Workforce Investment Boards may incorporate into
+
+workforce training programs;
+
+(7) In consultation with relevant stakeholders, including, but not
+limited to, bargaining units representing teachers in the state, develop
+and offer courses and videos for primary and secondary school teachers
+and administrators (A) concerning the appropriate use of artificial
+intelligence in primary and secondary school classrooms, (B) instructing
+such teachers how to use artificial intelligence, and (C) providing ideas
+to teachers regarding how to instruct primary and secondary school
+
+students in the use of artificial intelligence;
+
+(8) Enable persons providing free or discounted public Internet
+access to distribute information and provide mentorship concerning
+artificial intelligence, the academy and methods available for the public
+to obtain free or discounted devices capable of accessing the Internet
+
+and utilizing artificial intelligence;
+
+(9) Develop a course to develop durable skills based on the Business-
+
+Higher Education Forum's guidance concerning essential skills for the
+
+artificial intelligence economy; and
+
+(10) Collaborate with various industry partners to offer (A)
+coursework for workers concerning concepts related to artificial
+intelligence, including, but not limited to, coursework to improve
+wotkers' skills related to artificial intelligence, and (B) programs to
+educate residents of the state on concepts related to artificial
+
+intelligence, with a special focus on small and medium businesses.
+
+(c) The Board of Regents for Higher Education shall, in consultation
+with Charter Oak State College, develop certificates and badges to be
+awarded to persons who successfully complete courses offered by the
+Connecticut AI Academy.

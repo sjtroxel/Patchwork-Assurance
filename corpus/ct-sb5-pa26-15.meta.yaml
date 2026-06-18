@@ -2,12 +2,13 @@ law_id: ct-sb5-pa26-15
 jurisdiction: Connecticut
 short_name: CT SB 5 (PA 26-15)
 law_name: "An Act Concerning Online Safety (Substitute Senate Bill No. 5 / Public Act No. 26-15)"
-citation: "Conn. Public Act No. 26-15 (2026), §§ 1-2, 4-15 (AI compliance provisions; Sec. 3 and 16+ omitted as administrative)"
+citation: "Conn. Public Act No. 26-15 (2026), §§ 1-2, 4-15, 17 (AI compliance provisions + the Sec. 17 'artificial intelligence' definition referenced by Sec. 1 & 4; Sec. 3 and 16, 18+ omitted as administrative)"
 also_known_as:
   - 'Nickname "Connecticut AI Responsibility and Transparency Act" / "CART Act" — commentator coinage; NOT in the enacted text (official title is "An Act Concerning Online Safety")'
 status: enacted
 signed_date: 2026-05-27
 effective_dates:
+  - { date: 2026-07-01, applies_to: "Sec. 17 ('artificial intelligence' definition; Connecticut AI Academy)" }
   - { date: 2026-10-01, applies_to: "employment provisions (Sec. 7-14), generative AI provenance (Sec. 15), and frontier model safety (Sec. 2)" }
   - { date: 2027-01-01, applies_to: "AI companion provisions (Sec. 4-6)" }
   - { date: 2027-10-01, applies_to: "deployer pre-decision written-notice obligation: applies to AERDT deployed on or after this date (Sec. 10)" }
