@@ -1,0 +1,35 @@
+law_id: ct-sb5-pa26-15
+jurisdiction: Connecticut
+short_name: CT SB 5 (PA 26-15)
+law_name: "An Act Concerning Online Safety (Substitute Senate Bill No. 5 / Public Act No. 26-15)"
+citation: "Conn. Public Act No. 26-15 (2026), §§ 1-2, 4-15 (AI compliance provisions; Sec. 3 and 16+ omitted as administrative)"
+also_known_as:
+  - 'Nickname "Connecticut AI Responsibility and Transparency Act" / "CART Act" — commentator coinage; NOT in the enacted text (official title is "An Act Concerning Online Safety")'
+status: enacted
+signed_date: 2026-05-27
+effective_dates:
+  - { date: 2026-10-01, applies_to: "employment provisions (Sec. 7-14), generative AI provenance (Sec. 15), and frontier model safety (Sec. 2)" }
+  - { date: 2027-01-01, applies_to: "AI companion provisions (Sec. 4-6)" }
+  - { date: 2027-10-01, applies_to: "deployer pre-decision written-notice obligation: applies to AERDT deployed on or after this date (Sec. 10)" }
+operative_standard: 'AERDT = technology whose output "is a substantial factor used to make or materially influence an employment-related decision". "Substantial factor" = a factor that "meaningfully alters the outcome of an employment-related decision"'
+regulated_tech_term: "Automated Employment-Related Decision Technology (AERDT); also covers frontier models, AI companions, and generative AI systems"
+regulated_roles: [developer, deployer]
+scope_domains: [employment, ai_companion, generative_ai_provenance, frontier_models]
+enforcement_authority: "Connecticut Attorney General"
+enforcement_mechanism: "Connecticut Unfair Trade Practices Act (CUTPA), Conn. Gen. Stat. § 42-110b; enforced solely by the Attorney General"
+cure_period: "60 days to cure after notice, where the AG determines the violation is curable"
+private_right_of_action: false
+key_obligations:
+  - { section: "Sec. 1", label: "Subscription-based AI provider disclosure obligations to consumers" }
+  - { section: "Sec. 2", label: "Frontier model developer duty to avoid catastrophic risk" }
+  - { section: "Sec. 5", label: "AI companion operator disclosure and safety protocol obligations" }
+  - { section: "Sec. 6", label: "AI companion operator additional obligations when user is under 18" }
+  - { section: "Sec. 8", label: "Developer duty to provide deployer the information needed to comply" }
+  - { section: "Sec. 9", label: "Point-of-interaction disclosure (interacting with an AERDT)" }
+  - { section: "Sec. 10", label: "Deployer pre-decision written notice (AERDT deployed on/after Oct 1, 2027)" }
+  - { section: "Sec. 13", label: "AERDT use is not a defense against employment discrimination claims (race, sex, disability, etc.)" }
+  - { section: "Sec. 14", label: "AERDT use is not a defense against sexual orientation / civil union status discrimination claims" }
+  - { section: "Sec. 15", label: "Generative AI provenance: large providers must embed provenance data in AI-generated content" }
+source_url: "https://www.cga.ct.gov/2026/act/pa/pdf/2026PA-00015-R00SB-00005-PA.pdf"
+source_page: "https://www.cga.ct.gov/asp/cgabillstatus/cgabillstatus.asp?selBillType=Bill&bill_num=SB05&which_year=2026"
+retrieved_on: 2026-06-17

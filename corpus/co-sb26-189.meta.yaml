@@ -1,0 +1,28 @@
+law_id: co-sb26-189
+jurisdiction: Colorado
+short_name: CO SB 26-189
+law_name: "Concerning the Use of Automated Decision-Making Technology in Consequential Decisions"
+citation: "Colo. Rev. Stat. §§ 6-1-1701 to 6-1-1709 (Senate Bill 26-189, 2026; Session Laws ch. 131)"
+also_known_as: ["Colorado AI Act (2026 repeal-and-replace of SB 24-205)"]
+status: enacted
+signed_date: 2026-05-14
+effective_dates:
+  - { date: 2027-01-01, applies_to: "act generally; applies to consequential decisions made on or after this date" }
+  - { date: 2026-05-14, applies_to: "AG rulemaking authority and select provisions (effective upon passage)" }
+operative_standard: 'Covered ADMT = automated decision-making technology "used to materially influence a consequential decision"'
+regulated_tech_term: "Automated Decision-Making Technology (ADMT)"
+regulated_roles: [developer, deployer]
+scope_domains: [education, employment, housing, financial_lending, insurance, health_care, government_services]
+enforcement_authority: "Colorado Attorney General"
+enforcement_mechanism: "Colorado Consumer Protection Act (C.R.S. art. 1 of title 6); violations are deceptive trade practices"
+cure_period: "60 days to cure after notice of violation; cure right available through Jan 1, 2030"
+private_right_of_action: false
+key_obligations:
+  - { section: "6-1-1702", label: "Developer responsibilities - documentation" }
+  - { section: "6-1-1703", label: "Deployer record keeping" }
+  - { section: "6-1-1704", label: "Deployer disclosures - point-of-interaction notice" }
+  - { section: "6-1-1705", label: "Consumer rights - correction - human review" }
+  - { section: "6-1-1706", label: "Enforcement by the attorney general - deceptive trade practice" }
+source_url: "https://leg.colorado.gov/bill_files/116489/download"
+source_page: "https://leg.colorado.gov/bills/sb26-189"
+retrieved_on: 2026-06-17

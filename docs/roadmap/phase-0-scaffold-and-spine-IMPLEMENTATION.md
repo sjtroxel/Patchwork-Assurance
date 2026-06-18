@@ -451,8 +451,12 @@ from the docs-only era were the pre-Phase-0 artifact we deliberately engineered 
 - [x] The chrome is present: banner, "we don't store your inputs", and the footer.
 - [x] `pytest` green (core test + API `TestClient` test); `ruff check`/`format --check` pass.
 - [x] `pre-commit install` done.
-- [ ] **CI is green on the first push.** ← pending: the Phase 0 commit + push (nothing pushed yet).
+- [x] **CI is green on the first push.** ← Lint + Test passed in 45s on the first real run (2026-06-17).
 - [x] A teammate could `make install && make dev` and see the slice work.
+
+**Phase 0 complete — 2026-06-17.** Working full-stack Python spine (FastAPI + Streamlit + `core/`),
+one-command dev runner, two passing tests, ruff + pre-commit gates, green CI. v1 binding rule 1 clock
+starts: Phases 1–5 toward a deployed v1.
 
 ---
 

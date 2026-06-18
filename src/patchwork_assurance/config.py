@@ -8,6 +8,8 @@ class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 
     api_base_url: str = "http://localhost:8000"
+    corpus_path: str = "corpus"
+    chroma_path: str = ".chroma"
 
 
 settings = Settings()

@@ -15,6 +15,9 @@ dependencies = [
     "pydantic",
     "pydantic-settings",
     "honcho",
+    "chromadb",
+    "fastembed",
+    "pyyaml",
 ]
 
 [project.optional-dependencies]

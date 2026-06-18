@@ -1,0 +1,23 @@
+law_id: fake-law
+jurisdiction: Testland
+short_name: Fake Law 1
+law_name: "An Act Concerning Fake Things"
+citation: "Fake Rev. Stat. § 1-1-101 (2026)"
+also_known_as: []
+status: enacted
+signed_date: 2026-01-01
+effective_dates:
+  - { date: 2026-07-01, applies_to: "act generally" }
+operative_standard: 'Covered tech = technology "used to materially influence a fake decision"'
+regulated_tech_term: "Fake Decision Technology (FDT)"
+regulated_roles: [deployer]
+scope_domains: [employment, housing]
+enforcement_authority: "Testland Attorney General"
+enforcement_mechanism: "Testland Consumer Protection Act"
+cure_period: "30 days"
+private_right_of_action: false
+key_obligations:
+  - { section: "1-1-101", label: "Deployer notice" }
+  - { section: "1-1-102", label: "Consumer rights" }
+source_url: "https://example.com/fake-law"
+retrieved_on: 2026-06-01

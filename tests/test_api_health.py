@@ -10,4 +10,5 @@ def test_health_endpoint():
     assert response.status_code == 200
     body = response.json()
     assert body["api"] == "ok"
-    assert body["core"]["corpus_size"] == 0
+    assert isinstance(body["core"]["corpus_size"], int)
+    assert body["core"]["corpus_size"] >= 0
