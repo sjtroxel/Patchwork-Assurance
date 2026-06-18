@@ -54,7 +54,8 @@ These are load-bearing. Breaking one is a real bug, not a style choice.
 - **Chroma** (local, persistent) for vectors behind a thin retrieval interface; `sentence-transformers`
   for dev embeddings; a Claude Haiku-class model for generation.
 - `src/` layout, one installable package (`pip install -e ".[dev]"`). Code under
-  `src/patchwork_assurance/{core,api,ui}`; data in `corpus/`; docs in `docs/`.
+  `src/patchwork_assurance/{core,api,ui,mcp}` (`mcp/` is Phase 10); `eval/` harness, `corpus/` data, and
+  `docs/` at the repo root.
 - Run everything with **one command**: `make dev` (honcho boots FastAPI + Streamlit together). Also
   `make install`, `make test`, `make lint`.
 

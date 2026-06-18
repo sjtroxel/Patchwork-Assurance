@@ -97,10 +97,12 @@ market. Verify all versions and model IDs at build time; they churn.
   interface so a hosted store is a later swap if ever needed.
 - **Embeddings:** local `sentence-transformers` for development (free); optionally OpenAI
   `text-embedding-3-small` for production. Query and corpus embeddings must use the *same* model.
-- **Generation:** a Claude model — Haiku-class for the demo path (cheap), with a local model (Ollama)
-  or a free-tier model usable for development to keep costs near zero.
+- **Generation:** a Claude model — Haiku-class (`claude-haiku-4-5`) for the demo path (cheap), behind a
+  thin `LLMClient` interface with a **`StubLLM`** for offline/CI tests and free local iteration
+  (Phase 2). A stronger model is a Phase-6-eval-gated option.
 - **Deploy:** Streamlit Community Cloud for the UI (free; requires a public repo, which is wanted
-  anyway); the FastAPI service on a free tier (Hugging Face Spaces or Render).
+  anyway; the UI hibernates after ~12h idle); the FastAPI service on **Railway** (the builder's existing
+  Hobby plan — chosen over free hosts to avoid cold-start; no *new* spend). See Phase 5.
 - **Dev runner:** a single command boots both processes (FastAPI + Streamlit) together. Two services
   must not mean two terminals.
 
@@ -108,7 +110,8 @@ market. Verify all versions and model IDs at build time; they churn.
 learning both stacks properly, and FastAPI earns its place beyond the resume signal — it becomes the
 single path that multiple consumers hit (the Streamlit UI now; the eval harness and the v2 monitoring
 agent later), it is the natural home for SSE streaming, and it hosts background jobs for v2. The cost
-of the two-service choice is honest and accepted: two deploys and two cold-starts on free tiers.
+of the two-service choice is honest and accepted: two deploys, and a first-visit wake delay on the free
+Streamlit UI (the Railway backend stays warm). See Phase 5 §5.
 
 ---
 
@@ -119,11 +122,13 @@ evals, and the monitoring agent is configuration and addition, never a rebuild.
 
 **Keystone — the `core/` package.** All real logic lives in an importable Python package, independent
 of FastAPI and Streamlit. The API imports it; the eval harness imports it; the monitoring agent imports
-it. Everything tests and runs against the same logic, so evals exercise the real production path.
+it; the MCP server (Phase 10) imports it. Everything tests and runs against the same logic, so evals
+exercise the real production path.
 
 **Seam 1 — Corpus as a folder with metadata, never hardcoded statutes.** Each law is a cleaned text
-file plus a metadata record (`jurisdiction`, `citation`, `law_name`, `effective_date`,
-`cure_deadline`, `enforcement_authority`, `scope_domains`, `source_url`). One loader ingests every file
+file plus a metadata record (`jurisdiction`, `citation`, `law_name`, `effective_dates`, `cure_period`,
+`enforcement_authority`, `scope_domains`, `source_url`, …; **canonical schema in `SPEC_V1.md` §4**).
+One loader ingests every file
 in the directory and attaches metadata to every chunk. Adding a state, a federal rule, or a court
 decision later is: drop a file, add a metadata record, re-run the loader. Zero code change.
 
@@ -140,14 +145,19 @@ automatically.
 so the backend can be swapped; generation behind a small interface so the eval harness calls the same
 path the app uses.
 
-**Two-service layout** (detail in `SPEC_V1.md`):
+**Layout** — a `src/` package with data and docs at the root (canonical detail in `SPEC_V1.md` and
+Phase 0 §4). The `core/` keystone has multiple thin consumers (`api/`, `ui/` via the API, `eval/`,
+`mcp/`):
 ```
-patchwork_assurance/
+src/patchwork_assurance/
   core/      # the keystone: corpus loader, retrieval, memo, chat — pure Python
   api/       # FastAPI: /analyze, /chat (imports core/)
   ui/        # Streamlit: memo page, chat page (calls api/ over HTTP)
-  corpus/    # statute text files + metadata records (Seam 1)
-  eval/      # gold set + harness (added Phase 6)
+  mcp/       # MCP server: core tools over MCP (Phase 10; imports core/)
+corpus/      # statute text files + metadata records (Seam 1)
+eval/        # gold set + harness (Phase 6)
+docs/        # ROADMAP, SPEC_V1, per-phase plans
+tests/       # pytest
 ```
 
 ---
@@ -221,7 +231,10 @@ Verified 2026-06-17. The whole project fits a free-tier / penny-level budget.
 - **Generation:** Claude Haiku-class is roughly under a cent per memo; development can run on a local
   model or a free-tier model and switch to the paid model only for the demo path. (A Claude Pro
   subscription does not include API credits; API generation is separate pay-as-you-go, but pennies.)
-- **Hosting:** Streamlit Community Cloud (free) + a free FastAPI host. Both sleep when idle.
+- **Hosting:** Streamlit Community Cloud (free; the UI hibernates after ~12h idle) + **Railway Hobby
+  (~$5/mo, an already-active subscription, always-on)** for the FastAPI backend. **Net new hosting cost
+  for v1: $0** — the Railway plan predates this project; the only cost of the free UI tier is a
+  first-visit wake delay. (See Phase 5 §5, §10.)
 - **v2 monitoring is not 50 always-on LLM calls.** The cheap architecture is: poll cheap sources →
   detect change with free text-diff/hashing → spend an LLM call only when something actually changed.
   Cost then scales with the rate of legal change (a handful of events per week across all states), not
@@ -294,6 +307,13 @@ This roadmap replaces `ROADMAP_AB.md` because of three decisions and one correct
    duty for AERDT deployed on/after Oct 1 2027). An earlier draft of this section had over-corrected
    the brainstorm and wrongly applied "substantial factor" to Colorado.
 
-Open decisions tracked going forward: exact embedding model for production; exact Claude model ID at
-build time; free FastAPI host choice (HF Spaces vs Render); whether the federal-landscape notes join
-the corpus as retrievable context. These are resolved in the relevant phase docs, not here.
+**Decisions resolved since** (each recorded in its phase doc): FastAPI host = **Railway** (Phase 5);
+generation model = **`claude-haiku-4-5`** behind a `StubLLM`-backed `LLMClient`, eval-judge =
+**Sonnet 4.6** (Phases 2, 6); **custom chunker** (Phase 1); **`sse-starlette`** for SSE streaming
+(Phase 3); **custom eval harness** (Phase 6); **text→SQL** for metadata retrieval (Phase 8);
+**PR-as-human-gate** for the ingestion agent (Phase 9); **read-only MCP** server (Phase 10).
+
+**Still genuinely open:** the **production embedding model** (local `sentence-transformers` vs OpenAI
+`text-embedding-3-small` — decided at deploy, Phase 1 §11 / Phase 8) and **whether federal-landscape
+notes join the corpus**. The per-phase plan docs are the source of truth for build-level decisions; this
+roadmap stays strategy-level and must not contradict them.

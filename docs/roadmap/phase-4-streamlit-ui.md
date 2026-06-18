@@ -38,6 +38,8 @@ model** and `st.session_state` (§10). Internalize that and the rest is arrangin
       footer.
 - [ ] A `.streamlit/config.toml` theme so the app is branded and presentable (§8), single-column-first
       so it survives mobile (§8).
+- [ ] **Brand assets present:** a favicon (`page_icon`), a Patchwork Assurance logo in the header/
+      sidebar, and a chosen font (§8).
 - [ ] API calls go through a thin, **unit-testable** `ui/client.py` (pure functions); pages stay thin.
 - [ ] `make dev` boots API + UI together; the full path works end to end: type a situation → grounded
       memo with citations; ask a follow-up → streamed grounded answer.
@@ -129,7 +131,13 @@ and unmissable everywhere (ROADMAP §5, §9; `.claude/rules/legal-content.md`).
 Per Phase 0 §6.2 — theme config + native layout, no CSS battle:
 
 - **`.streamlit/config.toml` `[theme]`** sets base (light/dark), primary color, and font — the supported
-  way to brand, and enough for v1.
+  way to brand, and enough for v1. (Streamlit's custom-font support has grown; verify the current
+  Google/custom-font options at build.)
+- **Brand identity — favicon, logo, font.** Set the **favicon** via `st.set_page_config(page_icon=...)`
+  (an image path or emoji); show a **Patchwork Assurance logo** in the header/sidebar (`st.logo()` /
+  `st.image`), with assets in `ui/assets/`; pick the **font** in the theme. The actual visual identity
+  (logo concept, palette, font pairing) is a Phase-4 *build* creative task — the assets get made then,
+  not in this plan. (SVG logo/favicon can be hand-authored; richer raster art needs a design tool.)
 - **Native layout** (`st.columns`, `st.tabs`, `st.expander`, sidebar) handles structure.
 - **Single-column-first for mobile.** Streamlit auto-stacks columns vertically at ≤640px and you can't
   retune that breakpoint, so build layouts that read top-to-bottom (a form, a results panel, a chat box
@@ -200,8 +208,10 @@ Streamlit UIs resist unit testing, so split the testable part out and smoke-test
 
 ## 14. Open decisions for this phase
 
-- **Theme specifics** (light vs dark base, primary color, font) — pick when branding; trivially
-  reversible in `config.toml`.
+- **Visual identity** (logo concept + favicon, color palette, light/dark base, font pairing) — the
+  creative choices, made at Phase-4 build and trivially reversible. Division of labor: Claude
+  hand-authors the SVG wordmark/favicon + suggests font pairings; any **raster** art is generated with
+  **Adobe Firefly** (the builder's tool, used before) from prompts + asset specs Claude provides.
 - **Memo rendering density** — expanders per law vs a single scroll; tune for readability once real
   memos exist.
 - **Whether to show retrieved chunks** ("show sources" expander) on the memo page — a nice transparency

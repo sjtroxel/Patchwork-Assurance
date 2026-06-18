@@ -9,9 +9,10 @@ costs almost nothing to reach later.
 **Statutes are never hardcoded.** Each law in scope is two things sitting here:
 
 1. A cleaned text/markdown file of the statutory (or, later, regulatory or case-law) text.
-2. A metadata record describing it: `jurisdiction`, `citation`, `law_name`,
-   `effective_date`, `cure_deadline`, `enforcement_authority`, `scope_domains`
-   (e.g. employment, housing, lending), `source_url`.
+2. A metadata record describing it: `jurisdiction`, `citation`, `law_name`, `effective_dates`,
+   `cure_period`, `enforcement_authority`, `scope_domains` (e.g. employment, housing, lending),
+   `source_url`, and more. The **canonical `LawMetadata` schema is `../docs/SPEC_V1.md` §4** — this is
+   an illustrative summary, not the contract.
 
 A single loader ingests every file in this directory — chunk, embed, upsert to the vector store,
 attaching the metadata to every chunk. Retrieval and the memo logic are generic over whatever is
