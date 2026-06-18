@@ -1,0 +1,43 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "patchwork-assurance"
+version = "0.1.0"
+description = "AI-native tool for the state-by-state AI-regulation patchwork."
+requires-python = ">=3.12"
+dependencies = [
+    "fastapi",
+    "uvicorn[standard]",
+    "streamlit",
+    "httpx",
+    "pydantic",
+    "pydantic-settings",
+    "honcho",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest",
+    "ruff",
+    "pre-commit",
+]
+
+# src layout: tell hatchling where the importable package lives.
+[tool.hatch.build.targets.wheel]
+packages = ["src/patchwork_assurance"]
+
+[tool.ruff]
+line-length = 100
+src = ["src", "tests"]
+
+[tool.ruff.lint]
+# pycodestyle, pyflakes, isort, pyupgrade, bugbear — a sensible, not-fussy default set.
+select = ["E", "F", "I", "UP", "B"]
+# The formatter owns line length for code; E501 otherwise only fires on unbreakable
+# lines (long URLs, the inline SVG in the footer), which is noise — so don't lint it.
+ignore = ["E501"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

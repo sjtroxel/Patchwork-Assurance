@@ -3,14 +3,14 @@
 # Pin the ruff rev to match the ruff version in pyproject.toml at build time.
 repos:
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.6.0 # verify/update at build time
+    rev: v0.15.17 # verify/update at build time
     hooks:
       - id: ruff # lint
         args: [--fix]
       - id: ruff-format # format
 
   - repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v4.6.0 # verify/update at build time
+    rev: v6.0.0 # verify/update at build time
     hooks:
       - id: end-of-file-fixer
       - id: trailing-whitespace
