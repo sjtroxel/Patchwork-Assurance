@@ -605,12 +605,35 @@ Done = a presentable, working two-surface app over the real API. Deploy is Phase
 
 ---
 
-## 16. As-built notes (fill during build)
+## 16. As-built notes (built 2026-06-19, Streamlit 1.58.0)
 
-- *(Record real deviations here — Phase 5's deploy plan reads how Phase 4 actually turned out.)*
-- **Confirm** the final asset paths that worked with `st.logo` / `page_icon`.
-- **Pin** the `[theme]` keys actually used and any 1.58 typography keys confirmed.
-- **Record** the exact `AppTest` accessors used (the testing API drifts; Phase 6+ evals may reuse them).
-- **Note** anything about `st.write_stream` + the closure-capture pattern for the terminal SSE event,
-  if it needed adjustment.
+- **Asset paths.** Both `st.set_page_config(page_icon=...)` and `st.logo(...)` were given the
+  **repo-root-relative** paths `src/patchwork_assurance/ui/assets/favicon.svg` and `.../logo.svg`.
+  They resolve correctly under `make dev` because honcho/Streamlit run from the repo root (the
+  `.streamlit/config.toml` CWD). **Phase 5 risk:** Streamlit Community Cloud sets the working directory
+  to the repo root of the deployed app, but if the main script is pointed at a subpath the relative
+  asset paths can break — **verify the favicon/logo still render on the deployed UI and switch to a
+  path resolved relative to `__file__` if they don't.** This is the most likely Phase 4→5 landmine.
+- **`[theme]` keys used.** Only the **core six**: `base="light"`, `primaryColor="#2f4b5e"`,
+  `backgroundColor="#ffffff"`, `secondaryBackgroundColor="#f3f5f7"`, `textColor="#1a1f24"`,
+  `font="serif"`. No 1.58 typography keys (`headingFont`/`baseFontSize`/radius) were added — the six
+  were sufficient for the DoD. (The visual identity is placeholder; a real palette/logo pass is
+  expected before Phase 5, per design-doc §14.)
+- **`AppTest` accessors used (Streamlit 1.58).** `AppTest.from_file(path).run()`; `at.exception`;
+  `at.warning[*].value`; `at.button[*].label` / `.click().run()`; `at.multiselect[*].set_value([...])`;
+  `at.expander[*].label`; `at.error[*].value`; `at.chat_input[*].set_value(...)`;
+  `at.chat_message[*].name` (role); `at.caption[*].value`. API mocking is done with
+  `unittest.mock.patch("patchwork_assurance.ui.client.analyze" | ".stream_chat", ...)`. These work as
+  written; Phase 6+ evals can reuse them.
+- **`st.write_stream` + terminal SSE.** `st.write_stream(gen)` consumes the token generator and returns
+  the joined string as §6c assumed — no adjustment needed. **Deviation from the plan:** the chat page
+  (`pages/2_Chat.py`) captures the terminal `sources`/`error` events with a `global sources, error`
+  declaration in the generator rather than the closure holder-dicts the plan showed. It works and is
+  covered by `test_chat_page_streams_answer_and_shows_sources`; the holder-dict form is the cleaner
+  pattern if this is ever revisited.
+- **HTTP client injection.** `analyze()` / `stream_chat()` take `*, client: httpx.Client | None = None`
+  so tests inject `httpx.Client(transport=httpx.MockTransport(...))`; production passes nothing.
+  `stream_chat` closes the client **only when it created it** (`_owned = client is None`), so a
+  caller-injected test client is never closed out from under the test.
+- **Layout.** Both pages use `st.set_page_config(layout="centered")` — single-column-first per §8.
 ```
