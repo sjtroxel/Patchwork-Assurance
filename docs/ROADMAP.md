@@ -100,9 +100,12 @@ market. Verify all versions and model IDs at build time; they churn.
 - **Generation:** a Claude model — Haiku-class (`claude-haiku-4-5`) for the demo path (cheap), behind a
   thin `LLMClient` interface with a **`StubLLM`** for offline/CI tests and free local iteration
   (Phase 2). A stronger model is a Phase-6-eval-gated option.
-- **Deploy:** Streamlit Community Cloud for the UI (free; requires a public repo, which is wanted
-  anyway; the UI hibernates after ~12h idle); the FastAPI service on **Railway** (the builder's existing
-  Hobby plan — chosen over free hosts to avoid cold-start; no *new* spend). See Phase 5.
+- **Deploy:** both the Streamlit UI **and** the FastAPI service on **Railway** (the builder's existing
+  Hobby plan), **always-on — no hibernation, no wake button** (the UI moved off Streamlit Community
+  Cloud in Phase 4.5; Community Cloud sleeps after ~12h idle and refuses custom domains). A third
+  surface is added in Phase 4.5: a **static "front door" landing page** on a free static host (Vercel/
+  Railway static). A custom domain (optional, ~$12/yr) puts all of it under one umbrella
+  (`patchworkassurance.com` apex → landing, `app.` subdomain → the Streamlit app). See Phase 4.5 + Phase 5.
 - **Dev runner:** a single command boots both processes (FastAPI + Streamlit) together. Two services
   must not mean two terminals.
 
@@ -110,8 +113,10 @@ market. Verify all versions and model IDs at build time; they churn.
 learning both stacks properly, and FastAPI earns its place beyond the resume signal — it becomes the
 single path that multiple consumers hit (the Streamlit UI now; the eval harness and the v2 monitoring
 agent later), it is the natural home for SSE streaming, and it hosts background jobs for v2. The cost
-of the two-service choice is honest and accepted: two deploys, and a first-visit wake delay on the free
-Streamlit UI (the Railway backend stays warm). See Phase 5 §5.
+of the two-service choice is honest and accepted: two deploys to wire across origins. (The original
+plan also accepted a first-visit wake delay on a free Streamlit Community Cloud UI; Phase 4.5 removed
+that by hosting the UI on always-on Railway instead — the trade is a modest usage cost for two
+always-on services over Railway's $5 credit, not a wake delay.) See Phase 4.5 §9 and Phase 5 §5.
 
 ---
 
@@ -156,9 +161,14 @@ src/patchwork_assurance/
   mcp/       # MCP server: core tools over MCP (Phase 10; imports core/)
 corpus/      # statute text files + metadata records (Seam 1)
 eval/        # gold set + harness (Phase 6)
+site/        # static "front door" landing page — HTML/CSS/JS (Phase 4.5); a marketing veneer, no logic
 docs/        # ROADMAP, SPEC_V1, per-phase plans
 tests/       # pytest
 ```
+
+The two-service split (API + UI over `core/`) is the architectural heart. Phase 4.5 adds a **third
+surface**, the static `site/` landing page — a thin presentation veneer with zero business logic that
+fronts the Streamlit app; it is not a third service and does not touch the seams.
 
 ---
 
@@ -198,15 +208,18 @@ phases actually turned out).
 | **2 — `core/` logic (Seams 2–4)** | `retrieve(query, filters)`; structured memo generation; chat RAG — pure Python, testable without the web layer | RAG; prompting; structured output |
 | **3 — FastAPI** | `/analyze` + `/chat` over `core/`; Pydantic models; SSE streaming for chat | FastAPI; async; SSE (the backend rep) |
 | **4 — Streamlit UI** | Memo-form page; chat page; the "not legal advice" banner; made presentable | Streamlit; multi-page; `st.chat` |
-| **5 — Deploy + README** | Streamlit Cloud (UI) + free host (API); public repo; Python-dominant `.gitattributes` backstop. **Shippable v1.** | Deploy; secrets; env config |
+| **4.5 — Visual identity & front door** | A real quilt visual identity (palette, logo, type) replacing the placeholder; a cinematic static landing page (the "front door"); app polished to gorgeous-but-trustworthy. A presentation half-phase, no functional change. | Visual design; static HTML/CSS/JS; brand |
+| **5 — Deploy + README** | UI **and** API on Railway (always-on) + static landing on a free host; custom-domain umbrella (optional); public repo; Python-dominant `.gitattributes` backstop. **Shippable v1.** | Deploy; secrets; env config |
 | **6 — Evals** | Gold set of situations → expected scope/obligations; retrieval hit-rate, scope accuracy, citation groundedness; LLM-as-judge — run against the same API path | Evals; LLM-as-judge |
 | **7 — Observability & security** | Tracing + token-cost/latency instrumentation over the API path; prompt-injection and poisoned-document defenses for the chat surface and the corpus loader | Observability tooling; LLM security |
 | **8 — Retrieval quality (hybrid RAG)** | Add structured / text→SQL retrieval over the corpus metadata (jurisdiction, scope domains, dates) alongside semantic search; route queries; compare flavors of RAG, measured against the Phase 6 evals | Hybrid + agentic RAG; retrieval tuning |
 | **9 — Monitoring/ingestion agent (v2 headline)** | Scheduled poll → free diff → LLM-on-change → agent writes into `corpus/` → human gate surfaces changes for review; prove it by adding a 3rd jurisdiction | Agents; agent loops; the AI-native engine |
 | **10 — MCP server** | Expose Patchwork's tools (scope check, memo, retrieval) as an MCP server usable from Claude / Cursor | MCP; tool + server design |
 
-**v1 = Phases 0–5. v1.x = Phases 6–8 (measure, harden, improve retrieval). v2 = Phases 9–10 (the
-self-updating engine + MCP).**
+**v1 = Phases 0–5** (with **4.5**, a presentation-only half-phase, inserted between build and deploy).
+**v1.x = Phases 6–8 (measure, harden, improve retrieval). v2 = Phases 9–10 (the self-updating engine +
+MCP).** Phase 4.5 adds no functional capability, so it does not touch binding rule 1's gate: Phases 6+
+remain blocked until v1 is deployed and works end to end.
 
 *Ordering rationale for 6–10:* ship v1 first, then **measure** it (evals), then **harden** it
 (observability + security), then **improve retrieval** (hybrid RAG) now that evals can tell whether the
@@ -231,10 +244,13 @@ Verified 2026-06-17. The whole project fits a free-tier / penny-level budget.
 - **Generation:** Claude Haiku-class is roughly under a cent per memo; development can run on a local
   model or a free-tier model and switch to the paid model only for the demo path. (A Claude Pro
   subscription does not include API credits; API generation is separate pay-as-you-go, but pennies.)
-- **Hosting:** Streamlit Community Cloud (free; the UI hibernates after ~12h idle) + **Railway Hobby
-  (~$5/mo, an already-active subscription, always-on)** for the FastAPI backend. **Net new hosting cost
-  for v1: $0** — the Railway plan predates this project; the only cost of the free UI tier is a
-  first-visit wake delay. (See Phase 5 §5, §10.)
+- **Hosting:** **Railway Hobby** ($5/mo base + usage, an already-active subscription) hosts **both** the
+  FastAPI backend and the Streamlit UI, **always-on** (Phase 4.5 moved the UI here off Streamlit
+  Community Cloud — no hibernation, no wake button, custom-domain capable). The static "front door"
+  landing page is **$0** on a free static host. **Honest cost note:** two always-on services may push
+  past Railway's included $5 usage credit — likely a few dollars/mo over the base, not a plan jump —
+  verified at deploy. The base $5 predates this project; the only genuinely *new* spend is an optional
+  ~$12/yr custom domain. (See Phase 4.5 §9, §11 and Phase 5 §5, §10.)
 - **v2 monitoring is not 50 always-on LLM calls.** The cheap architecture is: poll cheap sources →
   detect change with free text-diff/hashing → spend an LLM call only when something actually changed.
   Cost then scales with the rate of legal change (a handful of events per week across all states), not
@@ -317,3 +333,15 @@ generation model = **`claude-haiku-4-5`** behind a `StubLLM`-backed `LLMClient`,
 `text-embedding-3-small` — decided at deploy, Phase 1 §11 / Phase 8) and **whether federal-landscape
 notes join the corpus**. The per-phase plan docs are the source of truth for build-level decisions; this
 roadmap stays strategy-level and must not contradict them.
+
+### Update 2026-06-19
+
+- **Phase 4 shipped** (the two-surface Streamlit app works end to end over the API; CI green). As-built
+  notes live in `phase-4-streamlit-ui-IMPLEMENTATION.md` §16.
+- **Phase 4.5 inserted** — `phase-4.5-visual-identity-and-front-door.md` — a presentation-only
+  half-phase (real quilt identity + a cinematic static landing page + app polish). Opus-led build.
+- **UI host pivot: Streamlit Community Cloud → Railway.** Driven by verification (2026-06-19) that
+  Community Cloud sleeps idle apps behind a manual "wake" button and refuses custom domains. Railway
+  runs Streamlit always-on and supports custom domains, so the UI joins the API there. This **changes
+  Phase 5's host decision** (its §5/§13) and restores the single-custom-domain umbrella; §3, §7, and the
+  phase spine above are updated accordingly.

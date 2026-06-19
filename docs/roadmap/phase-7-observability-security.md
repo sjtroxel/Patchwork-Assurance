@@ -64,8 +64,9 @@ Instrument at the seams that already exist, so this is wrapping, not rewiring:
 - **The `LLMClient` seam (Phase 2 §5) is the natural instrumentation point** — wrap `complete` /
   `complete_structured` / `stream` to record model, latency, and the `usage` numbers without touching
   callers. One decorator, every LLM call covered.
-- **Latency per stage** (embedding/retrieval vs generation) so you can see where time goes — useful when
-  the free-tier cold-start (Phase 5) muddies first-request timing.
+- **Latency per stage** (embedding/retrieval vs generation) so you can see where time goes — useful for
+  isolating first-request warm-up (the Railway services are always-on as of Phase 4.5, but container
+  restarts/redeploys still produce a cold first request).
 
 ## 5. Token, cost, and usage instrumentation
 
