@@ -207,7 +207,7 @@ every chunk of that law.
 
 ---
 
-## 8. Reserved — core output + API contracts (filled in Phases 2–3)
+## 8. Core output contracts (Phase 2) — API request/response wrappers added in Phase 3
 
 **Terminology — "memo".** Throughout Patchwork, a "memo" is a **structured statutory-compliance memo**:
 a per-law in-scope finding, obligations cited to **statute sections** (not case law — these laws are
@@ -215,10 +215,107 @@ unlitigated, so no case law exists), draft notice language, and a deadline check
 decision-support, **not** the predictive IRAC legal memo of legal practice, and not legal advice
 (ROADMAP §9). Frame it publicly as a "grounded compliance summary."
 
-The `ComplianceMemo`, `Situation`, `RetrievedChunk`, and chat request/response shapes are pinned here
-when `core/` is built in **Phase 2**; the FastAPI `/analyze` and `/chat` request/response wrappers are
-added in **Phase 3**. Until then the only live endpoint is `/health`, a Phase 0 throwaway that is not a
-pinned contract.
+Canonical module: `src/patchwork_assurance/core/contracts.py`. Phase 3 serializes these exactly as
+JSON request/response wrappers — do not add API-layer fields here.
+
+### 8.1 `Situation` — the user's described facts (scope screen input)
+
+```python
+class Situation(BaseModel):
+    jurisdictions: list[str] = []          # states the business operates in / employs in / serves
+    decision_domains: list[ScopeDomain] = []  # which decisions AI touches (see §3)
+    roles: list[RegulatedRole] = []        # "developer" | "deployer" (see §3)
+    uses_ai_in_decisions: bool = True
+    notes: str = ""                        # free text; passed to LLM for color, not to scope screen
+```
+
+### 8.2 `ScopeResult` — deterministic per-law scope verdict
+
+```python
+class ScopeResult(BaseModel):
+    law_id: str
+    short_name: str
+    jurisdiction: str
+    in_scope: Literal["yes", "no", "uncertain"]
+    reason: str  # human-readable derivation; never overridden by the LLM
+```
+
+**Verdict semantics (the deterministic screen, `core/scope.py`).** The screen treats three elements
+as *each necessary* for a law to apply — **jurisdiction**, **decision domain**, **role** — and
+classifies each into one of three states against the law's metadata: **match** (user-provided info
+overlaps the law), **mismatch** (user named something that falls outside it), or **blank** (user said
+nothing). The rule, in order: (1) `uses_ai_in_decisions=False` → **no**; (2) any **mismatch** → **no**;
+(3) all three **match** → **yes** ("facially within" — *before* exemptions, which are not yet modeled);
+(4) otherwise (a necessary element is **blank**) → **uncertain**. This is what distinguishes "you didn't
+tell me" (→ uncertain) from "you told me, and it's outside" (→ no), and ensures a sparse situation is
+never given a confident **no** (false reassurance).
+
+Strictness is a single dial, `ScopePolicy`, with presets `CAUTIOUS` (default — blank→uncertain,
+mismatch→no), `LENIENT` (blank→no), and `STRICT` (mismatch→uncertain). `applicable_laws(situation,
+laws, policy=CAUTIOUS)`. The LLM never overrides the verdict; it renders it into grounded prose.
+
+### 8.3 `RetrievedChunk` — a grounding excerpt from the corpus
+
+```python
+class RetrievedChunk(BaseModel):
+    text: str
+    citation: str          # e.g. "CO SB 26-189 § 6-1-1703(1)"
+    section_number: str
+    section_heading: str
+    jurisdiction: str
+    law_id: str
+    score: float           # cosine similarity, 0–1
+```
+
+### 8.4 `ComplianceMemo` — structured memo output (validated by `messages.parse`)
+
+```python
+class MemoObligation(BaseModel):
+    text: str
+    citation: str
+
+class LawFinding(BaseModel):
+    law_id: str
+    short_name: str
+    in_scope: Literal["yes", "no", "uncertain"]
+    why: str
+    obligations: list[MemoObligation] = []
+    effective_dates: list[str] = []
+
+class DraftNotice(BaseModel):
+    kind: str          # e.g. "point-of-interaction", "pre-decision"
+    jurisdiction: str
+    text: str
+
+class DeadlineItem(BaseModel):
+    date: str
+    what: str
+    law: str
+
+class ComplianceMemo(BaseModel):
+    per_law: list[LawFinding]
+    draft_notices: list[DraftNotice] = []
+    deadline_checklist: list[DeadlineItem] = []
+    disclaimer: str    # always the canonical not-legal-advice line from core/prompts.py
+```
+
+**Schema constraint:** No `min_length`, `ge`, `le`, or recursive schemas — the Anthropic structured-output
+JSON Schema does not support numeric/length constraints; the SDK strips them, so keep the models clean.
+
+### 8.5 Chat types
+
+```python
+class Msg(BaseModel):
+    role: Literal["user", "assistant"]
+    content: str
+
+class ChatTurn(BaseModel):
+    reply: str
+    citations: list[str] = []  # citation strings from RetrievedChunks used for this turn
+```
+
+The chat API is **stateless**: the caller passes the full `list[Msg]` history on each turn.
+The streaming variant (`chat_stream`) yields token strings; Phase 3 wires these to SSE.
 
 ---
 

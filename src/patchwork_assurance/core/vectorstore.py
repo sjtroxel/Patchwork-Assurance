@@ -9,6 +9,7 @@ class VectorStore(Protocol):
     def add(self, ids, embeddings, documents, metadatas) -> None: ...
     def count(self) -> int: ...
     def embedding_model(self) -> str | None: ...
+    def query(self, embedding, k, where) -> dict: ...
 
 
 class ChromaVectorStore:
@@ -34,3 +35,11 @@ class ChromaVectorStore:
 
     def embedding_model(self) -> str | None:
         return (self._collection.metadata or {}).get("embedding_model")
+
+    def query(self, embedding, k, where=None):
+        return self._collection.query(
+            query_embeddings=[embedding],
+            n_results=k,
+            where=where or None,
+            include=["documents", "metadatas", "distances"],
+        )

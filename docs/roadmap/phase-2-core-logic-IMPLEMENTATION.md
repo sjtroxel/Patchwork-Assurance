@@ -578,9 +578,32 @@ once there; reference, don't duplicate. Phase 3 serializes exactly these.
 
 ---
 
-## As-built notes (fill during build)
+## As-built notes (2026-06-18)
 
-- *(Record real deviations here — Phase 3's plan reads how Phase 2 actually turned out.)*
-- **Verify at build:** `messages.parse(output_format=...)` → `.parsed_output`; `messages.stream().text_stream`;
-  `chromadb` `query(include=[...])` shape; model IDs (`/claude-api`).
-- **Pin** the installed `anthropic` version here once known.
+- **`anthropic` pinned at 0.111.0** (installed via `pip install -e ".[dev]"`).
+- **Chroma `where` filter syntax:** equality filters require `{"field": {"$eq": value}}`, not bare
+  `{"field": value}`. Updated in `core/retrieval.py` `_where()`.
+- **SDK calls statically verified against the installed 0.111.0** (not just the skill): `messages.parse`
+  accepts `output_format=` and returns a `.parsed_output` property; `messages.stream(...).text_stream`
+  is a real instance attribute. **Caveat: the `AnthropicLLM` path has NOT been run end-to-end** — no
+  API key has exercised it. The gated live smoke tests in `tests/test_live.py` (`@pytest.mark.live`,
+  deselected by default, skip without `ANTHROPIC_API_KEY`) are the intended proof; run them before
+  Phase 3 leans on the real model.
+- **Retrieval `score`:** the Chroma collection is `space: l2` (squared L2), and fastembed BGE vectors
+  are unit-normalized, so `score = 1 - distance/2` (cosine). Earlier `1 - distance` was metric-wrong
+  (could go negative). See `_l2sq_to_cosine` in `core/retrieval.py`.
+- **Citations are section-level, not law-wide.** `RetrievedChunk.pinpoint` composes a section cite
+  (`Colorado § 6-1-1703` / `Connecticut Sec. 4`) generically; the render helpers feed it to the model
+  and `chat()` returns deduped pinpoints. The law-wide `citation` is still carried for context.
+- **Scope screen reworked to a 3-state model (human-reviewed 2026-06-18).** Each necessary element
+  (jurisdiction / domain / role) is now `match | mismatch | blank`, so the screen distinguishes "you
+  didn't tell me" (→ uncertain) from "you told me, and it's outside this law" (→ no). This removed the
+  old false-reassurance bug (nexus-only with blank domain/role used to return a confident `no`; now
+  `uncertain`). Strictness is a single `ScopePolicy` dial — `CAUTIOUS` (default), `LENIENT`, `STRICT` —
+  so "too permissive / too strict" is a one-line change. Verdict semantics pinned in SPEC §8.2.
+  Exemption/size-threshold modeling is still **not** present (the `LawMetadata` schema doesn't capture
+  it); "yes" is therefore stated as "facially within", before exemptions. Deferred to a later phase.
+- **53 tests passing (+2 live, deselected), lint clean.** No deviations from the intended build order.
+- **SPEC §8 filled** with the settled shapes: `Situation`, `ScopeResult`, `RetrievedChunk`,
+  `ComplianceMemo` (+ sub-types), `Msg`, `ChatTurn`. Phase 3 serializes exactly these.
+- **`from patchwork_assurance.core import generate_memo, chat, applicable_laws` works.**
