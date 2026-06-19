@@ -15,6 +15,7 @@ class Settings(BaseSettings):
     anthropic_api_key: str | None = None  # read from env ANTHROPIC_API_KEY; never commit
     top_k: int = 5
     max_tokens: int = 16000
+    cors_allow_origins: list[str] = ["http://localhost:8501"]
 
 
 settings = Settings()

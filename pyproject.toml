@@ -19,6 +19,7 @@ dependencies = [
     "fastembed",
     "pyyaml",
     "anthropic",
+    "sse-starlette",
 ]
 
 [project.optional-dependencies]
@@ -41,7 +42,7 @@ src = ["src", "tests"]
 select = ["E", "F", "I", "UP", "B"]
 # The formatter owns line length for code; E501 otherwise only fires on unbreakable
 # lines (long URLs, the inline SVG in the footer), which is noise — so don't lint it.
-ignore = ["E501"]
+ignore = ["E501", "B008"]  # B008: Depends() in defaults is the intended FastAPI pattern
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

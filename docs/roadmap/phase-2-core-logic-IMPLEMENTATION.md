@@ -564,17 +564,17 @@ once there; reference, don't duplicate. Phase 3 serializes exactly these.
 
 ## Definition of done (from plan §2)
 
-- [ ] `Retriever.retrieve(query, filters, k)` on the Phase 1 store: embeds the query, asserts the model
+- [x] `Retriever.retrieve(query, filters, k)` on the Phase 1 store: embeds the query, asserts the model
       matches the collection tag (mismatch raises), similarity search with optional additive filters,
       returns typed `RetrievedChunk`s carrying citations.
-- [ ] `LLMClient` Protocol with `AnthropicLLM` + `StubLLM`; nothing in `core/` imports `anthropic` directly.
-- [ ] Deterministic `applicable_laws(situation, laws)` — no LLM, fully unit-tested, `uncertain` first-class.
-- [ ] `generate_memo(...)` returns a validated `ComplianceMemo` grounded in retrieved text with citations,
+- [x] `LLMClient` Protocol with `AnthropicLLM` + `StubLLM`; nothing in `core/` imports `anthropic` directly.
+- [x] Deterministic `applicable_laws(situation, laws)` — no LLM, fully unit-tested, `uncertain` first-class.
+- [x] `generate_memo(...)` returns a validated `ComplianceMemo` grounded in retrieved text with citations,
       carrying the disclaimer.
-- [ ] `chat(...)` multi-turn RAG over the same retriever + a streaming `chat_stream(...)` iterator.
-- [ ] Tests pass with no network/key via the stub; live smoke tests gated behind a marker.
-- [ ] `ComplianceMemo`/`Situation`/`RetrievedChunk`/chat shapes added to SPEC §8.
-- [ ] `from patchwork_assurance.core import generate_memo, chat, applicable_laws` works; CI green.
+- [x] `chat(...)` multi-turn RAG over the same retriever + a streaming `chat_stream(...)` iterator.
+- [x] Tests pass with no network/key via the stub; live smoke tests gated behind a marker.
+- [x] `ComplianceMemo`/`Situation`/`RetrievedChunk`/chat shapes added to SPEC §8.
+- [x] `from patchwork_assurance.core import generate_memo, chat, applicable_laws` works; CI green.
 
 ---
 

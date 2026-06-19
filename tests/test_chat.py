@@ -63,7 +63,8 @@ def test_chat_stream_yields_tokens():
     text = "Deployers must provide notice."
     llm = StubLLM(text=text)
     retriever = _StubRetriever([CHUNK])
-    tokens = list(chat_stream(MESSAGES, retriever, llm))
+    _citations, token_iter = chat_stream(MESSAGES, retriever, llm)
+    tokens = list(token_iter)
     assert len(tokens) > 0
     # StubLLM.stream yields words split by whitespace
     assert "".join(tokens) == "".join(text.split())
@@ -72,9 +73,17 @@ def test_chat_stream_yields_tokens():
 def test_chat_stream_is_iterator():
     llm = StubLLM(text="hello world")
     retriever = _StubRetriever([CHUNK])
-    stream = chat_stream(MESSAGES, retriever, llm)
-    # Should be an iterator, not a list
-    assert hasattr(stream, "__iter__") and hasattr(stream, "__next__")
+    _citations, token_iter = chat_stream(MESSAGES, retriever, llm)
+    # token_iter should be an iterator, not a list
+    assert hasattr(token_iter, "__iter__") and hasattr(token_iter, "__next__")
+
+
+def test_chat_stream_returns_citations():
+    llm = StubLLM(text="(stub)")
+    retriever = _StubRetriever([CHUNK])
+    citations, _token_iter = chat_stream(MESSAGES, retriever, llm)
+    assert isinstance(citations, list)
+    assert "CO § 6-1-1703" in citations
 
 
 def test_chat_no_chunks_still_returns():

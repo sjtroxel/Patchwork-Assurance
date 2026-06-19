@@ -24,6 +24,8 @@ def chat(messages: list[Msg], retriever, llm) -> ChatTurn:
     return ChatTurn(reply=reply, citations=citations)
 
 
-def chat_stream(messages: list[Msg], retriever, llm) -> Iterator[str]:
-    grounding, _ = _ground(messages, retriever)
-    yield from llm.stream(CHAT_SYSTEM + "\n\n" + grounding, messages)
+def chat_stream(messages: list[Msg], retriever, llm) -> tuple[list[str], Iterator[str]]:
+    """Returns (citations, token_iterator). Citations are resolved from grounding before streaming
+    so the SSE endpoint can emit a terminal sources event without retrieving twice."""
+    grounding, citations = _ground(messages, retriever)
+    return citations, llm.stream(CHAT_SYSTEM + "\n\n" + grounding, messages)

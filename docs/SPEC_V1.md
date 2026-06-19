@@ -207,7 +207,7 @@ every chunk of that law.
 
 ---
 
-## 8. Core output contracts (Phase 2) — API request/response wrappers added in Phase 3
+## 8. Core contracts (Phase 2) + API wire contracts (Phase 3)
 
 **Terminology — "memo".** Throughout Patchwork, a "memo" is a **structured statutory-compliance memo**:
 a per-law in-scope finding, obligations cited to **statute sections** (not case law — these laws are
@@ -316,6 +316,50 @@ class ChatTurn(BaseModel):
 
 The chat API is **stateless**: the caller passes the full `list[Msg]` history on each turn.
 The streaming variant (`chat_stream`) yields token strings; Phase 3 wires these to SSE.
+
+### 8.6 API wire contracts (Phase 3) — `api/models.py`
+
+These are the HTTP-layer shapes that wrap the core types above. The UI (Phase 4) serializes against
+these; do not duplicate them.
+
+**`POST /analyze`** — request body is `Situation` (§8.1) directly; response is `ComplianceMemo`
+(§8.4) directly. No API-layer wrapper needed — the core shapes are the wire contract.
+
+**`POST /chat`** — request body is `ChatRequest`; response is an SSE stream (described below).
+
+```python
+class ChatRequest(BaseModel):
+    messages: list[Msg]   # full stateless history; caller appends each turn
+```
+
+**`/chat` SSE event protocol.** The stream emits named SSE events:
+
+- **`event: token`** frames (one per token): `data` is a raw text string (the streaming prose delta).
+  The client appends tokens to build the answer.
+- **`event: sources`** frame (one, terminal on success — the last frame): `data` is a JSON-serialized
+  `ChatSources` object. Emitted after all tokens so the UI can render grounding after the prose.
+- **`event: error`** frame (terminal on failure): `data` is `{"detail": "..."}`. Emitted if the LLM
+  fails **mid-stream** — once streaming has begun the HTTP status is already `200`, so a failure
+  cannot be an HTTP error code; it is surfaced as this terminal event instead. A stream ends with
+  **either** a `sources` frame (success) **or** an `error` frame (failure), never both. (A failure
+  *before* streaming starts — e.g. retrieval — is a normal HTTP error: `502` for `LLMError`,
+  `500` for other `ValueError`s.)
+
+```python
+class ChatSources(BaseModel):
+    citations: list[str]  # section-level pinpoints, e.g. "Colorado § 6-1-1703"
+    disclaimer: str       # the canonical not-legal-advice line; rides in the payload
+```
+
+> **Client note (Phase 4):** a `token` frame's `data` may contain newlines (real model deltas do).
+> Per the SSE spec a multi-line `data` is encoded as consecutive `data:` lines and the client must
+> rejoin them with `\n`. Browser `EventSource` does this automatically; a Python SSE client
+> (the Streamlit UI) must handle it explicitly.
+
+Citations are derived from the retrieved chunks' `pinpoint` values (§8.3), deduplicated in
+retrieval order. They are resolved from grounding *before* streaming begins — the route calls
+`core.chat_stream` which returns `(citations, token_iterator)`, so the terminal `sources` event
+does not require a second retrieval.
 
 ---
 
