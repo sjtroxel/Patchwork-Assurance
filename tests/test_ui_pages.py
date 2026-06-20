@@ -3,11 +3,26 @@
 import json
 from unittest.mock import patch
 
+import pytest
 from streamlit.testing.v1 import AppTest
 
 # ---------------------------------------------------------------------------
 # Shared fixtures
 # ---------------------------------------------------------------------------
+
+# The memo page loads its form vocab from GET /meta; stub it so tests never touch the network.
+FAKE_META = {
+    "jurisdictions": ["Colorado", "Connecticut"],
+    "decision_domains": ["employment", "financial_lending", "housing", "health_care"],
+    "roles": ["deployer", "developer"],
+}
+
+
+@pytest.fixture(autouse=True)
+def _stub_meta():
+    with patch("patchwork_assurance.ui.client.get_meta", return_value=FAKE_META):
+        yield
+
 
 SAMPLE_MEMO = {
     "per_law": [
@@ -51,14 +66,16 @@ def test_memo_page_form_exists():
     assert not at.exception
     assert len(at.button) == 1
     assert at.button[0].label == "Generate memo"
-    assert len(at.multiselect) == 3
+    assert len(at.multiselect) == 2  # nexus states + decision domains
+    assert len(at.radio) == 2  # role + AI-use
+    assert len(at.selectbox) == 1  # home state
 
 
 def test_memo_page_renders_memo_on_submit():
     at = AppTest.from_file("src/patchwork_assurance/ui/memo.py").run()
-    at.multiselect[0].set_value(["Colorado"])
-    at.multiselect[1].set_value(["employment"])
-    at.multiselect[2].set_value(["deployer"])
+    at.multiselect[0].set_value(["Colorado"])  # nexus
+    at.multiselect[1].set_value(["employment"])  # decision domain
+    # role + AI-use radios keep their defaults (deployer / "Yes")
 
     with patch("patchwork_assurance.ui.client.analyze", return_value=SAMPLE_MEMO):
         at.button[0].click().run()
@@ -74,9 +91,9 @@ def test_memo_page_shows_error_when_api_down():
     from patchwork_assurance.ui.client import APIError
 
     at = AppTest.from_file("src/patchwork_assurance/ui/memo.py").run()
-    at.multiselect[0].set_value(["Colorado"])
-    at.multiselect[1].set_value(["employment"])
-    at.multiselect[2].set_value(["deployer"])
+    at.multiselect[0].set_value(["Colorado"])  # nexus
+    at.multiselect[1].set_value(["employment"])  # decision domain
+    # role + AI-use radios keep their defaults (deployer / "Yes")
 
     with patch(
         "patchwork_assurance.ui.client.analyze",

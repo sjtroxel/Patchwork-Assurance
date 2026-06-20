@@ -76,6 +76,29 @@ def test_health_has_generation_model():
     assert body["generation_model"] == "claude-haiku-4-5"
 
 
+# ---- /meta ----
+
+
+def test_meta_returns_corpus_vocab():
+    from patchwork_assurance.core.corpus.metadata import LawMetadata
+
+    law = LawMetadata.model_construct(
+        jurisdiction="Colorado",
+        regulated_roles=["deployer", "developer"],
+        scope_domains=["employment", "financial_lending"],
+    )
+    app.dependency_overrides[get_laws] = lambda: [law]
+    try:
+        r = TestClient(app).get("/meta")
+        assert r.status_code == 200
+        body = r.json()
+        assert body["jurisdictions"] == ["Colorado"]
+        assert "employment" in body["decision_domains"]
+        assert body["roles"] == ["deployer", "developer"]
+    finally:
+        app.dependency_overrides.clear()
+
+
 # ---- /analyze ----
 
 SITUATION = {

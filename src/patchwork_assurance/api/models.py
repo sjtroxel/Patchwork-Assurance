@@ -2,6 +2,7 @@ from pydantic import BaseModel
 
 from patchwork_assurance.core.contracts import (  # noqa: F401 — re-exported for route use
     ComplianceMemo,
+    CorpusVocab,
     Msg,
     Situation,
 )

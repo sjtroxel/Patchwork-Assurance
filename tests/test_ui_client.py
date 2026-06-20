@@ -5,7 +5,7 @@ import json
 import httpx
 import pytest
 
-from patchwork_assurance.ui.client import APIError, analyze, iter_sse_events, stream_chat
+from patchwork_assurance.ui.client import APIError, analyze, get_meta, iter_sse_events, stream_chat
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -33,7 +33,7 @@ SAMPLE_SITUATION = {
     "jurisdictions": ["Colorado"],
     "decision_domains": ["employment"],
     "roles": ["deployer"],
-    "uses_ai_in_decisions": True,
+    "ai_use": "yes",
     "notes": "",
 }
 
@@ -78,6 +78,35 @@ def test_analyze_connection_error_raises_api_error():
 
     with pytest.raises(APIError, match="Could not reach"):
         analyze(SAMPLE_SITUATION, client=_mock_client(handler))
+
+
+# ---------------------------------------------------------------------------
+# get_meta()
+# ---------------------------------------------------------------------------
+
+
+def test_get_meta_happy_path():
+    def handler(request):
+        return httpx.Response(
+            200,
+            json={
+                "jurisdictions": ["Colorado", "Connecticut"],
+                "decision_domains": ["employment"],
+                "roles": ["deployer", "developer"],
+            },
+        )
+
+    result = get_meta(client=_mock_client(handler))
+    assert result["jurisdictions"] == ["Colorado", "Connecticut"]
+    assert "employment" in result["decision_domains"]
+
+
+def test_get_meta_500_raises_api_error():
+    def handler(request):
+        return httpx.Response(503)
+
+    with pytest.raises(APIError, match="temporarily unavailable"):
+        get_meta(client=_mock_client(handler))
 
 
 # ---------------------------------------------------------------------------

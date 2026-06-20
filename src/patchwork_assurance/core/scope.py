@@ -43,7 +43,14 @@ def applicable_laws(
     """Match the situation against each law's metadata — generic over N statutes (no `if colorado`).
     Returns one ScopeResult per law. `uncertain` is honest, not a cop-out. The `policy` dial controls
     how silence and contradiction are treated (see ScopePolicy / the CAUTIOUS|LENIENT|STRICT presets)."""
-    return [_screen_one(situation, law, policy) for law in laws]
+    # Nexus = states the user named, plus their home state IF it is itself a regulating jurisdiction
+    # (a Colorado-based business obviously has a Colorado nexus). Generic over N statutes — the set of
+    # regulating jurisdictions is derived from the loaded laws, never hardcoded.
+    regulating = {law.jurisdiction for law in laws}
+    nexus = list(situation.jurisdictions)
+    if situation.home_state in regulating and situation.home_state not in nexus:
+        nexus.append(situation.home_state)
+    return [_screen_one(situation, law, policy, nexus) for law in laws]
 
 
 def _gate(provided: list, law_values: list) -> GateState:
@@ -54,51 +61,68 @@ def _gate(provided: list, law_values: list) -> GateState:
     return "match" if (set(provided) & set(law_values)) else "mismatch"
 
 
-def _screen_one(situation: Situation, law: LawMetadata, policy: ScopePolicy) -> ScopeResult:
+# Business-language names for the three gated elements, for the reason strings.
+_LABEL = {"jurisdiction": "nexus state", "domain": "decision type", "role": "role"}
+
+# Surfaced when the user said they're unsure which tools use AI — points them at the inventory step.
+_UNSURE_NOTE = " You weren't sure which of your tools use AI, so start with the tool-inventory step in the memo."
+
+
+def _screen_one(
+    situation: Situation, law: LawMetadata, policy: ScopePolicy, nexus: list[str]
+) -> ScopeResult:
     # Affirmative exclusion: the user says AI isn't used in the relevant decisions. These laws only
     # bite AI-driven decisions, so this is a clean 'no' regardless of the other gates.
-    if not situation.uses_ai_in_decisions:
+    if situation.ai_use == "no":
         return _result(law, "no", "No AI is used to make or influence the relevant decisions.")
 
-    # Jurisdiction is its own gate, but its values live on the law as a single string, not a list.
-    jurisdiction = _gate(situation.jurisdictions, [law.jurisdiction])
+    unsure = situation.ai_use == "unsure"
+
+    # Jurisdiction gate runs against the *nexus* set (states where the user has people/customers there),
+    # not where they're headquartered. Its law value is a single string, not a list.
+    jurisdiction = _gate(nexus, [law.jurisdiction])
     domain = _gate(situation.decision_domains, law.scope_domains)
     role = _gate(situation.roles, law.regulated_roles)
     gates = {"jurisdiction": jurisdiction, "domain": domain, "role": role}
 
-    # Rule 1 — any MISMATCH fails a necessary element. Hard 'no' (or hedged, under STRICT).
+    # Rule 1 — any MISMATCH fails a necessary element. Hard 'no' (or hedged, under STRICT). No unsure
+    # note here: the law doesn't reach them, so the tool question is moot.
     mismatched = [name for name, state in gates.items() if state == "mismatch"]
     if mismatched:
         verdict = policy.mismatch
+        labels = ", ".join(_LABEL[m] for m in mismatched)
         reason = (
-            f"You provided {'/'.join(mismatched)} information that falls outside {law.short_name} "
-            f"({law.jurisdiction}), so it does not appear to reach you."
+            f"What you described ({labels}) falls outside {law.short_name} ({law.jurisdiction}), "
+            f"so it does not appear to reach you."
         )
         if verdict == "uncertain":
-            reason += " Treated as uncertain pending a lawyer's review."
+            reason += " Treated as uncertain pending a licensed attorney's review."
         return _result(law, verdict, reason)
 
     # Rule 2 — all three confirmed → facially in scope.
     if all(state == "match" for state in gates.values()):
-        return _result(
-            law,
-            "yes",
-            (
-                f"Operates in {law.jurisdiction}, acts as a regulated party, and uses AI in a regulated "
-                f"decision domain — facially within {law.short_name}. (Facially = before any exemptions; "
-                "size/threshold carve-outs are not yet modeled.)"
-            ),
+        reason = (
+            f"You have a {law.jurisdiction} nexus (people there you make AI-assisted decisions about), "
+            f"act as a regulated party, and use AI in a covered decision type, so {law.short_name} "
+            f"appears to reach you. (Facially in scope, before any exemptions; size/threshold carve-outs "
+            "are not yet modeled.)"
         )
+        if unsure:
+            reason += _UNSURE_NOTE
+        return _result(law, "yes", reason)
 
     # Rule 3 — no contradictions, but at least one necessary element is BLANK → unconfirmed.
     blanks = [name for name, state in gates.items() if state == "blank"]
     verdict = policy.silence
+    labels = ", ".join(_LABEL[b] for b in blanks)
     reason = (
-        f"Operates in/uses AI relevant to {law.short_name} ({law.jurisdiction}), but you haven't "
-        f"provided your {'/'.join(blanks)} — that's needed before scope can be confirmed."
+        f"{law.short_name} ({law.jurisdiction}) could reach you, but you haven't told us your "
+        f"{labels}, which we need before scope can be confirmed."
     )
     if verdict == "no":
-        reason = f"No confirmed {'/'.join(blanks)} nexus to {law.short_name} ({law.jurisdiction})."
+        reason = f"No confirmed {labels} connecting you to {law.short_name} ({law.jurisdiction})."
+    elif unsure:
+        reason += _UNSURE_NOTE
     return _result(law, verdict, reason)
 
 

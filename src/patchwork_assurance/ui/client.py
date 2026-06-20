@@ -26,6 +26,20 @@ def analyze(situation: dict, *, client: httpx.Client | None = None) -> dict:
     return r.json()
 
 
+def get_meta(*, client: httpx.Client | None = None) -> dict:
+    """GET /meta. Returns the corpus-derived form vocab {jurisdictions, decision_domains, roles}.
+    Raises APIError on any failure so the page can fall back / show a clean message."""
+    send = client.get if client else httpx.get
+    try:
+        r = send(f"{settings.api_base_url}/meta", timeout=TIMEOUT)
+    except httpx.HTTPError as exc:
+        raise APIError(f"Could not reach the analysis service at {settings.api_base_url}.") from exc
+    if r.status_code >= 500:
+        raise APIError("The analysis service is temporarily unavailable. Please try again.")
+    r.raise_for_status()
+    return r.json()
+
+
 def iter_sse_events(lines: Iterator[str]) -> Iterator[tuple[str, str]]:
     """Pure SSE parser. Yield (event, data) pairs from a line iterator.
 
@@ -77,4 +91,4 @@ def stream_chat(
             _client.close()
 
 
-__all__ = ["APIError", "analyze", "iter_sse_events", "stream_chat"]
+__all__ = ["APIError", "analyze", "get_meta", "iter_sse_events", "stream_chat"]

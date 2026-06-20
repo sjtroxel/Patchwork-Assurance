@@ -154,7 +154,7 @@ effective_dates:
 operative_standard: 'AERDT = technology whose output "is a substantial factor used to make or materially influence an employment-related decision". "Substantial factor" = a factor that "meaningfully alters the outcome of an employment-related decision"'
 regulated_tech_term: "Automated Employment-Related Decision Technology (AERDT)"
 regulated_roles: [developer, deployer]
-scope_domains: [employment]   # v1 subset; full act also covers online_safety_minors, ai_companion, generative_ai_provenance, frontier_models (post-v1)
+scope_domains: [employment, ai_companion, generative_ai_provenance, frontier_models]   # matches the live corpus; the consequential-decision form surfaces employment, the rest get a memo note (Phase 4.6 Fork D)
 enforcement_authority: "Connecticut Attorney General"
 enforcement_mechanism: "Connecticut Unfair Trade Practices Act (CUTPA), Conn. Gen. Stat. § 42-110b; enforced solely by the Attorney General"
 cure_period: "60 days to cure after notice, where the AG determines the violation is curable"
@@ -222,10 +222,12 @@ JSON request/response wrappers — do not add API-layer fields here.
 
 ```python
 class Situation(BaseModel):
-    jurisdictions: list[str] = []          # states the business operates in / employs in / serves
+    home_state: str = ""                    # context/personalization; auto-nexus if a regulating state (4.6)
+    jurisdictions: list[str] = []          # states the business has a NEXUS to — employees/applicants/
+                                           #   customers/residents it decides about, not HQ (4.6)
     decision_domains: list[ScopeDomain] = []  # which decisions AI touches (see §3)
     roles: list[RegulatedRole] = []        # "developer" | "deployer" (see §3)
-    uses_ai_in_decisions: bool = True
+    ai_use: Literal["yes", "no", "unsure"] = "yes"  # "no" → excludes; "unsure" → cautious (4.6)
     notes: str = ""                        # free text; passed to LLM for color, not to scope screen
 ```
 
@@ -244,7 +246,7 @@ class ScopeResult(BaseModel):
 as *each necessary* for a law to apply — **jurisdiction**, **decision domain**, **role** — and
 classifies each into one of three states against the law's metadata: **match** (user-provided info
 overlaps the law), **mismatch** (user named something that falls outside it), or **blank** (user said
-nothing). The rule, in order: (1) `uses_ai_in_decisions=False` → **no**; (2) any **mismatch** → **no**;
+nothing). The rule, in order: (1) `ai_use="no"` → **no**; (2) any **mismatch** → **no**;
 (3) all three **match** → **yes** ("facially within" — *before* exemptions, which are not yet modeled);
 (4) otherwise (a necessary element is **blank**) → **uncertain**. This is what distinguishes "you didn't
 tell me" (→ uncertain) from "you told me, and it's outside" (→ no), and ensures a sparse situation is
@@ -295,7 +297,8 @@ class DeadlineItem(BaseModel):
 class ComplianceMemo(BaseModel):
     per_law: list[LawFinding]
     draft_notices: list[DraftNotice] = []
-    deadline_checklist: list[DeadlineItem] = []
+    deadline_checklist: list[DeadlineItem] = []   # set deterministically from metadata (4.6); not LLM
+    next_steps: list[str] = []                    # condensed, hedged orientation; templated, not LLM (4.6)
     disclaimer: str    # always the canonical not-legal-advice line from core/prompts.py
 ```
 
@@ -370,8 +373,7 @@ Sourced from the official enacted texts on **2026-06-17** (CO `leg.colorado.gov`
 earlier project docs (`ROADMAP.md`, the archived brainstorm, and an in-session corpus README edit):
 
 1. **CO operative term is "materially influence," not "substantial factor."** Verified: "substantial
-   factor" appears zero times in the CO act. (`ROADMAP.md` §2/§10 still say "substantial factor" for CO
-   — to be corrected there.)
+   factor" appears zero times in the CO act.
 2. **"Substantial factor" is Connecticut's term**, defined for employment decisions — correctly applied
    to CT only.
 3. **CT's official title is "An Act Concerning Online Safety" (PA 26-15).** "AI Responsibility and
@@ -383,5 +385,6 @@ earlier project docs (`ROADMAP.md`, the archived brainstorm, and an in-session c
 6. **CT employment dates are staggered:** Sec. 7-12 effective Oct 1, 2026; the deployer pre-decision
    notice duty applies to AERDT deployed on or after Oct 1, 2027. Not a single "effective Oct 1, 2027."
 
-ROADMAP.md §2/§10 and `corpus/README.md` should be reconciled to the above; this SPEC is the
-controlling record where they conflict.
+`ROADMAP.md` §2/§10 and `corpus/README.md` were reconciled to the above (operative terms, CT title,
+identifiers, signed date, staggered dates) in the 2026-06-19 cross-doc pass; this SPEC remains the
+controlling record where any doc conflicts.

@@ -1,5 +1,7 @@
 """Memo generation tests — offline, StubLLM, no API key."""
 
+from datetime import date
+
 from patchwork_assurance.core.contracts import (
     ComplianceMemo,
     LawFinding,
@@ -8,6 +10,7 @@ from patchwork_assurance.core.contracts import (
     ScopeResult,
     Situation,
 )
+from patchwork_assurance.core.corpus.metadata import EffectiveDate, LawMetadata
 from patchwork_assurance.core.llm import StubLLM
 from patchwork_assurance.core.memo import generate_memo
 from patchwork_assurance.core.prompts import DISCLAIMER
@@ -136,3 +139,83 @@ def test_memo_out_of_scope_all_no():
     memo = generate_memo(SITUATION, all_no_scope, _TrackingRetriever(), llm)
     assert isinstance(memo, ComplianceMemo)
     assert calls == []
+
+
+# ---- Phase 4.6: deterministic deadlines + templated next steps ----
+
+
+def _ct_law():
+    return LawMetadata.model_construct(
+        law_id="ct-sb-5",
+        short_name="CT AI Act",
+        jurisdiction="CT",
+        scope_domains=["employment", "ai_companion"],
+        effective_dates=[
+            EffectiveDate(
+                date=date(2027, 10, 1), applies_to="deployer pre-decision written notice"
+            ),
+            EffectiveDate(date=date(2026, 10, 1), applies_to="employment provisions"),
+        ],
+    )
+
+
+CT_IN_SCOPE = [
+    ScopeResult(
+        law_id="ct-sb-5",
+        short_name="CT AI Act",
+        jurisdiction="CT",
+        in_scope="yes",
+        reason="CT nexus.",
+    )
+]
+CT_SITUATION = Situation(jurisdictions=["CT"], decision_domains=["employment"], roles=["deployer"])
+
+
+def test_deadlines_are_deterministic_and_sorted():
+    memo = generate_memo(
+        CT_SITUATION,
+        CT_IN_SCOPE,
+        _StubRetriever([CHUNK]),
+        StubLLM(structured=CANNED_MEMO),
+        [_ct_law()],
+    )
+    dates = [d.date for d in memo.deadline_checklist]
+    assert "2027-10-01" in dates  # the AERDT deployer-notice date surfaces
+    assert dates == sorted(dates)  # staggered dates in order, not collapsed
+
+
+def test_next_steps_inventory_when_unsure():
+    sit = Situation(
+        jurisdictions=["CO"], decision_domains=["employment"], roles=["deployer"], ai_use="unsure"
+    )
+    memo = generate_memo(sit, SCOPE, _StubRetriever([CHUNK]), StubLLM(structured=CANNED_MEMO), [])
+    assert any("inventory" in s.lower() for s in memo.next_steps)
+    assert any("licensed attorney" in s.lower() for s in memo.next_steps)
+
+
+def test_next_steps_flags_ct_broader_scope():
+    memo = generate_memo(
+        CT_SITUATION,
+        CT_IN_SCOPE,
+        _StubRetriever([CHUNK]),
+        StubLLM(structured=CANNED_MEMO),
+        [_ct_law()],
+    )
+    assert any("ai companion" in s.lower() for s in memo.next_steps)
+
+
+def test_next_steps_out_of_scope_single_message():
+    all_no = [
+        ScopeResult(
+            law_id="co-sb-26-189",
+            short_name="CO AI Act",
+            jurisdiction="CO",
+            in_scope="no",
+            reason="x",
+        )
+    ]
+    memo = generate_memo(
+        SITUATION, all_no, _StubRetriever([CHUNK]), StubLLM(structured=CANNED_MEMO), []
+    )
+    assert len(memo.next_steps) == 1
+    assert "appears to reach you" in memo.next_steps[0].lower()

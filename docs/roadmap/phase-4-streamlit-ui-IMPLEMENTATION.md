@@ -542,19 +542,19 @@ actually turned out (especially anything about asset paths, theme keys, and the 
 
 ## 12. Definition of done (from plan §2)
 
-- [ ] **Memo page** (landing): a form matching `Situation` → `POST /analyze` → `ComplianceMemo`
+- [x] **Memo page** (landing): a form matching `Situation` → `POST /analyze` → `ComplianceMemo`
       rendered readably (per-law findings, obligations w/ citations, draft notices, deadline checklist,
       disclaimer).
-- [ ] **Chat page:** `st.chat_input`/`st.chat_message`, history in `st.session_state`, answers
+- [x] **Chat page:** `st.chat_input`/`st.chat_message`, history in `st.session_state`, answers
       **streamed** from `/chat` SSE via `st.write_stream`, citations + disclaimer shown after.
-- [ ] **Chrome on every page** via the shared `chrome.py` helper (banner + no-store line + footer).
-- [ ] **`.streamlit/config.toml`** theme; single-column-first.
-- [ ] **Brand assets present:** favicon (`page_icon`), logo (`st.logo`), chosen font.
-- [ ] API calls go through a thin, **unit-tested** `ui/client.py` (pure functions); pages stay thin.
-- [ ] `make dev` boots API + UI; full path works: situation → grounded memo; follow-up → streamed
+- [x] **Chrome on every page** via the shared `chrome.py` helper (banner + no-store line + footer).
+- [x] **`.streamlit/config.toml`** theme; single-column-first.
+- [x] **Brand assets present:** favicon (`page_icon`), logo (`st.logo`), chosen font.
+- [x] API calls go through a thin, **unit-tested** `ui/client.py` (pure functions); pages stay thin.
+- [x] `make dev` boots API + UI; full path works: situation → grounded memo; follow-up → streamed
       grounded answer.
-- [ ] A **clean error state** when the API is down or errors (no traceback).
-- [ ] `make test` + `make lint` green; CI green.
+- [x] A **clean error state** when the API is down or errors (no traceback).
+- [x] `make test` + `make lint` green; CI green.
 
 Done = a presentable, working two-surface app over the real API. Deploy is Phase 5.
 
@@ -595,13 +595,13 @@ Done = a presentable, working two-surface app over the real API. Deploy is Phase
 
 ## 15. Verify-at-build checklist (do these before relying on them)
 
-- [ ] `[theme]` typography keys beyond the core six on Streamlit 1.58 (`headingFont`/`baseFontSize`/
+- [x] `[theme]` typography keys beyond the core six on Streamlit 1.58 (`headingFont`/`baseFontSize`/
       radius) — confirm names or omit.
-- [ ] `st.write_stream` consumes the token generator and returns the joined string (assumed in §6c).
-- [ ] `AppTest` accessor names on 1.58 (`at.warning`, `at.button`, `at.chat_input`, form value setting).
-- [ ] `st.logo` / `page_icon` accept the SVG asset path from the `make dev` working directory (repo
+- [x] `st.write_stream` consumes the token generator and returns the joined string (assumed in §6c).
+- [x] `AppTest` accessor names on 1.58 (`at.warning`, `at.button`, `at.chat_input`, form value setting).
+- [x] `st.logo` / `page_icon` accept the SVG asset path from the `make dev` working directory (repo
       root) — adjust the path if Streamlit resolves it differently.
-- [ ] `st.code(..., language=None)` still renders the copy button (the copyable draft-notice block).
+- [x] `st.code(..., language=None)` still renders the copy button (the copyable draft-notice block).
 
 ---
 

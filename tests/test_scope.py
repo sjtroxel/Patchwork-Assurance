@@ -28,15 +28,15 @@ LAWS = [CO, CT]
 
 
 def _sit(**kw):
-    defaults = dict(uses_ai_in_decisions=True, jurisdictions=[], decision_domains=[], roles=[])
+    defaults = dict(ai_use="yes", jurisdictions=[], decision_domains=[], roles=[])
     return Situation(**{**defaults, **kw})
 
 
-# --- uses_ai_in_decisions=False → all no ---
+# --- ai_use="no" → all no ---
 def test_no_ai_use_all_no():
     results = applicable_laws(
         _sit(
-            uses_ai_in_decisions=False,
+            ai_use="no",
             jurisdictions=["CO", "CT"],
             decision_domains=["employment"],
             roles=["deployer"],
@@ -175,7 +175,7 @@ def test_role_mismatch_is_no():
 
 # --- empty form → uncertain everywhere, never a confident no ---
 def test_empty_form_all_uncertain():
-    results = applicable_laws(_sit(), LAWS)  # uses_ai defaults True; everything else blank
+    results = applicable_laws(_sit(), LAWS)  # ai_use defaults "yes"; everything else blank
     assert all(r.in_scope == "uncertain" for r in results)
 
 
@@ -208,3 +208,40 @@ def test_default_policy_is_cautious():
     default = [r.in_scope for r in applicable_laws(sit, LAWS)]
     explicit = [r.in_scope for r in applicable_laws(sit, LAWS, CAUTIOUS)]
     assert default == explicit
+
+
+# --- Phase 4.6: nexus reframe, home-state auto-nexus, unsure AI use ---
+def test_out_of_state_owner_with_nexus_in_scope():
+    # The headline case: a Missouri business (no MO AI law) with a Colorado nexus is reached by CO.
+    sit = _sit(
+        home_state="MO", jurisdictions=["CO"], decision_domains=["employment"], roles=["deployer"]
+    )
+    co = {r.law_id: r for r in applicable_laws(sit, LAWS)}["co-sb-26-189"]
+    assert co.in_scope == "yes"
+    assert "nexus" in co.reason.lower()
+
+
+def test_home_state_is_regulating_auto_nexus():
+    # Home state CO, no nexus states named → CO still applies (home state unions into the nexus set).
+    sit = _sit(
+        home_state="CO", jurisdictions=[], decision_domains=["employment"], roles=["deployer"]
+    )
+    co = {r.law_id: r for r in applicable_laws(sit, LAWS)}["co-sb-26-189"]
+    assert co.in_scope == "yes"
+
+
+def test_home_state_non_regulating_creates_no_nexus():
+    # Home state MO is not a regulating jurisdiction → no auto-nexus; jurisdiction stays blank.
+    sit = _sit(
+        home_state="MO", jurisdictions=[], decision_domains=["employment"], roles=["deployer"]
+    )
+    assert all(r.in_scope == "uncertain" for r in applicable_laws(sit, LAWS))
+
+
+def test_unsure_ai_use_not_excluded_and_surfaced():
+    sit = _sit(
+        jurisdictions=["CO"], decision_domains=["employment"], roles=["deployer"], ai_use="unsure"
+    )
+    co = {r.law_id: r for r in applicable_laws(sit, LAWS)}["co-sb-26-189"]
+    assert co.in_scope == "yes"
+    assert "inventory" in co.reason.lower()

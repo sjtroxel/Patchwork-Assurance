@@ -8,17 +8,25 @@ DISCLAIMER = (
 MEMO_SYSTEM = (
     "You produce a grounded, educational statutory-compliance summary — NOT legal advice, "
     "NOT a prediction of litigation outcomes (these statutes are unlitigated, so cite statute "
-    "SECTIONS, never case law). Ground every obligation ONLY in the provided statute excerpts "
-    "and cite the section. If the provided text does not support a claim, omit it. Use hedged, "
-    "educational language ('the statute requires', 'this appears to be in scope'); never say "
-    "'you are compliant', 'you must', 'we certify/guarantee', or present unsettled interpretation "
-    f"as settled. Always set the disclaimer field to exactly: {DISCLAIMER}"
+    "SECTIONS, never case law). For each law, LEAD the 'why' field with a plain verdict matching the "
+    "deterministic scope ('Likely applies:', 'May apply:', or 'Does not appear to apply:') then a one- "
+    "or two-sentence reason in business terms. Ground every obligation ONLY in the provided statute "
+    "excerpts and cite the section; if the provided text does not support a claim, omit it. Use the "
+    "exact operative term each excerpt uses (do not swap or harmonize the two laws' terms). Do NOT "
+    "state specific effective dates or deadlines in your prose — a separate, authoritative deadline "
+    "list is added by the system. Use hedged, educational language ('the statute requires', 'this "
+    "appears to be in scope'); never say 'you are compliant', 'you must', 'we certify/guarantee', or "
+    "present unsettled interpretation as settled. Write in plain prose without em dashes. "
+    f"Always set the disclaimer field to exactly: {DISCLAIMER}"
 )
 
 CHAT_SYSTEM = (
     "You are an educational assistant for US state AI-regulation law. Answer ONLY from the "
-    "provided statute excerpts and cite sections. Decline or hedge on out-of-scope or unlitigated "
-    "questions. Never give legal advice or assert settled law on unsettled questions. " + DISCLAIMER
+    "provided statute excerpts and cite sections. Many users are out-of-state businesses: a single "
+    "employee, applicant, customer, or resident in a regulated state can create a nexus, so address "
+    "reach (where their people are), not just where they are headquartered. Decline or hedge on "
+    "out-of-scope or unlitigated questions. Never give legal advice or assert settled law on unsettled "
+    "questions. Write in plain prose without em dashes. " + DISCLAIMER
 )
 
 
@@ -26,12 +34,17 @@ def render_memo_user(
     situation: Situation, scope: list[ScopeResult], chunks: list[RetrievedChunk]
 ) -> str:
     lines = ["## Situation\n"]
-    lines.append(f"Jurisdictions: {', '.join(situation.jurisdictions) or '(not specified)'}")
+    if situation.home_state:
+        lines.append(f"Home state (context): {situation.home_state}")
+    lines.append(
+        f"Nexus states (where they have people/customers): "
+        f"{', '.join(situation.jurisdictions) or '(not specified)'}"
+    )
     lines.append(
         f"AI decision domains: {', '.join(situation.decision_domains) or '(not specified)'}"
     )
     lines.append(f"Roles: {', '.join(situation.roles) or '(not specified)'}")
-    lines.append(f"Uses AI in decisions: {situation.uses_ai_in_decisions}")
+    lines.append(f"Uses AI in decisions: {situation.ai_use}")
     if situation.notes:
         lines.append(f"Additional context: {situation.notes}")
 
@@ -52,9 +65,11 @@ def render_memo_user(
         lines.append("(No excerpts retrieved — do not fabricate obligations.)")
 
     lines.append(
-        "\nProduce the ComplianceMemo. Cite each obligation to the section pinpoint shown in "
-        "brackets above (not the law-wide citation). Set disclaimer to the exact text specified in "
-        "your instructions. Only report obligations supported by the provided excerpts."
+        "\nProduce the ComplianceMemo. Lead each per-law 'why' with a plain verdict (Likely applies "
+        "/ May apply / Does not appear to apply). Cite each obligation to the section pinpoint shown "
+        "in brackets above (not the law-wide citation). Do not state effective dates in prose; leave "
+        "next_steps empty (the system fills it). Set disclaimer to the exact text specified in your "
+        "instructions. Only report obligations supported by the provided excerpts."
     )
     return "\n".join(lines)
 

@@ -11,11 +11,12 @@ from starlette.concurrency import iterate_in_threadpool, run_in_threadpool
 from patchwork_assurance.api.models import ChatRequest, ChatSources, HealthResponse
 from patchwork_assurance.config import settings
 from patchwork_assurance.core.chat import chat_stream
-from patchwork_assurance.core.contracts import ComplianceMemo, Situation
+from patchwork_assurance.core.contracts import ComplianceMemo, CorpusVocab, Situation
 from patchwork_assurance.core.embeddings import FastEmbedEmbedder
 from patchwork_assurance.core.health import core_status
 from patchwork_assurance.core.llm import LLMError, build_llm
 from patchwork_assurance.core.memo import generate_memo
+from patchwork_assurance.core.meta import corpus_vocab
 from patchwork_assurance.core.prompts import DISCLAIMER
 from patchwork_assurance.core.retrieval import Retriever
 from patchwork_assurance.core.scope import applicable_laws, load_law_metadata
@@ -94,6 +95,12 @@ def health(request: Request) -> HealthResponse:
     )
 
 
+@app.get("/meta", response_model=CorpusVocab)
+def meta(laws=Depends(get_laws)) -> CorpusVocab:
+    # Corpus-derived form vocabulary so the UI populates itself; a new jurisdiction needs no UI change.
+    return corpus_vocab(laws)
+
+
 @app.post("/analyze", response_model=ComplianceMemo)
 def analyze(
     situation: Situation,
@@ -102,7 +109,7 @@ def analyze(
     llm=Depends(get_llm),
 ) -> ComplianceMemo:
     scope = applicable_laws(situation, laws)
-    return generate_memo(situation, scope, retriever, llm)
+    return generate_memo(situation, scope, retriever, llm, laws)
 
 
 @app.post("/chat")

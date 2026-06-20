@@ -139,6 +139,11 @@ Two URLs means a genuine cross-origin call, the thing that silently breaks first
 
 ## 7. Secrets and env config (the learning)
 
+- **Phase 5 starts here (do this first):** get an **`ANTHROPIC_API_KEY`** from
+  `console.anthropic.com` → API Keys. Walk the builder through it. Set `LLM_PROVIDER=anthropic` +
+  `ANTHROPIC_API_KEY` in local `.env` first to confirm real memos + chat (generation is the free stub
+  until then), then add it as a backend host secret. The two-model split (below, §10) is wired at the
+  same time.
 - **`ANTHROPIC_API_KEY`** lives only as a **host secret** on the backend (Railway/HF secret manager),
   never committed (already git-ignored). The UI never holds it — only the backend calls Claude.
 - **The UI** holds only `api_base_url` (and nothing sensitive), via the Railway service's env vars.
@@ -186,7 +191,15 @@ The detailed README structure is its own small task at deploy time; this is the 
 - **Landing page:** $0 (static host — Vercel/Railway static, CDN, never sleeps).
 - **UI + Backend:** both always-on on **Railway Hobby ($5/mo base + usage)** — two services may run a few
   dollars over the included $5 credit; verify the real bill at deploy.
-- **Generation:** `claude-haiku-4-5`, well under a cent per memo (Phase 2 §10).
+- **Generation — two-model split (decided 2026-06-20):**
+  - **Chat → Claude Haiku** (`claude-haiku-4-5`, ~$1/$5 per 1M tok): fast, fractions of a cent per
+    turn; left **unlimited** (the builder is fine with this cost). Quick responses suit Haiku.
+  - **Memo → Claude Sonnet** (`claude-sonnet-4-6`, ~$3/$15 per 1M tok): higher reasoning for the
+    document, which users expect to be more considered than a chat reply; **rate-limited** to cap
+    Sonnet cost (the Asteroid-Bonanza pattern — e.g. ~2 memos per IP per day). Exact limit + whether
+    the memo is multi-agent are open (§13).
+  - Config gains separate chat/memo model settings (currently one `generation_model`). **Re-verify
+    both model IDs + pricing at build** (standing rule).
 - **Embeddings:** $0 local, or a fraction of a cent total for OpenAI `text-embedding-3-small` (§9).
 - **Net:** the **already-active Railway Hobby ($5/mo base)** + modest usage for the second always-on
   service; **$0** landing page; an optional **~$12/yr** custom domain is the only genuinely new spend.
@@ -195,6 +208,12 @@ The detailed README structure is its own small task at deploy time; this is the 
 
 ## 11. Intended build order
 
+*(Step 1 is getting the Anthropic API key and wiring the two-model config — §7, §10 — so real memos
+and chat work before anything is deployed.)*
+
+1. **Anthropic API key + two-model config:** guide the builder through `console.anthropic.com`; set the
+   key in local `.env`, wire chat=Haiku / memo=Sonnet + the memo rate limit, confirm real output, then
+   set the key as a backend secret.
 1. Production embedding decision (§9); confirm the loader rebuilds the index at startup.
 2. Deploy the **backend** to Railway: set `ANTHROPIC_API_KEY` (+ embedding key) as secrets; confirm
    `/health` over HTTPS.
@@ -227,6 +246,21 @@ micromanage.
 - **Production embeddings: local vs OpenAI** (§9) — container/cold-start vs pennies + one key. The one
   genuinely open infra decision left for deploy.
 - **README depth** — ship a solid v1 README; iterate later. Don't gold-plate it before the app is live.
+- **Generation model split — DECIDED (2026-06-20):** chat = Haiku (unlimited), memo = Sonnet
+  (rate-limited). **Open:** the exact memo rate limit (number) and mechanism. An **in-memory per-IP
+  daily counter** is the lightest fit and is **consistent with the statelessness invariant** — it stores
+  request *counts*, not user inputs, and resets on restart (no DB, no saved history). Caveat: it's
+  per-instance, so if the backend ever scales beyond one instance a shared counter (or a hosting-layer
+  rate limit) would be needed. Decide the number (≈2/IP/day to start) and confirm single-instance at
+  deploy.
+- **Multi-agent memo — OPEN (recommendation: ship single-call Sonnet for v1, add multi-agent as a
+  featured post-deploy enhancement).** The memo currently is **one** structured Sonnet call. It
+  decomposes naturally into a real multi-agent pipeline: scope is already deterministic; then per-law
+  grounded analysis (one agent per in-scope law, parallel), then a **grounding/hedge reviewer** that
+  enforces the not-legal-advice boundary (a genuinely valuable job, not decorative — the J.D. edge).
+  A 2–3 agent pipeline is a legitimate showcase; a swarm-for-its-own-sake is not. Weigh against: it
+  multiplies Sonnet calls (cutting against the rate-limit savings) and binding rule 1 (don't over-build
+  before v1 ships). Finalize at Phase 5 start.
 
 ## 14. What shipping this means
 

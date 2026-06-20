@@ -33,12 +33,19 @@ class RetrievedChunk(BaseModel):
 
 # ---- scope input ----
 class Situation(BaseModel):
-    """User-described facts. Drives the deterministic scope screen."""
+    """User-described facts. Drives the deterministic scope screen.
 
+    `jurisdictions` means states the business has a *nexus* to (employees, applicants,
+    customers/consumers, or residents it decides about) — not where it is headquartered (Phase 4.6).
+    """
+
+    # context/personalization; auto-counts as nexus if it is a regulating state
+    home_state: str = ""
     jurisdictions: list[str] = []
     decision_domains: list[ScopeDomain] = []
     roles: list[RegulatedRole] = []
-    uses_ai_in_decisions: bool = True
+    # "no" excludes (clean affirmative exclusion); "unsure" is cautious — not excluded, surfaced in the memo
+    ai_use: Literal["yes", "no", "unsure"] = "yes"
     notes: str = ""
 
 
@@ -49,6 +56,16 @@ class ScopeResult(BaseModel):
     jurisdiction: str
     in_scope: InScope
     reason: str
+
+
+# ---- corpus-derived form vocabulary (GET /meta) ----
+class CorpusVocab(BaseModel):
+    """The form's controlled vocabulary, aggregated from the loaded corpus so the UI populates itself.
+    Adding a law (a file pair, zero code) extends these automatically (Phase 4.6, invariant 2)."""
+
+    jurisdictions: list[str]
+    decision_domains: list[str]
+    roles: list[str]
 
 
 # ---- memo output ----
@@ -82,6 +99,7 @@ class ComplianceMemo(BaseModel):
     per_law: list[LawFinding]
     draft_notices: list[DraftNotice] = []
     deadline_checklist: list[DeadlineItem] = []
+    next_steps: list[str] = []  # condensed, hedged "what to do next" orientation (Phase 4.6)
     disclaimer: str
 
 

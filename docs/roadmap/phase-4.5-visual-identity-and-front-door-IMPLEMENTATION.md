@@ -209,15 +209,15 @@ Everything else is [Opus]'s to author and iterate against your reactions.
 
 ## 10. Definition of done (runnable checklist; mirrors plan §3)
 
-- [ ] Multicolor quilt **palette** + real **logo/favicon** replace the placeholders (placeholders deleted).
-- [ ] **Type tokens** chosen, working in both surfaces.
-- [ ] `site/index.html` + `styles.css` + `main.js`: cinematic hero, 2–3 scroll sections, **legal
+- [x] Multicolor quilt **palette** + real **logo/favicon** replace the placeholders (placeholders deleted).
+- [x] **Type tokens** chosen, working in both surfaces.
+- [x] `site/index.html` + `styles.css` + `main.js`: cinematic hero, 2–3 scroll sections, **legal
       chrome present**, CTA to the app; **mobile + `prefers-reduced-motion` + fast first paint** all met.
-- [ ] Hero chosen via the **bake-off** (CSS/Canvas / Firefly / combine).
-- [ ] Streamlit app: new theme, quilt hero, **one** controlled CSS layer, new logo wired.
-- [ ] `make test` + `make lint` green; **no Phase 4 regression**.
-- [ ] Byte ratio measured; `.gitattributes` updated **only if** needed.
-- [ ] Deploy items handed to Phase 5.
+- [x] Hero chosen via the **bake-off** (CSS/Canvas / Firefly / combine).
+- [x] Streamlit app: new theme, quilt hero, **one** controlled CSS layer, new logo wired.
+- [x] `make test` + `make lint` green; **no Phase 4 regression**.
+- [x] Byte ratio measured; `.gitattributes` updated **only if** needed.
+- [x] Deploy items handed to Phase 5.
 
 Done = the project *looks* as serious as it is. Deploy of all three surfaces is Phase 5.
 

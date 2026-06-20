@@ -153,9 +153,9 @@ section .lede { font-size: 1.1rem; max-width: 44rem; }
   text-align: center; font-size: 0.78rem; line-height: 1.7;
   padding: 2.5rem 1rem;
 }
-.site-footer a { color: #cbbfae; text-decoration: none; display: inline-block; padding: 4px; }
+.site-footer a { color: #cbbfae; text-decoration: none; display: inline-block; padding: 4px 0; }
 .site-footer .legal { display: block; max-width: 40rem; margin: 0 auto 0.75rem; }
-.site-footer svg { vertical-align: middle; margin: 0 0 0 4px; }
+.site-footer svg { vertical-align: middle; margin: 0; }
 
 /* scroll-reveal (M3c) — JS adds .is-visible as elements enter the viewport */
 .reveal {
