@@ -40,14 +40,14 @@ def _mock_stream(messages, **_):
 
 
 def test_memo_page_chrome_present():
-    at = AppTest.from_file("src/patchwork_assurance/ui/app.py").run()
+    at = AppTest.from_file("src/patchwork_assurance/ui/memo.py").run()
     assert not at.exception
     warnings = [w.value for w in at.warning]
     assert any("not legal advice" in w.lower() for w in warnings)
 
 
 def test_memo_page_form_exists():
-    at = AppTest.from_file("src/patchwork_assurance/ui/app.py").run()
+    at = AppTest.from_file("src/patchwork_assurance/ui/memo.py").run()
     assert not at.exception
     assert len(at.button) == 1
     assert at.button[0].label == "Generate memo"
@@ -55,7 +55,7 @@ def test_memo_page_form_exists():
 
 
 def test_memo_page_renders_memo_on_submit():
-    at = AppTest.from_file("src/patchwork_assurance/ui/app.py").run()
+    at = AppTest.from_file("src/patchwork_assurance/ui/memo.py").run()
     at.multiselect[0].set_value(["Colorado"])
     at.multiselect[1].set_value(["employment"])
     at.multiselect[2].set_value(["deployer"])
@@ -73,7 +73,7 @@ def test_memo_page_renders_memo_on_submit():
 def test_memo_page_shows_error_when_api_down():
     from patchwork_assurance.ui.client import APIError
 
-    at = AppTest.from_file("src/patchwork_assurance/ui/app.py").run()
+    at = AppTest.from_file("src/patchwork_assurance/ui/memo.py").run()
     at.multiselect[0].set_value(["Colorado"])
     at.multiselect[1].set_value(["employment"])
     at.multiselect[2].set_value(["deployer"])
@@ -94,21 +94,27 @@ def test_memo_page_shows_error_when_api_down():
 # ---------------------------------------------------------------------------
 
 
+def test_nav_entry_runs():
+    """The st.navigation entry (top nav, renamed pages) loads without error."""
+    at = AppTest.from_file("src/patchwork_assurance/ui/app.py").run()
+    assert not at.exception
+
+
 def test_chat_page_chrome_present():
-    at = AppTest.from_file("src/patchwork_assurance/ui/pages/2_Chat.py").run()
+    at = AppTest.from_file("src/patchwork_assurance/ui/chat.py").run()
     assert not at.exception
     warnings = [w.value for w in at.warning]
     assert any("not legal advice" in w.lower() for w in warnings)
 
 
 def test_chat_page_input_exists():
-    at = AppTest.from_file("src/patchwork_assurance/ui/pages/2_Chat.py").run()
+    at = AppTest.from_file("src/patchwork_assurance/ui/chat.py").run()
     assert not at.exception
     assert len(at.chat_input) == 1
 
 
 def test_chat_page_streams_answer_and_shows_sources():
-    at = AppTest.from_file("src/patchwork_assurance/ui/pages/2_Chat.py").run()
+    at = AppTest.from_file("src/patchwork_assurance/ui/chat.py").run()
     at.chat_input[0].set_value("What must a Colorado deployer disclose?")
 
     with patch("patchwork_assurance.ui.client.stream_chat", side_effect=_mock_stream):

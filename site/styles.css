@@ -1,9 +1,7 @@
 /* Patchwork Assurance — design tokens (Phase 4.5 · M1 / Track A).
    Palette C "Cinematic Jewel" · type Bricolage Grotesque (display) + Work Sans (body).
    The landing page (M3) and the Streamlit theme (M4) both consume these.
-   NOTE: M3 will move font loading to a <link rel="preconnect"> in the HTML head (faster than @import). */
-
-@import url('https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@600;700;800&family=Work+Sans:wght@400;500;600&display=swap');
+   Fonts load via <link rel="preconnect"> in index.html's <head> (M3a — faster than @import). */
 
 :root {
   /* palette C — raw */
@@ -26,6 +24,161 @@
   --font-body:    "Work Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
 }
 
-/* base application (extended in M3) */
+/* base application */
 body { font-family: var(--font-body); color: var(--text); background: var(--bg); }
 h1, h2, h3, .display { font-family: var(--font-display); font-weight: 700; }
+
+/* ──────────────────────────────────────────────────────────────────────────
+   M3a — landing-page layout (plain token styling).
+   The hero video (M3b) and scroll-reveal motion (M3c) land later; this is the
+   skeleton: real structure, real copy, the legal chrome, no spectacle yet.
+   ────────────────────────────────────────────────────────────────────────── */
+
+*, *::before, *::after { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body { margin: 0; line-height: 1.6; overflow-x: hidden; }
+
+.wrap { width: 100%; max-width: 64rem; margin: 0 auto; padding: 0 1.5rem; }
+
+a { color: var(--primary); }
+
+/* visible keyboard focus (M3d a11y). Dark ink ring + gold halo so one of the two
+   always shows, whether the element is on paper or on the dark video. */
+a:focus-visible, .btn:focus-visible {
+  outline: 2px solid var(--c-ink); outline-offset: 2px;
+  box-shadow: 0 0 0 4px rgba(214, 164, 62, 0.55);
+}
+
+/* skip link — a11y (visible on focus) */
+.skip-link {
+  position: absolute; left: -999px; top: 0;
+  background: var(--c-ink); color: var(--c-paper);
+  padding: 0.5rem 1rem; z-index: 100; border-radius: 0 0 6px 0;
+}
+.skip-link:focus { left: 0; }
+
+/* top chrome bar — "educational tool, not legal advice" (mandatory, plan §12) */
+.chrome-bar {
+  background: var(--c-indigo); color: var(--c-paper);
+  font-size: 0.8rem; text-align: center;
+  padding: 0.5rem 1rem; line-height: 1.4;
+}
+
+/* site header / wordmark */
+.site-header { padding: 1.25rem 0; }
+.site-header .wrap { display: flex; justify-content: center; }
+.brand {
+  display: flex; align-items: center; justify-content: center; flex-wrap: wrap;
+  gap: 0.4rem 0.85rem; text-align: center; text-decoration: none; color: var(--text);
+}
+.brand img { width: clamp(2.4rem, 7vw, 3.4rem); height: clamp(2.4rem, 7vw, 3.4rem); }
+.brand .name {
+  font-family: var(--font-display); font-weight: 800; line-height: 1.05;
+  font-size: clamp(2.1rem, 6.5vw, 3.8rem);
+}
+
+/* buttons */
+.btn {
+  display: inline-block; font-family: var(--font-body); font-weight: 600;
+  text-decoration: none; padding: 0.8rem 1.5rem; border-radius: 8px;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+.btn-primary { background: var(--c-gold); color: var(--c-ink); }
+.btn-primary:hover { transform: translateY(-1px); box-shadow: 0 6px 18px rgba(21,25,30,0.25); }
+.btn-ghost { background: transparent; color: var(--primary); border: 1px solid var(--primary); }
+/* ghost button on a dark video background (hero) — cream so it's visible */
+.hero .btn-ghost { color: var(--c-paper); border-color: rgba(243,236,225,0.75); }
+.hero .btn-ghost:hover { background: rgba(243,236,225,0.12); }
+
+/* hero — Firefly textile video (M3b) layered behind the content; teal is the
+   base/fallback color shown before the poster paints */
+.hero {
+  position: relative; overflow: hidden;
+  display: flex; align-items: center; min-height: 66vh;
+  background: var(--c-teal); color: var(--c-paper);
+  padding: 5rem 0 5.5rem; text-align: center;
+}
+/* reusable video-background layer (hero + closing CTA) */
+.bg-video {
+  position: absolute; inset: 0; z-index: 0;
+  width: 100%; height: 100%; object-fit: cover;
+}
+.bg-scrim {
+  position: absolute; inset: 0; z-index: 1;
+  background: linear-gradient(rgba(33,48,76,0.55), rgba(21,25,30,0.68));
+}
+.hero > .wrap { position: relative; z-index: 2; }
+.hero h1 {
+  font-size: clamp(1.9rem, 5vw, 3.1rem); line-height: 1.08;
+  margin: 0 0 1.25rem; color: var(--c-paper);
+}
+.hero .pitch {
+  font-size: clamp(1.05rem, 2.4vw, 1.3rem); max-width: 42rem;
+  margin: 0 auto 2rem; color: var(--c-paper);
+}
+.hero .cta-row { display: flex; flex-direction: column; align-items: center; gap: 0.85rem; }
+
+/* content sections */
+section { padding: 4rem 0; }
+section h2 {
+  font-size: clamp(1.6rem, 4vw, 2.4rem); margin: 0 0 1rem;
+  color: var(--primary);
+}
+section .lede { font-size: 1.1rem; max-width: 44rem; }
+
+.section-alt { background: #ece2d3; }
+
+/* two-surface cards */
+.cards { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-top: 2rem; }
+.card {
+  background: var(--c-paper); border: 1px solid #d9cdb8; border-radius: 12px;
+  padding: 1.75rem;
+}
+.card h3 { margin: 0 0 0.6rem; font-size: 1.25rem; color: var(--c-oxblood); }
+
+/* closing CTA — same video background as the hero */
+.closing {
+  position: relative; overflow: hidden;
+  text-align: center; color: var(--c-paper); padding: 5rem 0;
+}
+.closing > .wrap { position: relative; z-index: 2; }
+.closing h2 { color: var(--c-paper); }
+.closing .store-note {
+  font-size: 0.9rem; color: #e9ddc9; margin-top: 1.25rem;
+}
+
+/* footer (mirrors the Streamlit chrome footer) */
+.site-footer {
+  background: var(--c-ink); color: #cbbfae;
+  text-align: center; font-size: 0.78rem; line-height: 1.7;
+  padding: 2.5rem 1rem;
+}
+.site-footer a { color: #cbbfae; text-decoration: none; display: inline-block; padding: 4px; }
+.site-footer .legal { display: block; max-width: 40rem; margin: 0 auto 0.75rem; }
+.site-footer svg { vertical-align: middle; margin: 0 0 0 4px; }
+
+/* scroll-reveal (M3c) — JS adds .is-visible as elements enter the viewport */
+.reveal {
+  opacity: 0; transform: translateY(18px);
+  transition: opacity 0.6s ease, transform 0.6s ease;
+}
+.reveal.is-visible { opacity: 1; transform: none; }
+.cards .reveal:nth-child(2) { transition-delay: 0.12s; }
+
+/* reduced motion — no autoplaying video, no reveal transition, no smooth scroll (plan §3, §7) */
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  .bg-video { display: none; }
+  .hero, .closing {
+    background-image: url('assets/hero-poster.jpg');
+    background-size: cover; background-position: center;
+  }
+  .reveal { opacity: 1; transform: none; transition: none; }
+}
+
+/* responsive — single column on small screens (a11y/perf budget, plan §3) */
+@media (max-width: 640px) {
+  .cards { grid-template-columns: 1fr; }
+  .hero { padding: 3.5rem 0 4rem; }
+  section { padding: 3rem 0; }
+}

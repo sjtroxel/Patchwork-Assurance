@@ -3,21 +3,22 @@ import json
 import streamlit as st
 
 from patchwork_assurance.ui import client
-from patchwork_assurance.ui.chrome import render_chrome, render_footer
-
-st.set_page_config(
-    page_title="Patchwork Assurance — Chat",
-    page_icon="src/patchwork_assurance/ui/assets/favicon.svg",
-    layout="centered",
+from patchwork_assurance.ui.chrome import (
+    inject_brand_css,
+    render_chrome,
+    render_footer,
+    render_hero,
+    render_seam,
 )
-st.logo("src/patchwork_assurance/ui/assets/logo.svg")
+
+inject_brand_css()
 render_chrome()
-
-st.title("Ask a question")
-st.write(
-    "Ask about Colorado SB 26-189 or Connecticut SB 5. "
-    "Answers are grounded in the statute text with citations. Not legal advice."
+render_hero(
+    "Ask a question",
+    "Ask about Colorado SB 26-189 or Connecticut SB 5. Answers are grounded in the statute "
+    "text with citations. Not legal advice.",
 )
+render_seam()
 
 if "messages" not in st.session_state:
     st.session_state.messages = []

@@ -1,91 +1,24 @@
 import streamlit as st
 
-from patchwork_assurance.ui import client
-from patchwork_assurance.ui.chrome import render_chrome, render_footer
+from patchwork_assurance.ui.chrome import inject_brand_css
 
+# Navigation entry (Phase 4.5 M4): a top nav instead of a sidebar for two pages, with
+# real page titles ("Memo" not "app"). Page content lives in memo.py / chat.py; the legal
+# chrome, brand CSS, and hero are rendered per page so every surface carries them.
 st.set_page_config(
     page_title="Patchwork Assurance",
     page_icon="src/patchwork_assurance/ui/assets/favicon.svg",
     layout="centered",
 )
-st.logo("src/patchwork_assurance/ui/assets/logo.svg")
-render_chrome()
+# Full lockup (mark + outlined wordmark) in the top bar. No icon_image: in top-nav mode
+# Streamlit renders icon_image (the compact form) in the header, which would show only the
+# square mark. The wordmark is outlined to vector paths (M5.3) so it renders font-independently;
+# sizing is enforced in the brand CSS layer (chrome.py).
+st.logo("src/patchwork_assurance/ui/assets/logo.svg", size="large")
+inject_brand_css()  # ensure the logo-sizing CSS is present where the header renders
 
-st.title("Compliance Memo")
-st.write(
-    "Describe your situation; get a grounded, educational summary of how Colorado SB 26-189 "
-    "and Connecticut SB 5 may apply. Not legal advice."
-)
-
-DOMAIN_LABELS = {
-    "education": "Education",
-    "employment": "Employment",
-    "housing": "Housing",
-    "financial_lending": "Financial / lending",
-    "insurance": "Insurance",
-    "health_care": "Health care",
-    "government_services": "Government services",
-}
-
-
-def _render_memo(memo: dict) -> None:
-    SCOPE_BOX = {"yes": st.success, "uncertain": st.info, "no": st.warning}
-
-    for law in memo.get("per_law", []):
-        with st.expander(law.get("short_name", "Law"), expanded=True):
-            scope = law.get("in_scope", "")
-            box = SCOPE_BOX.get(scope, st.write)
-            box(f"In scope: {scope.upper() if scope else 'UNKNOWN'}")
-            st.write(law.get("why", ""))
-            for ob in law.get("obligations", []):
-                st.markdown(f"- {ob.get('text', '')}  \n  *{ob.get('citation', '')}*")
-            if law.get("effective_dates"):
-                st.caption("Effective: " + ", ".join(law["effective_dates"]))
-
-    notices = memo.get("draft_notices", [])
-    if notices:
-        st.subheader("Draft notice language")
-        for n in notices:
-            st.caption(f"{n.get('kind', '')} — {n.get('jurisdiction', '')}")
-            st.code(n.get("text", ""), language=None)
-
-    deadlines = memo.get("deadline_checklist", [])
-    if deadlines:
-        st.subheader("Deadlines")
-        st.dataframe(deadlines, hide_index=True, use_container_width=True)
-
-    if memo.get("disclaimer"):
-        st.warning(memo["disclaimer"])
-
-
-with st.form("situation"):
-    jurisdictions = st.multiselect(
-        "Where do you operate, employ, or serve people?",
-        ["Colorado", "Connecticut"],
-    )
-    domains = st.multiselect(
-        "Which decisions does your AI touch?",
-        list(DOMAIN_LABELS),
-        format_func=lambda s: DOMAIN_LABELS[s],
-    )
-    roles = st.multiselect("Your role", ["developer", "deployer"])
-    uses_ai = st.toggle("We use AI to make or materially influence these decisions", value=True)
-    notes = st.text_area("Anything else? (optional)")
-    submitted = st.form_submit_button("Generate memo")
-
-if submitted:
-    situation = {
-        "jurisdictions": jurisdictions,
-        "decision_domains": domains,
-        "roles": roles,
-        "uses_ai_in_decisions": uses_ai,
-        "notes": notes,
-    }
-    try:
-        with st.spinner("Analyzing against the statute text…"):
-            memo = client.analyze(situation)
-        _render_memo(memo)
-    except client.APIError as exc:
-        st.error(str(exc))
-
-render_footer()
+pages = [
+    st.Page("memo.py", title="Memo", default=True),
+    st.Page("chat.py", title="Chat"),
+]
+st.navigation(pages, position="top").run()

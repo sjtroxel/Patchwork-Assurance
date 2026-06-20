@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="theme-color" content="#21304c" />
+  <title>Patchwork Assurance</title>
+  <meta name="description"
+        content="An educational tool for understanding how the state-by-state US AI-regulation patchwork may apply to your business. Grounded in the statute text. Not legal advice." />
+
+  <!-- favicon (M1 / Track A) -->
+  <link rel="icon" type="image/svg+xml" href="assets/favicon.svg" />
+
+  <!-- fonts: preconnect + link (M3a; faster than the @import this replaced) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link rel="stylesheet"
+        href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@600;700;800&family=Work+Sans:wght@400;500;600&display=swap" />
+
+  <!-- design tokens + landing layout -->
+  <link rel="stylesheet" href="styles.css" />
+
+  <!--
+    Built M3a–M3d: structure + copy + legal chrome, Firefly hero/closing video
+    (assets/hero.{mp4,webm} + hero-poster.jpg), main.js scroll-reveal + video
+    play/pause, and the responsive/a11y/perf hardening pass.
+
+    CTA target is the local Streamlit app for preview; Phase 5 swaps in the
+    deployed Railway URL. Search "APP_URL" to update everywhere.
+  -->
+</head>
+<body>
+  <a class="skip-link" href="#main">Skip to content</a>
+
+  <!-- top chrome: not-legal-advice line (mandatory on every surface, plan §12) -->
+  <div class="chrome-bar">
+    Educational tool, not legal advice. Consult a licensed attorney for compliance decisions.
+  </div>
+
+  <header class="site-header">
+    <div class="wrap">
+      <a class="brand" href="#top" aria-label="Patchwork Assurance home">
+        <img src="assets/favicon.svg" alt="" />
+        <span class="name">Patchwork Assurance</span>
+      </a>
+    </div>
+  </header>
+
+  <main id="main">
+    <!-- 1. HERO -->
+    <section class="hero" id="top">
+      <!-- Firefly textile loop (M3b). Muted/looping/playsinline autoplay; poster paints
+           instantly; prefers-reduced-motion hides it and falls back to the still poster. -->
+      <video class="bg-video" autoplay muted loop playsinline preload="metadata"
+             poster="assets/hero-poster.jpg" aria-hidden="true" tabindex="-1">
+        <source src="assets/hero.webm" type="video/webm" />
+        <source src="assets/hero.mp4" type="video/mp4" />
+      </video>
+      <div class="bg-scrim" aria-hidden="true"></div>
+      <div class="wrap">
+        <h1>Fifty states. No federal floor.</h1>
+        <p class="pitch">
+          A grounded, educational starting point for understanding how the state-by-state
+          US AI-regulation patchwork may apply to your business, built on the statute text.
+        </p>
+        <div class="cta-row">
+          <!-- APP_URL -->
+          <a class="btn btn-primary" href="http://localhost:8501">Launch the tool <span aria-hidden="true">→</span></a>
+          <a class="btn btn-ghost" href="#what">See how it works</a>
+        </div>
+      </div>
+    </section>
+
+    <!-- 2. THE PROBLEM -->
+    <section id="problem">
+      <div class="wrap">
+        <h2 class="reveal">The patchwork is the problem</h2>
+        <p class="lede reveal">
+          AI regulation in the US is arriving state by state, not from Washington. Colorado and
+          Connecticut have already passed laws, each with its own operative test and staggered
+          effective dates, and more states are drafting their own. There is no single rulebook,
+          just a growing patchwork. The hard part is knowing which pieces touch your situation.
+        </p>
+      </div>
+    </section>
+
+    <!-- 3. WHAT IT DOES -->
+    <section id="what" class="section-alt">
+      <div class="wrap">
+        <h2 class="reveal">Two ways in, one grounded core</h2>
+        <p class="lede reveal">
+          Both surfaces read from the same retrieval core. Every claim is grounded in the
+          retrieved statute text with citations. Where the law is unsettled, it says so.
+        </p>
+        <div class="cards">
+          <div class="card reveal">
+            <h3>Compliance memo</h3>
+            <p>
+              Describe your situation and get a structured, educational memo: which laws appear
+              to be in scope, what the statute requires, and where you should consult a licensed
+              attorney. Grounded in the statute text, with citations.
+            </p>
+          </div>
+          <div class="card reveal">
+            <h3>Chat</h3>
+            <p>
+              Ask questions and get answers drawn from the statute text with citations, not from
+              a model's general impression of the law. It tells you when an interpretation is
+              contested or unlitigated.
+            </p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 4. THE HONEST FRAMING -->
+    <section id="honest">
+      <div class="wrap">
+        <h2 class="reveal">Honest about what it is</h2>
+        <p class="lede reveal">
+          This is an educational tool, not legal advice and not a compliance product.
+          The laws are new, unlitigated, and subject to agency rulemaking; the federal picture is
+          in flux. "Patchwork Assurance" means <em>reasonable</em> assurance (the auditor's term
+          that disclaims absolute assurance), never certainty.
+        </p>
+      </div>
+    </section>
+
+    <!-- 5. CLOSING CTA -->
+    <section id="launch" class="closing">
+      <!-- same Firefly loop behind the closing CTA (asset is cached from the hero).
+           preload=none + JS play-on-view: it's offscreen, so don't fetch/decode early. -->
+      <video class="bg-video" autoplay muted loop playsinline preload="none"
+             poster="assets/hero-poster.jpg" aria-hidden="true" tabindex="-1">
+        <source src="assets/hero.webm" type="video/webm" />
+        <source src="assets/hero.mp4" type="video/mp4" />
+      </video>
+      <div class="bg-scrim" aria-hidden="true"></div>
+      <div class="wrap">
+        <h2 class="reveal">Start reading the patchwork</h2>
+        <!-- APP_URL -->
+        <p><a class="btn btn-primary" href="http://localhost:8501">Launch the tool <span aria-hidden="true">→</span></a></p>
+        <p class="store-note">
+          We don't store your inputs. Each analysis runs in your session and is discarded.
+        </p>
+      </div>
+    </section>
+  </main>
+
+  <!-- footer: mirrors the Streamlit chrome footer (ui/chrome.py) -->
+  <footer class="site-footer">
+    <span class="legal">
+      Educational tool, not legal advice. The laws are new and unlitigated; consult a licensed
+      attorney for any compliance decision.
+    </span>
+    &copy; 2026 sjtroxel
+    <a href="https://github.com/sjtroxel/Patchwork-Assurance" target="_blank"
+       rel="noopener noreferrer" aria-label="GitHub - Patchwork Assurance">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+        <path d="M12 0C5.374 0 0 5.373 0 12c0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23A11.509 11.509 0 0 1 12 5.803c1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576C20.566 21.797 24 17.3 24 12c0-6.627-5.373-12-12-12z"/>
+      </svg>
+    </a>. All rights reserved.
+  </footer>
+
+  <script defer src="main.js"></script>
+</body>
+</html>

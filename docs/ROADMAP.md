@@ -208,7 +208,8 @@ phases actually turned out).
 | **2 — `core/` logic (Seams 2–4)** | `retrieve(query, filters)`; structured memo generation; chat RAG — pure Python, testable without the web layer | RAG; prompting; structured output |
 | **3 — FastAPI** | `/analyze` + `/chat` over `core/`; Pydantic models; SSE streaming for chat | FastAPI; async; SSE (the backend rep) |
 | **4 — Streamlit UI** | Memo-form page; chat page; the "not legal advice" banner; made presentable | Streamlit; multi-page; `st.chat` |
-| **4.5 — Visual identity & front door** | A real quilt visual identity (palette, logo, type) replacing the placeholder; a cinematic static landing page (the "front door"); app polished to gorgeous-but-trustworthy. A presentation half-phase, no functional change. | Visual design; static HTML/CSS/JS; brand |
+| **4.5 — Visual identity & front door** | A real quilt visual identity (palette, logo, type) replacing the placeholder; a cinematic static landing page (the "front door"); app polished to gorgeous-but-trustworthy. A presentation half-phase, no functional change. **COMPLETE 2026-06-20.** | Visual design; static HTML/CSS/JS; brand |
+| **4.6 — Memo form & scope rework** | Fix the input model so the headline case works: an out-of-state business with CO/CT employees/consumers/residents (jurisdiction = where the law *reaches*, not HQ); real business roles (HR, founder, …) mapping to statutory developer/deployer, plus "Other" + explanation. **Functional** (touches the `situation` contract, scope logic, likely SPEC) — its own mini-phase, agreed 2026-06-20. Plan doc at phase start. | Domain modeling; scope logic; UX of legal intake |
 | **5 — Deploy + README** | UI **and** API on Railway (always-on) + static landing on a free host; custom-domain umbrella (optional); public repo; Python-dominant `.gitattributes` backstop. **Shippable v1.** | Deploy; secrets; env config |
 | **6 — Evals** | Gold set of situations → expected scope/obligations; retrieval hit-rate, scope accuracy, citation groundedness; LLM-as-judge — run against the same API path | Evals; LLM-as-judge |
 | **7 — Observability & security** | Tracing + token-cost/latency instrumentation over the API path; prompt-injection and poisoned-document defenses for the chat surface and the corpus loader | Observability tooling; LLM security |
@@ -216,7 +217,8 @@ phases actually turned out).
 | **9 — Monitoring/ingestion agent (v2 headline)** | Scheduled poll → free diff → LLM-on-change → agent writes into `corpus/` → human gate surfaces changes for review; prove it by adding a 3rd jurisdiction | Agents; agent loops; the AI-native engine |
 | **10 — MCP server** | Expose Patchwork's tools (scope check, memo, retrieval) as an MCP server usable from Claude / Cursor | MCP; tool + server design |
 
-**v1 = Phases 0–5** (with **4.5**, a presentation-only half-phase, inserted between build and deploy).
+**v1 = Phases 0–5** (with **4.5** and **4.6** inserted between build and deploy — 4.5 presentation-only,
+4.6 a small functional correction to the intake/scope model).
 **v1.x = Phases 6–8 (measure, harden, improve retrieval). v2 = Phases 9–10 (the self-updating engine +
 MCP).** Phase 4.5 adds no functional capability, so it does not touch binding rule 1's gate: Phases 6+
 remain blocked until v1 is deployed and works end to end.

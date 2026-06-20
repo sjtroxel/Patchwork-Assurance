@@ -1,7 +1,19 @@
+# Streamlit theme — Patchwork Assurance identity (Phase 4.5 · M4, palette C "Cinematic Jewel").
+# Keys verified against Streamlit 1.58 at build (theme_util.py). Fonts load the Track-A faces
+# directly via the theme using the "Family Name:source_url" form (1.58 native), so the app and
+# the landing page share Bricolage Grotesque (headings) + Work Sans (body) with no CSS hack.
 [theme]
 base = "light"
-primaryColor = "#2f4b5e"
-backgroundColor = "#ffffff"
-secondaryBackgroundColor = "#f3f5f7"
-textColor = "#1a1f24"
-font = "serif"
+primaryColor = "#2f4b5e"               # anchor teal
+backgroundColor = "#f3ece1"            # quilt-backing paper
+secondaryBackgroundColor = "#ece2d3"   # warm cream (sidebar, widgets, code)
+textColor = "#15191e"                  # ink
+linkColor = "#7c2f3b"                  # oxblood accent
+borderColor = "#d9cdb8"                # cream-tan, matches the landing card border
+font = "Work Sans:https://fonts.googleapis.com/css2?family=Work+Sans:wght@400;500;600&display=swap"
+headingFont = "Bricolage Grotesque:https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@600;700;800&display=swap"
+
+[client]
+# Hide Streamlit's built-in top-right toolbar (the "Deploy" button + dev menu) for a
+# clean end-user surface. Use "viewer" instead if you want the menu but not Deploy.
+toolbarMode = "minimal"
