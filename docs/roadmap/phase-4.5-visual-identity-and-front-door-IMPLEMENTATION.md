@@ -217,8 +217,43 @@ Done = the project *looks* as serious as it is. Deploy of all three surfaces is 
 
 ## 11. As-built notes (fill during build)
 
-- *(Record real deviations here — Phase 5's deploy reads how 4.5 turned out.)*
-- **Pin** the final palette hex, the chosen fonts, and the logo concept.
+**M1 progress (2026-06-19):**
+- **M1.1 palette — LOCKED: "C · Cinematic Jewel."** anchor teal `#2f4b5e` · oxblood `#7c2f3b` · gold
+  `#d6a43e` · pine `#2f6f5f` · indigo `#21304c` · paper `#f3ece1` · ink `#15191e`. Craft rules: jewels
+  as accents/edges/buttons (NOT big washes behind body text); reading surface = paper+ink; **gold is
+  fill-only, never text on paper** (low contrast). Landing = full richness; app = restrained.
+- **M1.2 logo — LOCKED: concept "B · pieced-corner pinwheel."** A stitched pinwheel block (cream
+  piecing + dashed stitching + stitched border) with small jewel half-square triangles in the 4 corners.
+  Written to `src/patchwork_assurance/ui/assets/{logo,favicon}.svg` (overwrote the Windows-tile
+  placeholders) and copied to `site/assets/`. App references unchanged (same filenames). The "C ·
+  nine-block sampler" remains a candidate *motif for the landing hero* (too busy as a small favicon).
+- **Throwaways:** `site/_explore/{palettes,logos,pinwheel}.html` — delete at M1 close.
+- **M1.3 type — LOCKED: Bricolage Grotesque (display/headings) + Work Sans (body/UI).** (Playfair was
+  tried and rejected — its high-contrast caps read wrong, e.g. capital H ≈ 8. Several serif headings
+  were rejected before branching to grotesques; Bricolage won.) Tokens captured in **`site/styles.css`**
+  `:root` (palette + `--font-display`/`--font-body`). **Open sub-tasks:** (a) logo.svg wordmark points
+  at Bricolage but a web font won't render in an SVG-shown-as-image (Streamlit `st.logo`) — M4 must
+  outline the wordmark or render it as live HTML text; (b) verify Streamlit 1.58 can load Google fonts
+  via the theme (`font`/`headingFont`/fontFaces) — historically the `font` key only took
+  sans/serif/mono, so this needs confirming at M4.
+
+**M1 / Track A — COMPLETE (2026-06-19).** Palette C · logo B · Bricolage + Work Sans. Assets:
+`ui/assets/{logo,favicon}.svg` + `site/assets/` (mirror) + `site/styles.css` (tokens).
+
+**M2 hero bake-off — DECIDED (2026-06-19): the Firefly textile VIDEO wins** (over the CSS/Canvas quilt).
+The CSS/Canvas hero (`_explore/hero-css.html`) did its job proving the video was better and is archived
+as a fallback. Firefly source: image-to-video, first frame = `styleref.html` geometric quilt screenshot,
+Static camera, motion LOW, 16:9/1080p/24fps/5s; motion prompt (not the scene prompt) drove movement.
+**Production asset built** (`ffmpeg`): `site/assets/hero.mp4` (705KB, H.264) + `hero.webm` (909KB, VP9)
++ `hero-poster.jpg` (81KB) — **seamless loop via boomerang** (forward+reverse concat → matched
+start/end frames; 10s), scaled to 1280, `+faststart`. Source `Firefly.mp4` was **deleted** after
+processing (only the seamless `hero.{mp4,webm}` + poster are retained; regenerate from Firefly if a
+re-edit is ever needed). The hero overlay treatment (scrim + Bricolage wordmark + Work Sans + gold CTA +
+chrome) is settled in `_explore/hero-firefly.html` (since deleted with `_explore`; the treatment lands
+in `site/index.html` at M3). Next: **M3 (landing page, staged)**.
+
+- *(Record further deviations here — Phase 5's deploy reads how 4.5 turned out.)*
+- **Pin** the final fonts (palette + logo already pinned above).
 - **Record** the hero decision (CSS/Canvas / Firefly / combine) + any Firefly export settings that worked.
 - **Note** the final `site/` file layout and the preview command actually used.
 - **Confirm** the `.streamlit/config.toml` keys used and whether any 1.58 typography key was added.

@@ -1,0 +1,31 @@
+/* Patchwork Assurance — design tokens (Phase 4.5 · M1 / Track A).
+   Palette C "Cinematic Jewel" · type Bricolage Grotesque (display) + Work Sans (body).
+   The landing page (M3) and the Streamlit theme (M4) both consume these.
+   NOTE: M3 will move font loading to a <link rel="preconnect"> in the HTML head (faster than @import). */
+
+@import url('https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@600;700;800&family=Work+Sans:wght@400;500;600&display=swap');
+
+:root {
+  /* palette C — raw */
+  --c-teal:    #2f4b5e;   /* anchor / primary */
+  --c-oxblood: #7c2f3b;   /* warm accent */
+  --c-gold:    #d6a43e;   /* fill/accent ONLY — never body text on paper (low contrast) */
+  --c-pine:    #2f6f5f;   /* soft accent */
+  --c-indigo:  #21304c;   /* deep */
+  --c-paper:   #f3ece1;   /* background / "quilt backing" */
+  --c-ink:     #15191e;   /* text */
+
+  /* roles */
+  --bg:        var(--c-paper);
+  --text:      var(--c-ink);
+  --primary:   var(--c-teal);
+  --accent:    var(--c-oxblood);
+
+  /* type */
+  --font-display: "Bricolage Grotesque", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-body:    "Work Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+
+/* base application (extended in M3) */
+body { font-family: var(--font-body); color: var(--text); background: var(--bg); }
+h1, h2, h3, .display { font-family: var(--font-display); font-weight: 700; }
