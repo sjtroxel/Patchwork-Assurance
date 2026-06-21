@@ -1,0 +1,15 @@
+# Keep the build context small and the image clean. None of these belong in the deployed image:
+# the local venv and Chroma index (rebuilt on boot), git metadata, caches, the landing page (it
+# deploys to a static host, not these services), and stray local files.
+.venv
+.chroma
+.git
+.github
+__pycache__
+*.pyc
+.pytest_cache
+.ruff_cache
+site
+image.png
+docs
+tests

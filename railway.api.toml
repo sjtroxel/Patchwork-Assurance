@@ -14,11 +14,10 @@
 # Optional overrides: MEMO_DAILY_LIMIT_PER_IP, CHAT_MODEL, MEMO_MODEL.
 
 [build]
-builder = "RAILPACK"
-# Railpack auto-installs only when it finds requirements.txt or a lockfile. This is a plain PEP-621
-# hatchling pyproject with no lockfile, so install the project (and its deps) explicitly into the same
-# interpreter the start command uses (`python -m`). Without this, uvicorn/patchwork_assurance are absent.
-buildCommand = "python -m pip install ."
+# Dockerfile (shared with the ui service) instead of Railpack: Railpack's build/runtime image split
+# dropped the pip-installed packages, causing "No module named uvicorn" at start (verified 2026-06-20).
+builder = "DOCKERFILE"
+dockerfilePath = "Dockerfile"
 
 [deploy]
 # Invoke via `python -m` so it resolves in Railpack's Python env: the venv's bin/ is not on PATH

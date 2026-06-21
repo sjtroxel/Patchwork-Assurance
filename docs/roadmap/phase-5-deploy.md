@@ -1,4 +1,4 @@
-# Phase 5 — Deploy + README (the v1 finish line)
+w# Phase 5 — Deploy + README (the v1 finish line)
 
 *Phase plan (intended design), written 2026-06-17. Final phase of v1 (ROADMAP §6). Deploys all three
 surfaces — the static landing page, the Streamlit UI, and the FastAPI backend — wires them across

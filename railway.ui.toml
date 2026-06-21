@@ -10,10 +10,10 @@
 # Health endpoint /_stcore/health returns "ok" once the server is up.
 
 [build]
-builder = "RAILPACK"
-# Same as the api service: no lockfile, so install the project + deps explicitly into the interpreter
-# the start command uses. Without this, streamlit/patchwork_assurance are absent in the container.
-buildCommand = "python -m pip install ."
+# Same shared Dockerfile as the api service (see railway.api.toml for why not Railpack). Only the
+# start command below differs between the two services.
+builder = "DOCKERFILE"
+dockerfilePath = "Dockerfile"
 
 [deploy]
 # `python -m streamlit` so it resolves in Railpack's Python env (the venv bin/ is not on PATH for a
