@@ -210,7 +210,7 @@ phases actually turned out).
 | **4 — Streamlit UI** | Memo-form page; chat page; the "not legal advice" banner; made presentable | Streamlit; multi-page; `st.chat` |
 | **4.5 — Visual identity & front door** | A real quilt visual identity (palette, logo, type) replacing the placeholder; a cinematic static landing page (the "front door"); app polished to gorgeous-but-trustworthy. A presentation half-phase, no functional change. **COMPLETE 2026-06-20.** | Visual design; static HTML/CSS/JS; brand |
 | **4.6 — Memo form & scope rework** | Fix the input model so the headline case works: an out-of-state business with CO/CT employees/consumers/residents (jurisdiction = where the law *reaches*, not HQ via a corpus-driven nexus screen); real business roles mapping to statutory developer/deployer; shadow-AI discovery; verdict-first memo with deterministic deadlines + templated next-steps. **BUILT 2026-06-20** (96 tests; pending running-app QA). | Domain modeling; scope logic; UX of legal intake |
-| **5 — Deploy + README** | **Starts by wiring the Anthropic API key.** Two-model generation: **chat = Haiku (unlimited)**, **memo = Sonnet (rate-limited, ~2/IP/day)**; multi-agent memo is an open enhancement. UI **and** API on Railway (always-on) + static landing on a free host; custom-domain umbrella (optional); public repo; Python-dominant `.gitattributes` backstop. **Shippable v1.** | Deploy; secrets; env config; model/cost strategy |
+| **5 — Deploy + README** | **Starts by wiring the Anthropic API key.** Two-model generation: **chat = Haiku (unlimited)**, **memo = Sonnet (rate-limited, ~2/IP/day)**; multi-agent memo is an open enhancement. UI **and** API on Railway (always-on) + static landing on a free host; custom-domain umbrella (optional); public repo. **Shippable v1. COMPLETE 2026-06-21.** As-built corrections: shipped via a shared **Dockerfile** (not Railpack); **CORS not needed** (UI calls API server-side); **no `.gitattributes`** needed (Linguist excludes prose Markdown; repo reads **Python 87%**); custom-domain umbrella **deferred to the post-v1 backlog**. Live: app + landing both up. | Deploy; secrets; env config; model/cost strategy |
 | **6 — Evals** | Gold set of situations → expected scope/obligations; retrieval hit-rate, scope accuracy, citation groundedness; LLM-as-judge — run against the same API path | Evals; LLM-as-judge |
 | **7 — Observability & security** | Tracing + token-cost/latency instrumentation over the API path; prompt-injection and poisoned-document defenses for the chat surface and the corpus loader | Observability tooling; LLM security |
 | **8 — Retrieval quality (hybrid RAG)** | Add structured / text→SQL retrieval over the corpus metadata (jurisdiction, scope domains, dates) alongside semantic search; route queries; compare flavors of RAG, measured against the Phase 6 evals | Hybrid + agentic RAG; retrieval tuning |
@@ -233,6 +233,10 @@ headline) needs to come sooner for motivation, it can move up — it is sequence
 priority.
 
 *Post-v1 enhancement backlog (not numbered phases; tracked here so they aren't lost):*
+- **Custom-domain umbrella** — deferred at the Phase 5 ship (2026-06-21) on cost timing, ~$12/yr, revisit
+  ~early July. Today the two Railway services differ only by a hyphen (`patchwork-assurance` API vs
+  `patchworkassurance` UI) and the landing page lives on `patchwork-assurance.vercel.app`. A domain unifies
+  them: apex → landing, `app.` subdomain → the Streamlit UI. Pure polish; v1 ships and works without it.
 - **Multi-agent memo generation** — agreed 2026-06-20, **post-deploy** (gated behind v1, binding rule 1).
   The v1 memo is a single Sonnet call; afterward, upgrade it to a small, purposeful pipeline that is a
   genuine showcase (not swarm-for-its-own-sake): **scope** stays deterministic; **per-law analyst agents**

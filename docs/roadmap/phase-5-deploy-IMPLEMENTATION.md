@@ -158,9 +158,87 @@ landing, optional domain, README, .gitattributes — §§3–9.)*
   chunk IDs, skipped when an index already exists, so local dev is untouched). Verified against a fresh
   empty `CHROMA_PATH`: boot logs `built corpus index: 50 chunks`, `/health` reports `corpus_size: 50`.
 
+## 10d. As-built notes
+
+**Deploy to Railway — DONE 2026-06-20; confirmed live and functional in the browser.** Both services live
+and green from the one repo:
+- **API:** `https://patchwork-assurance.up.railway.app` — `/health` returns ok, `corpus_size` 50, both
+  model names. Listens on container port 8080.
+- **UI:** `https://patchworkassurance.up.railway.app` — Streamlit up; `API_BASE_URL` set to the API domain
+  (no trailing slash — a trailing slash makes `{base}/analyze` a double-slash 404). Container port 8080.
+- (The two names differ only by a hyphen. Confusing but harmless; a custom domain would unify them.)
+
+**Build path: a shared Dockerfile, not Railpack** (`Dockerfile` + `.dockerignore`; both services set
+`builder = "DOCKERFILE"`). The four blockers, in the order hit — keep this for the next deploy / Phase 9:
+1. Railway auto-created **3 services** from the dev `Procfile` (api/ui/site). Fix: renamed `Procfile` →
+   `Procfile.dev` (honcho `-f Procfile.dev`), deleted the `site` service (the landing page is a static
+   host, not a Railway service).
+2. Railpack: bare `uvicorn` → **command not found** (the venv bin isn't on PATH for a custom start command).
+3. Railpack: `python -m uvicorn` → **No module named uvicorn**. Railpack builds in one image and runs in a
+   separate runtime image; a `pip install .` into the mise Python's global site-packages is dropped between
+   stages (verified: the build log installs uvicorn, the runtime can't import it). Not winnable from config
+   → switched to a Dockerfile (single image, one interpreter installs and runs the deps).
+4. Dockerfile worked, then **`$PORT` is not a valid integer**: Railway exec's the start command without a
+   shell, so `$PORT` arrived as a literal string. Fix: `bin/start-{api,ui}.sh` run in a shell so `$PORT`
+   expands; `startCommand = "sh bin/start-*.sh"`; the Dockerfile `CMD` runs the api script by default.
+   Then it came up clean: model downloaded, index built on boot, `/health` 200.
+
+**CORS is not needed in this architecture** (corrects the plan's assumption): the Streamlit UI calls the
+API **server-side** (httpx in the UI container, not the browser), so `CORS_ALLOW_ORIGINS` is never in the
+path. Left at its default; no per-origin config required for the UI↔API calls.
+
+**Embeddings:** local fastembed BGE-small downloaded/cached fine in the container on first boot (only a
+harmless HuggingFace anonymous-rate-limit warning; set `HF_TOKEN` only if cold-start downloads get throttled).
+
+**Open hardening item (not a v1 blocker):** the API is **publicly reachable**, so `/analyze` (paid Sonnet)
+is open to anyone with the URL — the per-IP rate limit is the only guard. The clean fix is Railway private
+networking (UI → `*.railway.internal:8080`, API not public), which historically needs an IPv6 bind
+(`--host ::`); confirm the current Railway requirement when we do it. Deferred on purpose.
+
+**Remaining Phase 5:** (a) functional smoke test on the live stack — UI renders, Memo form populates from
+`/meta`, a chat turn streams, one Sonnet memo generates; (b) deploy the static landing `site/` to a free
+host and point its CTA at the UI domain; (c) public README + `.gitattributes` if the byte ratio needs it;
+(d) optional custom domain. CORS step from the original plan is dropped (not needed, above).
+
 - *(Record: the re-verified model IDs/pricing; the exact config/llm split shape shipped; the rate-limit
   number + the XFF/IP decision + whether single-instance held; the embeddings choice; the live URLs;
   the measured two-service monthly cost; any `.gitattributes` change.)*
+
+## 10e. As-built notes
+
+**Phase 5 finish — 2026-06-21.** Resumed the morning after the Railway deploy came up; both services
+still live and green (`/health` ok, `corpus_size` 50, both model names).
+
+- **Live-stack smoke (API level) — PASS.** `/meta` populates the memo form (2 jurisdictions, 10 domains,
+  2 roles); `/memo-quota` returns `{limit:2, used:0, remaining:2}`; a live `/chat` turn streamed real
+  Haiku tokens with the correct operative term (ADMT / "materially influence"), correct domains, both
+  regulated parties, CO AG enforcement, plus grounded citations and the disclaimer chrome. (Browser pass
+  of the Streamlit UI itself is the builder's manual check.)
+- **Landing CTA swapped.** `site/index.html` "Launch the tool" links (hero + closing, both marked
+  `APP_URL`) now point at the live UI `https://patchworkassurance.up.railway.app` (was `localhost:8501`).
+- **`.gitattributes` NOT needed (corrects the plan's open item).** The live GitHub language bar already
+  reads **Python 87.1%** (HTML 5.2 / CSS 4.9 / JS 1.4 / Dockerfile 0.7 / Shell 0.5 / Makefile 0.2). The
+  corpus statute `.md` files do not count because Linguist classifies Markdown as `prose` and excludes
+  `prose`/`data` types from the bar by default (HTML/CSS show because they are `markup`). No byte-ratio
+  backstop required; the Python-dominant signal holds on its own.
+- **Public README written.** Replaced the intentionally-minimal placeholder with the deployed-v1 front
+  door: live links, not-legal-advice chrome, the problem, the two surfaces, the load-bearing architecture
+  invariants (statutes-never-hardcoded, inward-only `core/`, stateless, grounded-with-citations,
+  distinct operative terms, two-model split), stack, local run, layout, status, the narrow J.D.-edge
+  framing, license (all-rights-reserved). Third-person voice kept per the public-prep decision.
+- **Landing page deployed to Vercel: `https://patchwork-assurance.vercel.app`.** Static deploy, Root
+  Directory = `site`, preset Other, no build/install command, no env vars (the CTA URL is hardcoded in
+  `index.html`). Vercel is wired to the GitHub repo, so the `localhost:8501 → live UI` CTA fix lands on
+  the next push (auto-redeploy). No Railway-side change needed: the landing page only *links* to the UI,
+  it makes no API call, so there is no CORS/env coupling back to Vercel.
+
+**Phase 5 COMPLETE 2026-06-21 — v1 shipped.** Both Railway services live; landing on Vercel; public
+README in place. Deferred to the post-v1 backlog (ROADMAP §6), not gaps in v1:
+- **Custom-domain umbrella** — deferred on cost timing (~$12/yr), revisit ~early July; would unify the
+  two hyphen-differing Railway names + the Vercel landing under one domain.
+- **Multi-agent memo synthesis** — already in the backlog (per-law analysts + grounding/hedge reviewer),
+  gated behind v1 by binding rule 1.
+- Measured two-service monthly cost: TBD after a full billing cycle.
 
 > **Post-deploy (tracked, not Phase 5):** multi-agent memo (per-law analysts + grounding/hedge reviewer)
 > — ROADMAP §6 post-v1 backlog. Do not build before v1 is live (binding rule 1).
