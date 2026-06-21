@@ -8,7 +8,7 @@ install:
 	$(VENV)/bin/pre-commit install
 
 dev:
-	$(VENV)/bin/honcho start
+	$(VENV)/bin/honcho -f Procfile.dev start
 
 test:
 	$(VENV)/bin/pytest
