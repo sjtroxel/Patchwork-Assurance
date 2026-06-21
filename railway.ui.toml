@@ -13,7 +13,9 @@
 builder = "RAILPACK"
 
 [deploy]
-startCommand = "streamlit run src/patchwork_assurance/ui/app.py --server.port $PORT --server.address 0.0.0.0 --server.headless true"
+# `python -m streamlit` so it resolves in Railpack's Python env (the venv bin/ is not on PATH for a
+# custom start command, so bare `streamlit` would be "command not found" — same as the api service).
+startCommand = "python -m streamlit run src/patchwork_assurance/ui/app.py --server.port $PORT --server.address 0.0.0.0 --server.headless true"
 healthcheckPath = "/_stcore/health"
 healthcheckTimeout = 120
 restartPolicyType = "ON_FAILURE"
