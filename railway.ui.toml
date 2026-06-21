@@ -11,6 +11,9 @@
 
 [build]
 builder = "RAILPACK"
+# Same as the api service: no lockfile, so install the project + deps explicitly into the interpreter
+# the start command uses. Without this, streamlit/patchwork_assurance are absent in the container.
+buildCommand = "python -m pip install ."
 
 [deploy]
 # `python -m streamlit` so it resolves in Railpack's Python env (the venv bin/ is not on PATH for a
