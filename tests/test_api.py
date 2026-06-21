@@ -5,7 +5,13 @@ import json
 import pytest
 from fastapi.testclient import TestClient
 
-from patchwork_assurance.api.main import app, get_laws, get_llm, get_retriever
+from patchwork_assurance.api.main import (
+    app,
+    get_chat_llm,
+    get_laws,
+    get_memo_llm,
+    get_retriever,
+)
 from patchwork_assurance.core.contracts import ComplianceMemo
 from patchwork_assurance.core.llm import LLMError, StubLLM
 
@@ -25,11 +31,21 @@ MINIMAL_MEMO = ComplianceMemo(
 # ---- fixtures ----
 
 
+@pytest.fixture(autouse=True)
+def _reset_memo_rate_limit():
+    # The per-IP memo counter is module-level and would otherwise accumulate across tests (same
+    # TestClient IP, same process). Clear it before each test so single-call analyze tests don't 429.
+    from patchwork_assurance.api.main import _memo_counts
+
+    _memo_counts.clear()
+    yield
+
+
 @pytest.fixture
 def analyze_client():
     app.dependency_overrides[get_retriever] = lambda: _StubRetriever()
     app.dependency_overrides[get_laws] = lambda: []
-    app.dependency_overrides[get_llm] = lambda: StubLLM(structured=MINIMAL_MEMO)
+    app.dependency_overrides[get_memo_llm] = lambda: StubLLM(structured=MINIMAL_MEMO)
     yield TestClient(app)
     app.dependency_overrides.clear()
 
@@ -38,7 +54,7 @@ def analyze_client():
 def chat_client():
     app.dependency_overrides[get_retriever] = lambda: _StubRetriever()
     app.dependency_overrides[get_laws] = lambda: []
-    app.dependency_overrides[get_llm] = lambda: StubLLM(text="hello world")
+    app.dependency_overrides[get_chat_llm] = lambda: StubLLM(text="hello world")
     yield TestClient(app)
     app.dependency_overrides.clear()
 
@@ -67,14 +83,15 @@ def parse_sse(text: str) -> list[dict]:
 # ---- /health ----
 
 
-def test_health_has_generation_model():
+def test_health_reports_both_models():
     client = TestClient(app)
     r = client.get("/health")
     assert r.status_code == 200
     body = r.json()
     assert body["api"] == "ok"
     assert isinstance(body["core"]["corpus_size"], int)
-    assert body["generation_model"] == "claude-haiku-4-5"
+    assert body["chat_model"] == "claude-haiku-4-5"
+    assert body["memo_model"] == "claude-sonnet-4-6"
 
 
 # ---- /meta ----
@@ -130,7 +147,7 @@ def test_analyze_default_stub_is_valid_chrome_complete_memo():
     with the disclaimer present — invariant #4. Guards the partial-memo regression."""
     app.dependency_overrides[get_retriever] = lambda: _StubRetriever()
     app.dependency_overrides[get_laws] = lambda: []
-    app.dependency_overrides[get_llm] = lambda: StubLLM()  # no structured= → default path
+    app.dependency_overrides[get_memo_llm] = lambda: StubLLM()  # no structured= → default path
     try:
         r = TestClient(app).post("/analyze", json=SITUATION)
         assert r.status_code == 200
@@ -158,11 +175,49 @@ class _RaisingLLM:
 def test_analyze_llm_error_maps_to_502():
     app.dependency_overrides[get_retriever] = lambda: _StubRetriever()
     app.dependency_overrides[get_laws] = lambda: []
-    app.dependency_overrides[get_llm] = lambda: _RaisingLLM()
+    app.dependency_overrides[get_memo_llm] = lambda: _RaisingLLM()
     try:
         r = TestClient(app).post("/analyze", json=SITUATION)
         assert r.status_code == 502
         assert "Upstream LLM error" in r.text
+    finally:
+        app.dependency_overrides.clear()
+
+
+# ---- memo rate limit ----
+
+
+def test_memo_rate_limit_returns_429_after_limit():
+    """The memo endpoint caps Sonnet cost at memo_daily_limit_per_ip (default 2) per IP; the
+    (limit+1)th call from the same IP returns 429. (_reset_memo_rate_limit clears the counter first.)"""
+    app.dependency_overrides[get_retriever] = lambda: _StubRetriever()
+    app.dependency_overrides[get_laws] = lambda: []
+    app.dependency_overrides[get_memo_llm] = lambda: StubLLM(structured=MINIMAL_MEMO)
+    try:
+        client = TestClient(app)
+        assert client.post("/analyze", json=SITUATION).status_code == 200
+        assert client.post("/analyze", json=SITUATION).status_code == 200
+        r = client.post("/analyze", json=SITUATION)
+        assert r.status_code == 429
+        assert "limit" in r.text.lower()
+    finally:
+        app.dependency_overrides.clear()
+
+
+def test_memo_quota_decrements_and_is_per_user():
+    """/memo-quota reports remaining for the forwarded client IP, decrements after a memo, and is
+    independent per IP (the per-user keying that X-Client-IP buys us)."""
+    app.dependency_overrides[get_retriever] = lambda: _StubRetriever()
+    app.dependency_overrides[get_laws] = lambda: []
+    app.dependency_overrides[get_memo_llm] = lambda: StubLLM(structured=MINIMAL_MEMO)
+    try:
+        client = TestClient(app)
+        a = {"X-Client-IP": "1.1.1.1"}
+        b = {"X-Client-IP": "2.2.2.2"}
+        assert client.get("/memo-quota", headers=a).json()["remaining"] == 2
+        assert client.post("/analyze", json=SITUATION, headers=a).status_code == 200
+        assert client.get("/memo-quota", headers=a).json()["remaining"] == 1  # user A used one
+        assert client.get("/memo-quota", headers=b).json()["remaining"] == 2  # user B untouched
     finally:
         app.dependency_overrides.clear()
 
@@ -201,7 +256,7 @@ def test_chat_emits_terminal_error_event_on_llm_failure():
     end with a terminal 'error' event and NOT a 'sources' event."""
     app.dependency_overrides[get_retriever] = lambda: _StubRetriever()
     app.dependency_overrides[get_laws] = lambda: []
-    app.dependency_overrides[get_llm] = lambda: _RaisingLLM()
+    app.dependency_overrides[get_chat_llm] = lambda: _RaisingLLM()
     try:
         r = TestClient(app).post("/chat", json={"messages": MESSAGES})
         assert r.status_code == 200

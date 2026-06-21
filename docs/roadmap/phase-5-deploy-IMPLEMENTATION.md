@@ -111,7 +111,34 @@ chat answer that inverted who CT's subscription rules bind and missed that AERDT
 
 *(Remaining Phase 5 step-1 work: two-model split (memo→Sonnet) + memo rate limit — §2b/§2c.)*
 
-## 10b. As-built notes (fill during the rest of the build)
+## 10b. As-built notes
+
+**Two-model split + memo rate limit — DONE 2026-06-20 (steps 2b/2c). 101 tests green.**
+- **2b two-model:** `config.py` now has `chat_model="claude-haiku-4-5"` + `memo_model="claude-sonnet-4-6"`
+  (was one `generation_model`). `build_llm(settings, model)`; the API lifespan builds `chat_llm` + `memo_llm`;
+  `get_chat_llm`/`get_memo_llm` deps; `/analyze` → memo (Sonnet), `/chat` → chat (Haiku); `/health` reports
+  both (`HealthResponse.chat_model`/`memo_model`). Model IDs per the `claude-api` skill (Haiku 4.5 ~$1/$5,
+  Sonnet 4.6 ~$3/$15) — re-confirm at deploy.
+- **2c rate limit:** `memo_rate_limit` dependency on `/analyze` only — in-memory per-IP daily counter
+  (`_memo_counts`), `memo_daily_limit_per_ip` default **2** (0 disables); 429 with a friendly message; chat
+  unlimited. IP via first `X-Forwarded-For` hop, socket fallback (best-effort, spoofable). Stateless-safe
+  (counts only, resets on restart); per-process so backend stays single-instance for v1. UI
+  (`ui/client.analyze`) maps 429 to the server's message. Tests: an autouse counter-reset fixture + a
+  dedicated 429 test + a UI-client 429 test.
+- **Per-user quota + counter (Option 3, added 2026-06-20):** the per-IP limit was effectively *global*
+  because the API only sees the UI server, not the browser. Fix: the UI reads the browser IP
+  (`st.context.ip_address`, 1.58) and forwards it as an **`X-Client-IP`** header; the API's `_client_ip`
+  prefers that header, so the limit and quota key **per end user**. New read-only **`GET /memo-quota`**
+  (`{limit, used, remaining}`, no increment) drives a small caption on the memo page ("N of 2 compliance
+  memos left today"), rendered via an `st.empty()` placeholder so it reflects the just-generated count.
+  Tests: per-user independence (`/memo-quota` for two `X-Client-IP`s) + header-forwarding + decrement.
+  Caveat: `X-Client-IP` is spoofable (cost control, not security); `st.context.ip_address` reliability
+  behind Railway is the thing to confirm in the live deploy.
+- **Verify in the running app** (needs the key): a memo should read at Sonnet quality; the memo page shows
+  "N of 2 … left today" and decrements after each generate; the 3rd in a day 429s with the friendly message.
+
+*(Remaining Phase 5: production embeddings decision, deploy to Railway + secrets, UI deploy + CORS, static
+landing, optional domain, README, .gitattributes — §§3–9.)*
 
 - *(Record: the re-verified model IDs/pricing; the exact config/llm split shape shipped; the rate-limit
   number + the XFF/IP decision + whether single-instance held; the embeddings choice; the live URLs;

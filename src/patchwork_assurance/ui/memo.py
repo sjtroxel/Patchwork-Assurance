@@ -127,6 +127,21 @@ def _load_meta() -> dict:
     return st.session_state.meta
 
 
+def _browser_ip() -> str:
+    """The visitor's browser IP, forwarded to the API so the memo limit keys per-user (the API
+    otherwise sees only the UI server). `st.context.ip_address` is the real client IP behind Railway;
+    fall back to the X-Forwarded-For header. Returns '' if unavailable (then the API uses its socket
+    peer)."""
+    try:
+        ip = getattr(st.context, "ip_address", None)
+        if ip:
+            return ip
+        xff = st.context.headers.get("X-Forwarded-For", "")
+        return xff.split(",")[0].strip() if xff else ""
+    except Exception:
+        return ""
+
+
 def _render_memo(memo: dict) -> None:
     SCOPE_BOX = {"yes": st.success, "uncertain": st.info, "no": st.warning}
 
@@ -170,6 +185,8 @@ domain_opts = [d for d in meta["decision_domains"] if d in DOMAIN_LABELS]
 reach = _or_join(
     meta["jurisdictions"]
 )  # e.g. "Colorado or Connecticut" — from the corpus, not hardcoded
+client_ip = _browser_ip()
+quota_slot = st.empty()  # filled after the submit handler so it reflects this run's generation
 
 with st.form("situation"):
     home_state = st.selectbox(
@@ -212,9 +229,17 @@ if submitted:
     }
     try:
         with st.spinner("Analyzing against the statute text…"):
-            memo = client.analyze(situation)
+            memo = client.analyze(situation, client_ip=client_ip)
         _render_memo(memo)
     except client.APIError as exc:
         st.error(str(exc))
+
+# Memo quota indicator (reflects this run's generation, if any). Read-only; never blocks the page.
+try:
+    _q = client.get_memo_quota(client_ip=client_ip)
+    if _q.get("limit", 0) > 0:
+        quota_slot.caption(f"{_q['remaining']} of {_q['limit']} compliance memos left today.")
+except client.APIError:
+    pass
 
 render_footer()

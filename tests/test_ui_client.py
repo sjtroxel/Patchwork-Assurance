@@ -5,7 +5,14 @@ import json
 import httpx
 import pytest
 
-from patchwork_assurance.ui.client import APIError, analyze, get_meta, iter_sse_events, stream_chat
+from patchwork_assurance.ui.client import (
+    APIError,
+    analyze,
+    get_memo_quota,
+    get_meta,
+    iter_sse_events,
+    stream_chat,
+)
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -70,6 +77,33 @@ def test_analyze_500_raises_api_error():
 
     with pytest.raises(APIError, match="temporarily unavailable"):
         analyze(SAMPLE_SITUATION, client=_mock_client(handler))
+
+
+def test_analyze_429_surfaces_rate_limit_message():
+    def handler(request):
+        return httpx.Response(
+            429, json={"detail": "You've reached today's limit of 2 compliance memos."}
+        )
+
+    with pytest.raises(APIError, match="today's limit"):
+        analyze(SAMPLE_SITUATION, client=_mock_client(handler))
+
+
+def test_analyze_forwards_client_ip_header():
+    def handler(request):
+        assert request.headers.get("x-client-ip") == "203.0.113.7"
+        return httpx.Response(200, json=SAMPLE_MEMO)
+
+    analyze(SAMPLE_SITUATION, client=_mock_client(handler), client_ip="203.0.113.7")
+
+
+def test_get_memo_quota_returns_dict_and_forwards_ip():
+    def handler(request):
+        assert request.headers.get("x-client-ip") == "203.0.113.7"
+        return httpx.Response(200, json={"limit": 2, "used": 1, "remaining": 1})
+
+    result = get_memo_quota(client=_mock_client(handler), client_ip="203.0.113.7")
+    assert result == {"limit": 2, "used": 1, "remaining": 1}
 
 
 def test_analyze_connection_error_raises_api_error():

@@ -32,7 +32,8 @@ pytestmark = pytest.mark.live
 def live_llm():
     if not os.environ.get("ANTHROPIC_API_KEY"):
         pytest.skip("ANTHROPIC_API_KEY not set")
-    return build_llm(Settings(llm_provider="anthropic"))
+    s = Settings(llm_provider="anthropic")
+    return build_llm(s, s.memo_model)
 
 
 @pytest.fixture

@@ -1,14 +1,15 @@
 import json
 from contextlib import asynccontextmanager
+from datetime import UTC, datetime
 from pathlib import Path
 
-from fastapi import Depends, FastAPI, Request
+from fastapi import Depends, FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from sse_starlette.sse import EventSourceResponse
 from starlette.concurrency import iterate_in_threadpool, run_in_threadpool
 
-from patchwork_assurance.api.models import ChatRequest, ChatSources, HealthResponse
+from patchwork_assurance.api.models import ChatRequest, ChatSources, HealthResponse, MemoQuota
 from patchwork_assurance.config import settings
 from patchwork_assurance.core.chat import chat_stream
 from patchwork_assurance.core.contracts import ComplianceMemo, CorpusVocab, Situation
@@ -30,9 +31,10 @@ async def lifespan(app: FastAPI):
     app.state.retriever = Retriever(store, embedder)
     app.state.laws = load_law_metadata(Path(settings.corpus_path))
     app.state.embedding_model = embedder.model_name
-    # Build the LLM client once — for AnthropicLLM this owns an httpx connection pool, so
-    # rebuilding per request would churn connections. Same "load once, inject" rule as above.
-    app.state.llm = build_llm(settings)
+    # Build the LLM clients once — for AnthropicLLM each owns an httpx connection pool, so
+    # rebuilding per request would churn connections. Two-model split: chat=Haiku, memo=Sonnet.
+    app.state.chat_llm = build_llm(settings, settings.chat_model)
+    app.state.memo_llm = build_llm(settings, settings.memo_model)
     yield
 
 
@@ -57,11 +59,60 @@ def get_laws(request: Request):
     return request.app.state.laws
 
 
-def get_llm(request: Request):
-    # Prefer the lifespan-cached client; fall back to a fresh build when the lifespan did not
-    # run (offline unit tests construct TestClient(app) without the context manager).
-    llm = getattr(request.app.state, "llm", None)
-    return llm if llm is not None else build_llm(settings)
+def get_chat_llm(request: Request):
+    # Prefer the lifespan-cached client; fall back to a fresh build when the lifespan did not run
+    # (offline unit tests construct TestClient(app) without the context manager).
+    llm = getattr(request.app.state, "chat_llm", None)
+    return llm if llm is not None else build_llm(settings, settings.chat_model)
+
+
+def get_memo_llm(request: Request):
+    llm = getattr(request.app.state, "memo_llm", None)
+    return llm if llm is not None else build_llm(settings, settings.memo_model)
+
+
+# ---- memo rate limit (Sonnet cost cap) ----
+# In-memory per-IP daily counter: stores counts (not user inputs), resets on restart — consistent
+# with the statelessness invariant. Per-process, so the backend stays single-instance for v1 (a
+# shared/hosting-layer limit would be needed if it ever scales). Chat is intentionally unlimited.
+_memo_counts: dict[str, tuple[str, int]] = {}
+
+
+def _client_ip(request: Request) -> str:
+    # The UI proxies to the API, so the socket peer is the UI server, not the end user. The UI
+    # forwards the real browser IP (from st.context.ip_address) as X-Client-IP so the limit is
+    # per-user. Fall back to X-Forwarded-For, then the socket peer. All spoofable: best-effort cost
+    # control, not a security control.
+    forwarded = request.headers.get("x-client-ip")
+    if forwarded:
+        return forwarded.strip()
+    xff = request.headers.get("x-forwarded-for")
+    if xff:
+        return xff.split(",")[0].strip()
+    return request.client.host if request.client else "unknown"
+
+
+def _memo_used_today(ip: str) -> int:
+    today = datetime.now(UTC).date().isoformat()
+    day, count = _memo_counts.get(ip, (today, 0))
+    return count if day == today else 0
+
+
+def memo_rate_limit(request: Request) -> None:
+    limit = settings.memo_daily_limit_per_ip
+    if limit <= 0:  # 0 disables the limit
+        return
+    ip = _client_ip(request)
+    used = _memo_used_today(ip)
+    if used >= limit:
+        raise HTTPException(
+            status_code=429,
+            detail=(
+                f"You've reached today's limit of {limit} compliance memos. Chat is unlimited, or "
+                "try again tomorrow."
+            ),
+        )
+    _memo_counts[ip] = (datetime.now(UTC).date().isoformat(), used + 1)
 
 
 # ---- exception handlers ----
@@ -91,7 +142,8 @@ def health(request: Request) -> HealthResponse:
         api="ok",
         core=core_status(),
         embedding_model=getattr(request.app.state, "embedding_model", None),
-        generation_model=settings.generation_model,
+        chat_model=settings.chat_model,
+        memo_model=settings.memo_model,
     )
 
 
@@ -101,12 +153,21 @@ def meta(laws=Depends(get_laws)) -> CorpusVocab:
     return corpus_vocab(laws)
 
 
+@app.get("/memo-quota", response_model=MemoQuota)
+def memo_quota(request: Request) -> MemoQuota:
+    # Read-only: the caller's remaining memo allowance for the day. Does NOT consume a memo.
+    limit = settings.memo_daily_limit_per_ip
+    used = _memo_used_today(_client_ip(request))
+    return MemoQuota(limit=limit, used=used, remaining=max(0, limit - used) if limit > 0 else 0)
+
+
 @app.post("/analyze", response_model=ComplianceMemo)
 def analyze(
     situation: Situation,
     retriever=Depends(get_retriever),
     laws=Depends(get_laws),
-    llm=Depends(get_llm),
+    llm=Depends(get_memo_llm),
+    _rl: None = Depends(memo_rate_limit),
 ) -> ComplianceMemo:
     scope = applicable_laws(situation, laws)
     return generate_memo(situation, scope, retriever, llm, laws)
@@ -116,7 +177,7 @@ def analyze(
 async def chat_endpoint(
     body: ChatRequest,
     retriever=Depends(get_retriever),
-    llm=Depends(get_llm),
+    llm=Depends(get_chat_llm),
     laws=Depends(get_laws),
 ):
     # chat_stream does the (blocking, CPU-bound) embed + retrieve up front, so run it in the

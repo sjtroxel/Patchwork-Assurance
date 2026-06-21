@@ -24,4 +24,12 @@ class HealthResponse(BaseModel):
     api: str
     core: dict  # {status, layer, version, corpus_size}
     embedding_model: str | None
-    generation_model: str
+    chat_model: str
+    memo_model: str
+
+
+# /memo-quota — remaining memo allowance for the caller (keyed on the UI-forwarded client IP).
+class MemoQuota(BaseModel):
+    limit: int  # 0 = unlimited
+    used: int
+    remaining: int

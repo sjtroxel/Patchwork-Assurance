@@ -133,7 +133,7 @@ def _minimal(schema):
     return schema.model_construct()
 
 
-def build_llm(settings) -> LLMClient:
+def build_llm(settings, model: str) -> LLMClient:
     if settings.llm_provider == "anthropic":
-        return AnthropicLLM(settings.generation_model, settings.anthropic_api_key)
+        return AnthropicLLM(model, settings.anthropic_api_key)
     return StubLLM()

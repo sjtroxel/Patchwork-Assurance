@@ -4,22 +4,47 @@ import httpx
 
 from patchwork_assurance.config import settings
 
+# Fast paths (meta, quota) and the streamed chat are happy with a short read timeout.
 TIMEOUT = httpx.Timeout(60.0, connect=10.0)
+# /analyze is a single blocking call: deterministic scope + retrieval + a full non-streamed
+# Sonnet memo. That can run well past 60s, so the memo path gets a generous read budget.
+MEMO_TIMEOUT = httpx.Timeout(300.0, connect=10.0)
 
 
 class APIError(Exception):
     """A clean, user-presentable failure. Pages render this as st.error, never a traceback."""
 
 
-def analyze(situation: dict, *, client: httpx.Client | None = None) -> dict:
+def _ip_headers(client_ip: str | None) -> dict[str, str]:
+    # Forward the real browser IP so the memo rate limit keys per-user (the API otherwise sees only
+    # the UI server). See api._client_ip. Best-effort cost control, not security.
+    return {"X-Client-IP": client_ip} if client_ip else {}
+
+
+def analyze(
+    situation: dict, *, client: httpx.Client | None = None, client_ip: str | None = None
+) -> dict:
     """POST /analyze. Returns the ComplianceMemo as a dict. Raises APIError on any failure."""
     send = client.post if client else httpx.post
     try:
-        r = send(f"{settings.api_base_url}/analyze", json=situation, timeout=TIMEOUT)
+        r = send(
+            f"{settings.api_base_url}/analyze",
+            json=situation,
+            timeout=MEMO_TIMEOUT,
+            headers=_ip_headers(client_ip),
+        )
     except httpx.HTTPError as exc:
         raise APIError(f"Could not reach the analysis service at {settings.api_base_url}.") from exc
     if r.status_code == 422:
         raise APIError("That situation could not be processed. Please review the form inputs.")
+    if r.status_code == 429:
+        # Daily memo cap (Sonnet cost control); surface the server's friendly message.
+        detail = (
+            r.json().get("detail", "")
+            if r.headers.get("content-type", "").startswith("application/json")
+            else ""
+        )
+        raise APIError(detail or "You've reached today's memo limit. Chat is unlimited.")
     if r.status_code >= 500:
         raise APIError("The analysis service is temporarily unavailable. Please try again.")
     r.raise_for_status()
@@ -32,6 +57,23 @@ def get_meta(*, client: httpx.Client | None = None) -> dict:
     send = client.get if client else httpx.get
     try:
         r = send(f"{settings.api_base_url}/meta", timeout=TIMEOUT)
+    except httpx.HTTPError as exc:
+        raise APIError(f"Could not reach the analysis service at {settings.api_base_url}.") from exc
+    if r.status_code >= 500:
+        raise APIError("The analysis service is temporarily unavailable. Please try again.")
+    r.raise_for_status()
+    return r.json()
+
+
+def get_memo_quota(*, client: httpx.Client | None = None, client_ip: str | None = None) -> dict:
+    """GET /memo-quota. Returns {limit, used, remaining} for the caller. Raises APIError on failure."""
+    send = client.get if client else httpx.get
+    try:
+        r = send(
+            f"{settings.api_base_url}/memo-quota",
+            timeout=TIMEOUT,
+            headers=_ip_headers(client_ip),
+        )
     except httpx.HTTPError as exc:
         raise APIError(f"Could not reach the analysis service at {settings.api_base_url}.") from exc
     if r.status_code >= 500:
@@ -91,4 +133,4 @@ def stream_chat(
             _client.close()
 
 
-__all__ = ["APIError", "analyze", "get_meta", "iter_sse_events", "stream_chat"]
+__all__ = ["APIError", "analyze", "get_memo_quota", "get_meta", "iter_sse_events", "stream_chat"]

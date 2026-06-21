@@ -20,7 +20,11 @@ FAKE_META = {
 
 @pytest.fixture(autouse=True)
 def _stub_meta():
-    with patch("patchwork_assurance.ui.client.get_meta", return_value=FAKE_META):
+    quota = {"limit": 2, "used": 0, "remaining": 2}
+    with (
+        patch("patchwork_assurance.ui.client.get_meta", return_value=FAKE_META),
+        patch("patchwork_assurance.ui.client.get_memo_quota", return_value=quota),
+    ):
         yield
 
 
