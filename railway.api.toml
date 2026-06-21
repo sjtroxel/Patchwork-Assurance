@@ -1,0 +1,27 @@
+# Railway config-as-code — FastAPI backend service.
+#
+# Two services run from this one repo, so this file is NOT auto-detected. In the Railway dashboard:
+#   Backend service > Settings > Config-as-code > set the path to "railway.api.toml".
+# (The UI service points at railway.ui.toml the same way.)
+#
+# Railpack auto-detects the hatchling pyproject.toml and installs the package (src/ layout), so
+# `patchwork_assurance` is importable for the start command below. No Dockerfile needed.
+#
+# Secrets/env to set on THIS service (Variables tab) — the key lives here only, never on the UI:
+#   LLM_PROVIDER=anthropic
+#   ANTHROPIC_API_KEY=sk-ant-...        (host secret; never committed)
+#   CORS_ALLOW_ORIGINS=["https://<the-live-UI-origin>"]   (JSON list; set once the UI URL exists)
+# Optional overrides: MEMO_DAILY_LIMIT_PER_IP, CHAT_MODEL, MEMO_MODEL.
+
+[build]
+builder = "RAILPACK"
+
+[deploy]
+startCommand = "uvicorn patchwork_assurance.api.main:app --host 0.0.0.0 --port $PORT"
+healthcheckPath = "/health"
+# First boot downloads the BGE-small embedding model (~130MB) and builds the Chroma index from the
+# committed corpus before the app serves. Give the health check a generous window so that one-time
+# startup work doesn't fail the deploy.
+healthcheckTimeout = 300
+restartPolicyType = "ON_FAILURE"
+restartPolicyMaxRetries = 3

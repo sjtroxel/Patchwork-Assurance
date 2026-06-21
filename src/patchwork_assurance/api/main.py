@@ -13,6 +13,7 @@ from patchwork_assurance.api.models import ChatRequest, ChatSources, HealthRespo
 from patchwork_assurance.config import settings
 from patchwork_assurance.core.chat import chat_stream
 from patchwork_assurance.core.contracts import ComplianceMemo, CorpusVocab, Situation
+from patchwork_assurance.core.corpus.loader import load_corpus
 from patchwork_assurance.core.embeddings import FastEmbedEmbedder
 from patchwork_assurance.core.health import core_status
 from patchwork_assurance.core.llm import LLMError, build_llm
@@ -28,6 +29,12 @@ from patchwork_assurance.core.vectorstore import ChromaVectorStore
 async def lifespan(app: FastAPI):
     embedder = FastEmbedEmbedder()
     store = ChromaVectorStore(settings.chroma_path, embedder.model_name)
+    # The Chroma index is git-ignored, so a fresh deploy boots with an empty collection. Build it
+    # from the committed corpus on first boot; idempotent (deterministic chunk IDs, skip when present)
+    # so an existing local index is left untouched. A 2-statute corpus indexes in seconds.
+    if store.count() == 0:
+        n = load_corpus(Path(settings.corpus_path), store, embedder)
+        print(f"[startup] built corpus index: {n} chunks ({store.count()} total).")
     app.state.retriever = Retriever(store, embedder)
     app.state.laws = load_law_metadata(Path(settings.corpus_path))
     app.state.embedding_model = embedder.model_name

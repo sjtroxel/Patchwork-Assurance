@@ -137,8 +137,26 @@ chat answer that inverted who CT's subscription rules bind and missed that AERDT
 - **Verify in the running app** (needs the key): a memo should read at Sonnet quality; the memo page shows
   "N of 2 … left today" and decrements after each generate; the 3rd in a day 429s with the friendly message.
 
-*(Remaining Phase 5: production embeddings decision, deploy to Railway + secrets, UI deploy + CORS, static
+*(Remaining Phase 5: deploy to Railway + secrets, UI deploy + CORS, static
 landing, optional domain, README, .gitattributes — §§3–9.)*
+
+## 10c. As-built notes
+
+**Step 2 — production embeddings + index-on-boot — DONE 2026-06-20. 104 tests green.**
+- **Embeddings decision: stay LOCAL (fastembed BGE-small, `BAAI/bge-small-en-v1.5`).** §9 framed "local"
+  as the heavy option, but the build uses **fastembed (ONNX), not sentence-transformers/PyTorch** — actual
+  footprint is onnxruntime ~57MB + the BGE-small ONNX model (~130MB, downloaded once to cache), **no
+  torch**. Lighter than the OpenAI alternative would be worth: OpenAI embeddings would add a 2nd API key +
+  dependency, a per-query network hop, a full corpus re-embed, and would send **every user query** out to
+  OpenAI — against the "we don't store / minimal external exposure" positioning. Local keeps queries
+  embedded in-process; only the generation call leaves the box. Re-confirm the model downloads/caches OK in
+  the Railway container at deploy (first-boot download; always-on means few cold starts).
+- **Index-on-boot (real gap, now fixed):** §9 *assumed* the backend rebuilds the index at startup, but the
+  lifespan never did — it opened the (possibly empty) Chroma collection without loading. Since `.chroma/`
+  is git-ignored, a fresh Railway container would have booted with an **empty** collection → ungrounded
+  memos/chat. Fix: the lifespan now runs `load_corpus` when `store.count() == 0` (idempotent — deterministic
+  chunk IDs, skipped when an index already exists, so local dev is untouched). Verified against a fresh
+  empty `CHROMA_PATH`: boot logs `built corpus index: 50 chunks`, `/health` reports `corpus_size: 50`.
 
 - *(Record: the re-verified model IDs/pricing; the exact config/llm split shape shipped; the rate-limit
   number + the XFF/IP decision + whether single-instance held; the embeddings choice; the live URLs;
