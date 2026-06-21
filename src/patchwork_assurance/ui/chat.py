@@ -20,6 +20,12 @@ render_hero(
 )
 render_seam()
 
+st.info(
+    "Chat is best for general questions about what these laws say. For whether they apply to **your** "
+    "situation, run a **Compliance Memo** (the Memo tab). It does a deterministic scope check and is "
+    "more thorough. Always confirm with a licensed attorney."
+)
+
 if "messages" not in st.session_state:
     st.session_state.messages = []
 

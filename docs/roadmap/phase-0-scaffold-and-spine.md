@@ -32,26 +32,26 @@ wiring.
 
 Phase 0 is complete when all of these are true:
 
-- [ ] A `src/patchwork_assurance/` package installs in editable mode (`pip install -e ".[dev]"`) into a
+- [x] A `src/patchwork_assurance/` package installs in editable mode (`pip install -e ".[dev]"`) into a
       local virtualenv, and `import patchwork_assurance` works from anywhere.
-- [ ] `from patchwork_assurance.core.health import core_status` works **from the API code** — proving
+- [x] `from patchwork_assurance.core.health import core_status` works **from the API code** — proving
       the keystone import boundary, not just that a file exists.
-- [ ] One command (`make dev`) boots FastAPI and Streamlit together, with unified logs and a single
+- [x] One command (`make dev`) boots FastAPI and Streamlit together, with unified logs and a single
       Ctrl-C that stops both.
-- [ ] `GET /health` on the API returns a Pydantic-modeled response that embeds the result of a `core`
+- [x] `GET /health` on the API returns a Pydantic-modeled response that embeds the result of a `core`
       call.
-- [ ] The Streamlit app has a button that calls `/health` over HTTP (using a config-driven base URL,
+- [x] The Streamlit app has a button that calls `/health` over HTTP (using a config-driven base URL,
       not a hardcoded string) and renders the response.
-- [ ] The persistent page chrome is present (scaffolded now because every surface carries it — ROADMAP
+- [x] The persistent page chrome is present (scaffolded now because every surface carries it — ROADMAP
       §5, §8, §9): the "educational tool, not legal advice" banner, the "we don't store your inputs"
       line, and the standard footer — `© 2026 sjtroxel [GitHub icon] . All rights reserved.`, small
       muted font, the icon a clickable link to the repo (§6.1).
-- [ ] `pytest` runs green: at least one pure-`core` test and one API test via `TestClient` (no running
+- [x] `pytest` runs green: at least one pure-`core` test and one API test via `TestClient` (no running
       server required).
-- [ ] `ruff check` and `ruff format --check` pass.
-- [ ] `pre-commit install` is done and the hooks run on commit; CI (`ruff` + `pytest`) is green on the
+- [x] `ruff check` and `ruff format --check` pass.
+- [x] `pre-commit install` is done and the hooks run on commit; CI (`ruff` + `pytest`) is green on the
       first push.
-- [ ] A new contributor (or future-you) can clone, run `make install && make dev`, and see the slice
+- [x] A new contributor (or future-you) can clone, run `make install && make dev`, and see the slice
       work, guided only by a short "Developing" note.
 
 If the slice works end to end and the structure matches §4, Phase 0 is done. Resist polishing it

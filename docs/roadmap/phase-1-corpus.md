@@ -30,21 +30,21 @@ metadata-driven, never-hardcoded corpus.
 
 ## 2. Definition of done
 
-- [ ] Two cleaned statute text files in `corpus/`, faithfully sourced from official legislature text
+- [x] Two cleaned statute text files in `corpus/`, faithfully sourced from official legislature text
       (not model-generated — §5), each with a validated metadata sidecar.
-- [ ] A `LawMetadata` Pydantic model (in `core/`) that every metadata sidecar validates against. A
+- [x] A `LawMetadata` Pydantic model (in `core/`) that every metadata sidecar validates against. A
       malformed or incomplete record fails loudly at load time.
-- [ ] A `loader` that ingests the whole `corpus/` folder generically (no statute filenames or
+- [x] A `loader` that ingests the whole `corpus/` folder generically (no statute filenames or
       jurisdictions hardcoded), chunks each law, embeds the chunks, attaches both law-level and
       chunk-level metadata, and upserts into a persistent Chroma collection.
-- [ ] The loader is **idempotent**: re-running it does not duplicate chunks (stable chunk IDs).
-- [ ] The embedding model identity is recorded on the collection, so a query later embedded with a
+- [x] The loader is **idempotent**: re-running it does not duplicate chunks (stable chunk IDs).
+- [x] The embedding model identity is recorded on the collection, so a query later embedded with a
       different model fails loudly instead of silently returning nothing (§6.3 — the dimension-mismatch
       gotcha).
-- [ ] `GET /health` reports a real `corpus_size` (the collection count), replacing the Phase 0 stub.
-- [ ] Tests pass on a tiny fixture corpus: chunks created, metadata attached, count correct,
+- [x] `GET /health` reports a real `corpus_size` (the collection count), replacing the Phase 0 stub.
+- [x] Tests pass on a tiny fixture corpus: chunks created, metadata attached, count correct,
       re-run idempotent, bad metadata rejected.
-- [ ] The metadata schema is extracted into `docs/SPEC_V1.md` (§12).
+- [x] The metadata schema is extracted into `docs/SPEC_V1.md` (§12).
 
 Done = a real, re-buildable index on disk, driven entirely by the folder's contents. No retrieval UI;
 that's Phase 2+.

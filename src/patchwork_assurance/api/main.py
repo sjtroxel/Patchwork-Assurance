@@ -117,11 +117,15 @@ async def chat_endpoint(
     body: ChatRequest,
     retriever=Depends(get_retriever),
     llm=Depends(get_llm),
+    laws=Depends(get_laws),
 ):
     # chat_stream does the (blocking, CPU-bound) embed + retrieve up front, so run it in the
     # threadpool to keep the event loop free. Errors here are raised BEFORE the response starts,
-    # so the exception handlers map them (LLMError → 502, ValueError → 500).
-    citations, token_iter = await run_in_threadpool(chat_stream, body.messages, retriever, llm)
+    # so the exception handlers map them (LLMError → 502, ValueError → 500). `laws` feeds the
+    # authoritative law-facts guardrail.
+    citations, token_iter = await run_in_threadpool(
+        chat_stream, body.messages, retriever, llm, laws
+    )
 
     async def events():
         # Once streaming starts the status is already 200, so a mid-stream failure can't be an

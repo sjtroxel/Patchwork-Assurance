@@ -37,6 +37,7 @@ def analyze_client():
 @pytest.fixture
 def chat_client():
     app.dependency_overrides[get_retriever] = lambda: _StubRetriever()
+    app.dependency_overrides[get_laws] = lambda: []
     app.dependency_overrides[get_llm] = lambda: StubLLM(text="hello world")
     yield TestClient(app)
     app.dependency_overrides.clear()
@@ -199,6 +200,7 @@ def test_chat_emits_terminal_error_event_on_llm_failure():
     """A mid-stream LLM failure can't be an HTTP error (200 already sent), so the stream must
     end with a terminal 'error' event and NOT a 'sources' event."""
     app.dependency_overrides[get_retriever] = lambda: _StubRetriever()
+    app.dependency_overrides[get_laws] = lambda: []
     app.dependency_overrides[get_llm] = lambda: _RaisingLLM()
     try:
         r = TestClient(app).post("/chat", json={"messages": MESSAGES})

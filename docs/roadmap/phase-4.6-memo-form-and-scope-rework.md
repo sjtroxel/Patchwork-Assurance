@@ -53,29 +53,29 @@ they sit. Plus, by extension, businesses inside CO/CT themselves.
 
 ## 3. Definition of done
 
-- [ ] The intake form is **nexus-framed**: the first scope question is "where do you have employees /
+- [x] The intake form is **nexus-framed**: the first scope question is "where do you have employees /
       applicants / customers / residents," not "where do you operate." A Missouri (or any out-of-state)
       owner can see themselves in it.
-- [ ] A **home-state** field exists (context/personalization; auto-counts as nexus if it is itself a
+- [x] A **home-state** field exists (context/personalization; auto-counts as nexus if it is itself a
       regulating state) — and the memo/landing copy can say "As an Indiana business with Colorado
       customers…". (Persona and a separate tool-inventory field are **out** — §4, decided 2026-06-20.)
-- [ ] **Roles** are asked in business language ("we use a third-party tool" → deployer; "we build/sell it"
+- [x] **Roles** are asked in business language ("we use a third-party tool" → deployer; "we build/sell it"
       → developer; both; not sure) and map to the statutory `developer`/`deployer`.
-- [ ] The **AI-use question discovers shadow AI**: it names concrete tool types (resume screeners, ATS,
+- [x] The **AI-use question discovers shadow AI**: it names concrete tool types (resume screeners, ATS,
       credit/tenant scoring, ranking/recommendation) and offers a **"not sure"** path that is handled
       cautiously and surfaced in the output.
-- [ ] The scope screen's **reason strings are nexus/business language**, and the operative-term wording is
+- [x] The scope screen's **reason strings are nexus/business language**, and the operative-term wording is
       **correct per the corpus** (CO "materially influence"; CT "substantial factor") — never the article's.
-- [ ] The **memo output is verdict-first** and answers, in order: does it apply and why → what it requires
+- [x] The **memo output is verdict-first** and answers, in order: does it apply and why → what it requires
       (cited) → by when (the *operative* date, CT's staggered ones handled) → orientation next steps →
       draft notice(s). All hedged, educational, "consult a licensed attorney."
-- [ ] **Chat** answers the same class of question well ("does one remote employee in Denver count?") —
+- [x] **Chat** answers the same class of question well ("does one remote employee in Denver count?") —
       light prompt/persona touch only.
-- [ ] **Generic over N statutes preserved** (invariant 2): the form's state list and domains derive from
+- [x] **Generic over N statutes preserved** (invariant 2): the form's state list and domains derive from
       corpus metadata, not a hardcoded CO/CT list (§11, Fork K). Adding a 3rd state stays a data-only change.
-- [ ] `SPEC_V1` updated (the `Situation` contract + any wire-model changes); `corpus.md`/SPEC reconciled
+- [x] `SPEC_V1` updated (the `Situation` contract + any wire-model changes); `corpus.md`/SPEC reconciled
       where CT's domain set is concerned (§11, Fork D).
-- [ ] `make test` + `make lint` green; the "not legal advice" chrome and grounding boundary intact on
+- [x] `make test` + `make lint` green; the "not legal advice" chrome and grounding boundary intact on
       every surface.
 
 Done = the app gives the article's reader a correct, legible, statute-grounded answer to "do these laws

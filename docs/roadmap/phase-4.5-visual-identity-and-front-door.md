@@ -58,33 +58,33 @@ The resolution is to **split the surfaces by genre**:
 Three tracks (§§6–8). Done = all three, plus the cross-cutting items.
 
 **Track A — Visual identity**
-- [ ] A curated **multicolor quilt palette** replacing the monochrome-teal placeholder (the current
+- [x] A curated **multicolor quilt palette** replacing the monochrome-teal placeholder (the current
       4-shades-of-one-teal 2×2 grid is *why it reads as the Windows logo*).
-- [ ] A real **logo / wordmark** (a quilt-block mark, not a tile grid) + matching **favicon**, replacing
+- [x] A real **logo / wordmark** (a quilt-block mark, not a tile grid) + matching **favicon**, replacing
       the hand-authored placeholders in `ui/assets/`.
-- [ ] A chosen **type system** (a legal-gravitas serif + an optional display face for the wordmark),
+- [x] A chosen **type system** (a legal-gravitas serif + an optional display face for the wordmark),
       documented as design tokens reusable by both surfaces.
 
 **Track B — The cinematic front door**
-- [ ] A single static landing page (`site/index.html` + CSS + minimal JS) that loads **fast** and looks
+- [x] A single static landing page (`site/index.html` + CSS + minimal JS) that loads **fast** and looks
       **spectacular**: a quilt-driven hero with motion, the one-line pitch, the problem framing, what the
       tool does, the honest J.D./not-legal-advice framing, and a **"Launch the tool"** CTA.
-- [ ] The **legal chrome is present on the landing page too** (the not-legal-advice line + footer) —
+- [x] The **legal chrome is present on the landing page too** (the not-legal-advice line + footer) —
       this is a hard project rule, not optional (§12).
-- [ ] **Accessibility/performance budget met:** `prefers-reduced-motion` respected; instant first paint;
+- [x] **Accessibility/performance budget met:** `prefers-reduced-motion` respected; instant first paint;
       compressed/lazy media; works on mobile (single-column, no horizontal scroll).
 
 **Track C — App polish & brand continuity**
-- [ ] The Streamlit `[theme]` updated to the new identity; a **quilt hero** on the memo landing page; a
+- [x] The Streamlit `[theme]` updated to the new identity; a **quilt hero** on the memo landing page; a
       **controlled CSS layer** (via `st.markdown(unsafe_allow_html=True)`, kept to one place) for the
       bespoke touches the theme can't reach — **without** a CSS framework or a fight (Phase 4 §3 still
       binds).
-- [ ] The new logo wired into `st.logo()` / `page_icon`; the app *feels* like the same product as the
+- [x] The new logo wired into `st.logo()` / `page_icon`; the app *feels* like the same product as the
       landing page even though the URL changes (§11).
 
 **Cross-cutting**
-- [ ] `make test` + `make lint` still green; no regression to the Phase 4 functional behavior.
-- [ ] `.gitattributes` quarantine added **only if** the byte ratio actually threatens the Python-dominant
+- [x] `make test` + `make lint` still green; no regression to the Phase 4 functional behavior.
+- [x] `.gitattributes` quarantine added **only if** the byte ratio actually threatens the Python-dominant
       bar (measure first — §10).
 
 Done = a project that *looks* as serious as it is, with the cold-start and domain realities handled
@@ -399,15 +399,15 @@ convention), pinning the chosen palette hex, fonts, asset paths, and the verifie
       wiring `app.patchworkassurance.com` (§11).
 - [ ] **Railway two-service always-on cost** — measure the real monthly bill of FastAPI + Streamlit both
       24/7 against the $5 included credit; confirm it stays acceptable (§9).
-- [ ] **Firefly export + seamless loop** — confirm the clip can be cross-faded to a clean loop and
+- [x] **Firefly export + seamless loop** — confirm the clip can be cross-faded to a clean loop and
       exported web-light (compression, format) (§7).
 - [ ] **Static-host custom-domain attach** (Vercel lead, or Railway static) — confirm current limits
       before the domain purchase (§11).
-- [ ] **Hero video performance budget** (if the Firefly clip wins or is combined) — first-paint impact,
+- [x] **Hero video performance budget** (if the Firefly clip wins or is combined) — first-paint impact,
       compression, `poster` fallback, mobile (§7, §13).
-- [ ] **`prefers-reduced-motion`** path verified visually (motion-off still looks finished) (§7).
-- [ ] **Language-byte ratio** measured before deciding on `.gitattributes` (§10).
-- [ ] **Streamlit 1.58 theme typography keys** for any web font (already flagged Phase 4 §15) (§6).
+- [x] **`prefers-reduced-motion`** path verified visually (motion-off still looks finished) (§7).
+- [x] **Language-byte ratio** measured before deciding on `.gitattributes` (§10).
+- [x] **Streamlit 1.58 theme typography keys** for any web font (already flagged Phase 4 §15) (§6).
 
 **Sources (infra facts, web-verified 2026-06-19):**
 - Railway hosts Streamlit always-on + custom domains on Hobby:

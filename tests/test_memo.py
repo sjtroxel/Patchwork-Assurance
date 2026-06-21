@@ -149,7 +149,11 @@ def _ct_law():
         law_id="ct-sb-5",
         short_name="CT AI Act",
         jurisdiction="CT",
+        operative_standard="AERDT = substantial factor in an employment-related decision",
+        regulated_roles=["developer", "deployer"],
         scope_domains=["employment", "ai_companion"],
+        enforcement_authority="Connecticut Attorney General",
+        key_obligations=[],
         effective_dates=[
             EffectiveDate(
                 date=date(2027, 10, 1), applies_to="deployer pre-decision written notice"

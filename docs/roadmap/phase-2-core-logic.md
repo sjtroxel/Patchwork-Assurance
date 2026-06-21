@@ -30,22 +30,22 @@ harness will later call on the exact same path the app uses.
 
 ## 2. Definition of done
 
-- [ ] `retrieve(query, filters)` implemented on the Phase 1 `VectorStore` protocol: embeds the query
+- [x] `retrieve(query, filters)` implemented on the Phase 1 `VectorStore` protocol: embeds the query
       (asserting the model matches the collection's tag — the Phase 1 mismatch guard), runs similarity
       search with optional metadata filters (jurisdiction, `scope_<domain>` flags), returns typed
       `RetrievedChunk`s carrying their citation.
-- [ ] An `LLMClient` interface (Seam 4) with a real Anthropic implementation and a **stub**
+- [x] An `LLMClient` interface (Seam 4) with a real Anthropic implementation and a **stub**
       implementation; everything in `core/` depends on the interface, never on `anthropic` directly.
-- [ ] A **deterministic scope screen**: `applicable_laws(situation)` computes which statutes facially
+- [x] A **deterministic scope screen**: `applicable_laws(situation)` computes which statutes facially
       apply from corpus metadata + the structured situation — no LLM, fully unit-tested.
-- [ ] `generate_memo(situation)` returns a validated `ComplianceMemo` (Pydantic): per-law in-scope
+- [x] `generate_memo(situation)` returns a validated `ComplianceMemo` (Pydantic): per-law in-scope
       yes/no/uncertain with reasons, obligations with citations, draft notice language, and a deadline
       checklist — grounded in retrieved statute text, carrying the not-legal-advice posture.
-- [ ] `chat(messages)` runs multi-turn RAG over the same retriever, grounded with citations, and is
+- [x] `chat(messages)` runs multi-turn RAG over the same retriever, grounded with citations, and is
       shaped so Phase 3 can stream it (a token generator, plus a full-response helper).
-- [ ] Tests pass with **no network and no API key**, using the stub `LLMClient`; a small set of
+- [x] Tests pass with **no network and no API key**, using the stub `LLMClient`; a small set of
       live-model smoke tests is gated behind an env flag.
-- [ ] The `ComplianceMemo`, `Situation`, `RetrievedChunk`, and chat request/response shapes are added to
+- [x] The `ComplianceMemo`, `Situation`, `RetrievedChunk`, and chat request/response shapes are added to
       `docs/SPEC_V1.md` (§8 there).
 
 Done = `from patchwork_assurance.core import generate_memo, chat, retrieve` works and is tested. No web

@@ -36,7 +36,7 @@ def generate_memo(
                 filters=RetrievalFilters(jurisdiction=s.jurisdiction),
                 k=5,
             )
-    user = render_memo_user(situation, scope, chunks)
+    user = render_memo_user(situation, scope, chunks, list(laws_by_id.values()))
     memo = llm.complete_structured(MEMO_SYSTEM, [Msg(role="user", content=user)], ComplianceMemo)
 
     # Deadlines and orientation are facts/templates, not LLM guesses — set them deterministically so

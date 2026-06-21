@@ -28,22 +28,22 @@ model** and `st.session_state` (§10). Internalize that and the rest is arrangin
 
 ## 2. Definition of done
 
-- [ ] A **memo page** (the landing page): a form matching the `Situation` schema → `POST /analyze` →
+- [x] A **memo page** (the landing page): a form matching the `Situation` schema → `POST /analyze` →
       the `ComplianceMemo` rendered readably (per-law findings, obligations with citations, draft
       notice language, deadline checklist, disclaimer).
-- [ ] A **chat page**: `st.chat_input` / `st.chat_message`, history in `st.session_state`, answers
+- [x] A **chat page**: `st.chat_input` / `st.chat_message`, history in `st.session_state`, answers
       **streamed** from `/chat`'s SSE via `st.write_stream`, with the citations/sources shown after.
-- [ ] The persistent chrome (Phase 0 §6.1) on **every** page via one shared helper: the
+- [x] The persistent chrome (Phase 0 §6.1) on **every** page via one shared helper: the
       "educational tool, not legal advice" banner, the "we don't store your inputs" line, and the
       footer.
-- [ ] A `.streamlit/config.toml` theme so the app is branded and presentable (§8), single-column-first
+- [x] A `.streamlit/config.toml` theme so the app is branded and presentable (§8), single-column-first
       so it survives mobile (§8).
-- [ ] **Brand assets present:** a favicon (`page_icon`), a Patchwork Assurance logo in the header/
+- [x] **Brand assets present:** a favicon (`page_icon`), a Patchwork Assurance logo in the header/
       sidebar, and a chosen font (§8).
-- [ ] API calls go through a thin, **unit-testable** `ui/client.py` (pure functions); pages stay thin.
-- [ ] `make dev` boots API + UI together; the full path works end to end: type a situation → grounded
+- [x] API calls go through a thin, **unit-testable** `ui/client.py` (pure functions); pages stay thin.
+- [x] `make dev` boots API + UI together; the full path works end to end: type a situation → grounded
       memo with citations; ask a follow-up → streamed grounded answer.
-- [ ] A clear error state when the API is down or returns an error (not a stack trace).
+- [x] A clear error state when the API is down or returns an error (not a stack trace).
 
 Done = a presentable, working two-surface app over the real API. Deploy is Phase 5.
 

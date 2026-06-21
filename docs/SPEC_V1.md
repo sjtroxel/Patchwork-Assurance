@@ -117,7 +117,7 @@ signed_date: 2026-05-14
 effective_dates:
   - { date: 2027-01-01, applies_to: "act generally; applies to consequential decisions made on or after this date" }
   - { date: 2026-05-14, applies_to: "AG rulemaking authority and select provisions (effective upon passage)" }
-operative_standard: 'Covered ADMT = automated decision-making technology "used to materially influence a consequential decision"'
+operative_standard: 'Covered ADMT = ... "used to materially influence a consequential decision". Colorado defines "materially influence" as an ADMT output that is a "non-de minimis factor" used in making a consequential decision AND that affects the outcome (... "meaningfully altering" how the decision is made); excludes incidental/trivial/clerical uses. Colorado "non-de minimis factor" ≠ Connecticut "substantial factor" — do not conflate.'
 regulated_tech_term: "Automated Decision-Making Technology (ADMT)"
 regulated_roles: [developer, deployer]
 scope_domains: [education, employment, housing, financial_lending, insurance, health_care, government_services]

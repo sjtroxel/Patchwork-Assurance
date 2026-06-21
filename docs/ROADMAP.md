@@ -232,6 +232,24 @@ security, MCP) on a real app rather than in a paid cohort. If the monitoring age
 headline) needs to come sooner for motivation, it can move up — it is sequenced here for support, not
 priority.
 
+*Post-v1 enhancement backlog (not numbered phases; tracked here so they aren't lost):*
+- **Multi-agent memo generation** — agreed 2026-06-20, **post-deploy** (gated behind v1, binding rule 1).
+  The v1 memo is a single Sonnet call; afterward, upgrade it to a small, purposeful pipeline that is a
+  genuine showcase (not swarm-for-its-own-sake): **scope** stays deterministic; **per-law analyst agents**
+  (one per in-scope law, parallel, each grounded only in that law's excerpts) extract obligations; a
+  **grounding/hedge reviewer agent** verifies every claim is cited and hedged and enforces the
+  not-legal-advice boundary (the J.D. edge as an agent). Generalizes over N statutes. Weigh against
+  Sonnet cost/latency — it multiplies calls (see the memo rate limit, Phase 5 §10/§13).
+- **Corpus expansion** — agreed 2026-06-20, **post-deploy** (this is what Phase 9's ingestion agent
+  automates). v1 deliberately covers two laws (CO SB 26-189, CT SB 5), substantive sections only (CT
+  admin Sec. 3/16/18+ omitted by design). Candidates to add later: other CO/CT AI / consequential-decision
+  / privacy / biometric statutes, then other states. **Curation principle:** add laws that govern AI in
+  consequential decisions about people, each with honest scoping — do NOT dump every statute, and never
+  imply the tool is complete. Cheap by design (invariant 2: drop a file pair + re-run the loader, zero
+  code). The integrity guard is the same at any size: state exactly what is covered and decline the rest
+  (the out-of-corpus refusal added 2026-06-20). Risk to manage is users assuming completeness, not corpus
+  size.
+
 ---
 
 ## 7. Cost model

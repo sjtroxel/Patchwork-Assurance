@@ -93,3 +93,46 @@ def test_chat_no_chunks_still_returns():
     result = chat(MESSAGES, retriever, llm)
     assert isinstance(result, ChatTurn)
     assert result.citations == []
+
+
+# ---- Phase 5: deterministic law-facts guardrail ----
+
+
+def test_law_facts_card_states_who_is_bound():
+    """The metadata facts card must surface who each law binds + the exact operative term, so the
+    model doesn't invert them (the Haiku failure that prompted this guardrail)."""
+    from patchwork_assurance.core.corpus.metadata import LawMetadata, Obligation
+    from patchwork_assurance.core.prompts import render_law_facts
+
+    law = LawMetadata.model_construct(
+        short_name="CT SB 5",
+        jurisdiction="Connecticut",
+        operative_standard='AERDT = "substantial factor ... in an employment-related decision"',
+        regulated_roles=["developer", "deployer"],
+        scope_domains=["employment", "ai_companion"],
+        enforcement_authority="Connecticut Attorney General",
+        key_obligations=[
+            Obligation(
+                section="Sec. 1",
+                label="Subscription-based AI provider disclosure obligations to consumers",
+            )
+        ],
+    )
+    facts = render_law_facts([law])
+    assert "provider disclosure obligations to consumers" in facts.lower()
+    assert "deployer" in facts.lower()
+    assert "substantial factor" in facts.lower()
+
+
+def test_law_facts_empty_when_no_laws():
+    from patchwork_assurance.core.prompts import render_law_facts
+
+    assert render_law_facts([]) == ""
+
+
+def test_chat_stream_threads_laws_without_error():
+    llm = StubLLM(text="hello world")
+    retriever = _StubRetriever([CHUNK])
+    citations, token_iter = chat_stream(MESSAGES, retriever, llm, laws=[])
+    assert isinstance(citations, list)
+    assert list(token_iter)
