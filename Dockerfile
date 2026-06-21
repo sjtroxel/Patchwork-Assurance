@@ -14,5 +14,6 @@ WORKDIR /app
 COPY . .
 RUN pip install --no-cache-dir .
 
-# Default command is the api; the ui service overrides it. $PORT is injected by Railway at runtime.
-CMD ["sh", "-c", "python -m uvicorn patchwork_assurance.api.main:app --host 0.0.0.0 --port ${PORT:-8000}"]
+# Default command is the api (the ui service overrides it). The script runs in a shell so $PORT
+# expands even when Railway exec's the start command directly. See bin/start-*.sh.
+CMD ["sh", "bin/start-api.sh"]

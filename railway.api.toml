@@ -20,9 +20,9 @@ builder = "DOCKERFILE"
 dockerfilePath = "Dockerfile"
 
 [deploy]
-# Invoke via `python -m` so it resolves in Railpack's Python env: the venv's bin/ is not on PATH
-# for a custom start command, so the bare `uvicorn` console script is "command not found".
-startCommand = "python -m uvicorn patchwork_assurance.api.main:app --host 0.0.0.0 --port $PORT"
+# Run through a shell script so $PORT expands (Railway exec's this directly, no shell, so a literal
+# "--port $PORT" fails to parse). See bin/start-api.sh.
+startCommand = "sh bin/start-api.sh"
 healthcheckPath = "/health"
 # First boot downloads the BGE-small embedding model (~130MB) and builds the Chroma index from the
 # committed corpus before the app serves. Give the health check a generous window so that one-time
