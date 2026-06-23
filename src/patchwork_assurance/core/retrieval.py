@@ -1,5 +1,8 @@
+import time
+
 from pydantic import BaseModel
 
+from patchwork_assurance.core import obs
 from patchwork_assurance.core.contracts import RetrievedChunk
 
 
@@ -42,6 +45,7 @@ class Retriever:
     def retrieve(
         self, query: str, filters: RetrievalFilters | None = None, k: int = 5
     ) -> list[RetrievedChunk]:
+        start = time.perf_counter()
         emb = self._embedder.embed([query])[0]
         res = self._store.query(emb, k, _where(filters))
         out: list[RetrievedChunk] = []
@@ -59,4 +63,12 @@ class Retriever:
                     score=_l2sq_to_cosine(dist),
                 )
             )
+        # Metadata only — never the query text (it can contain the user's situation).
+        obs.log_event(
+            "retrieve",
+            k=k,
+            n_results=len(out),
+            jurisdiction=filters.jurisdiction if filters else None,
+            latency_ms=round((time.perf_counter() - start) * 1000, 1),
+        )
         return out

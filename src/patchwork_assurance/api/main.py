@@ -1,4 +1,5 @@
 import json
+import uuid
 from contextlib import asynccontextmanager
 from datetime import UTC, datetime
 from pathlib import Path
@@ -11,6 +12,7 @@ from starlette.concurrency import iterate_in_threadpool, run_in_threadpool
 
 from patchwork_assurance.api.models import ChatRequest, ChatSources, HealthResponse, MemoQuota
 from patchwork_assurance.config import settings
+from patchwork_assurance.core import obs
 from patchwork_assurance.core.chat import chat_stream
 from patchwork_assurance.core.contracts import ComplianceMemo, CorpusVocab, Situation
 from patchwork_assurance.core.corpus.loader import load_corpus
@@ -53,6 +55,20 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+
+@app.middleware("http")
+async def request_id_middleware(request: Request, call_next):
+    """Assign/propagate a request id for log correlation. Reads an inbound X-Request-ID (so the UI can
+    correlate its hop) or generates one; sets the contextvar the Seam-4 logger reads; echoes it back."""
+    rid = request.headers.get("x-request-id") or uuid.uuid4().hex
+    token = obs.set_request_id(rid)
+    try:
+        response = await call_next(request)
+    finally:
+        obs.reset_request_id(token)
+    response.headers["X-Request-ID"] = rid
+    return response
 
 
 # ---- dependency functions ----

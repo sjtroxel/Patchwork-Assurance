@@ -1,8 +1,10 @@
+import time
 from collections.abc import Iterator
 from typing import Protocol, TypeVar
 
 from pydantic import BaseModel
 
+from patchwork_assurance.core import obs
 from patchwork_assurance.core.contracts import (
     ComplianceMemo,
     LawFinding,
@@ -43,6 +45,7 @@ class AnthropicLLM:
         return [{"role": m.role, "content": m.content} for m in messages]
 
     def complete(self, system, messages, max_tokens=16000) -> str:
+        start = time.perf_counter()
         try:
             resp = self._client.messages.create(
                 model=self._model,
@@ -51,10 +54,17 @@ class AnthropicLLM:
                 messages=self._dump(messages),
             )
         except self._anthropic.AnthropicError as e:
+            obs.log_llm_call(
+                self._model, None, (time.perf_counter() - start) * 1000, surface="complete:error"
+            )
             raise LLMError(str(e)) from e
+        obs.log_llm_call(
+            self._model, resp.usage, (time.perf_counter() - start) * 1000, surface="complete"
+        )
         return next((b.text for b in resp.content if b.type == "text"), "")
 
     def complete_structured(self, system, messages, schema, max_tokens=16000):
+        start = time.perf_counter()
         try:
             resp = self._client.messages.parse(
                 model=self._model,
@@ -64,13 +74,27 @@ class AnthropicLLM:
                 output_format=schema,
             )
         except self._anthropic.AnthropicError as e:
+            obs.log_llm_call(
+                self._model,
+                None,
+                (time.perf_counter() - start) * 1000,
+                surface="complete_structured:error",
+            )
             raise LLMError(str(e)) from e
+        obs.log_llm_call(
+            self._model,
+            resp.usage,
+            (time.perf_counter() - start) * 1000,
+            surface="complete_structured",
+        )
         return resp.parsed_output
 
     def stream(self, system, messages, max_tokens=16000):
         # Wraps setup AND mid-stream errors into LLMError. Note: for the SSE /chat route the
         # response has already started by the time tokens are pulled, so a mid-stream LLMError
         # cannot become a clean 502; the API generator catches it and ends the stream.
+        start = time.perf_counter()
+        final = None
         try:
             with self._client.messages.stream(
                 model=self._model,
@@ -79,8 +103,17 @@ class AnthropicLLM:
                 messages=self._dump(messages),
             ) as s:
                 yield from s.text_stream
+                final = s.get_final_message()  # usage is on the final message
         except self._anthropic.AnthropicError as e:
+            obs.log_llm_call(
+                self._model, None, (time.perf_counter() - start) * 1000, surface="stream:error"
+            )
             raise LLMError(str(e)) from e
+        finally:
+            if final is not None:
+                obs.log_llm_call(
+                    self._model, final.usage, (time.perf_counter() - start) * 1000, surface="stream"
+                )
 
 
 class StubLLM:
@@ -91,9 +124,11 @@ class StubLLM:
         self._structured = structured
 
     def complete(self, system, messages, max_tokens=16000) -> str:
+        obs.log_llm_call("stub", None, 0.0, surface="complete")
         return self._text
 
     def complete_structured(self, system, messages, schema, max_tokens=16000):
+        obs.log_llm_call("stub", None, 0.0, surface="complete_structured")
         if self._structured is not None:
             return self._structured
         if schema is ComplianceMemo:
@@ -103,6 +138,7 @@ class StubLLM:
         return _minimal(schema)
 
     def stream(self, system, messages, max_tokens=16000):
+        obs.log_llm_call("stub", None, 0.0, surface="stream")
         yield from self._text.split()
 
 

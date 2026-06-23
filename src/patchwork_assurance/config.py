@@ -28,6 +28,9 @@ class Settings(BaseSettings):
     # Hard cap (circuit breaker): a single judged eval run may not generate more than this many
     # memos, no matter how it was invoked. Raise it deliberately if the gold set grows past it.
     eval_max_judged_cases: int = 50
+    # Observability (Phase 7). Structured JSON logs to stdout; metadata only, never user content.
+    log_level: str = "INFO"
+    enable_tracing: bool = True
 
 
 settings = Settings()
