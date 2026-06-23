@@ -32,20 +32,31 @@ agent, MCP — all of it waits behind a live URL.
 
 ## 2. Definition of done
 
-- [ ] The **static landing page** (Phase 4.5) is live on a free static host (Vercel/Railway static),
+- [x] The **static landing page** (Phase 4.5) is live on a free static host (Vercel/Railway static),
       reachable over HTTPS, with the "Launch the tool" CTA pointing at the live Streamlit app.
-- [ ] The Streamlit UI is live on **Railway (always-on)** from the public GitHub repo, reachable over HTTPS.
-- [ ] The FastAPI backend is live on **Railway**, reachable over HTTPS.
-- [ ] The UI's `api_base_url` points at the deployed backend; **CORS** lets the UI origin call it; the
+      *Done 2026-06-21: `https://patchwork-assurance.vercel.app`, CTA → the live Railway UI (§10e).*
+- [x] The Streamlit UI is live on **Railway (always-on)** from the public GitHub repo, reachable over HTTPS.
+      *Done: `https://patchworkassurance.up.railway.app` (§10d).*
+- [x] The FastAPI backend is live on **Railway**, reachable over HTTPS.
+      *Done: `https://patchwork-assurance.up.railway.app` (§10d).*
+- [x] The UI's `api_base_url` points at the deployed backend; ~~**CORS** lets the UI origin call it~~; the
       end-to-end demo path works in public: type a situation → grounded memo with citations; ask a
       follow-up → streamed grounded answer.
-- [ ] `ANTHROPIC_API_KEY` (and any embedding key) live only as **host secrets**, never in the repo.
-- [ ] The corpus index exists on the backend — **rebuilt at startup** from the committed corpus files
+      *Done. As-built correction: **CORS is not needed** — the UI calls the API server-side (httpx in the UI
+      container, not the browser), so no per-origin config is in the path (§10d).*
+- [x] `ANTHROPIC_API_KEY` (and any embedding key) live only as **host secrets**, never in the repo.
+      *Done: key is a Railway backend secret; embeddings are local fastembed, so no embedding key (§10c).*
+- [x] The corpus index exists on the backend — **rebuilt at startup** from the committed corpus files
       (§9), since `.chroma/` is git-ignored.
-- [ ] The real **public README** replaces the minimal one (§8): what it is, architecture, run-locally,
+      *Done: lifespan runs `load_corpus` when `store.count() == 0`; fresh container boots to 50 chunks (§10c).*
+- [x] The real **public README** replaces the minimal one (§8): what it is, architecture, run-locally,
       not-legal-advice, the honest J.D. framing.
-- [ ] A `.gitattributes` backstop so GitHub language stats read Python-dominant (§10).
-- [ ] A deployed `/health` smoke check passes (corpus size + models live).
+      *Done 2026-06-21 (§10e).*
+- [x] ~~A `.gitattributes` backstop so GitHub language stats read Python-dominant (§10).~~
+      *Determined **not needed** (§10e): the live GitHub bar already reads **Python 87.1%** because Linguist
+      classifies Markdown corpus text as `prose` and excludes it from the bar. No backstop file required.*
+- [x] A deployed `/health` smoke check passes (corpus size + models live).
+      *Done: `/health` returns ok, `corpus_size` 50, both model names (§10d, §10e).*
 
 Done = **v1 is deployed, public, and works.** This is the finish line.
 
@@ -243,8 +254,10 @@ micromanage.
   the UI, hibernation accepted~~ — **superseded 2026-06-19: the UI is on always-on Railway too** (Phase
   4.5 §9); landing page on a free static host. Open sub-item: landing host = Vercel vs Railway static
   (minor, decide at deploy).
-- **Production embeddings: local vs OpenAI** (§9) — container/cold-start vs pennies + one key. The one
-  genuinely open infra decision left for deploy.
+- ~~**Production embeddings: local vs OpenAI** (§9)~~ — **DECIDED: local** (fastembed BGE-small, ONNX, no
+  torch). Lighter than feared (~onnxruntime 57MB + ~130MB model, cached once) and keeps user queries
+  in-process rather than shipping every query to OpenAI; downloads/caches fine in the Railway container
+  (§10c, §10d).
 - **README depth** — ship a solid v1 README; iterate later. Don't gold-plate it before the app is live.
 - **Generation model split — DECIDED (2026-06-20):** chat = Haiku (unlimited), memo = Sonnet
   (rate-limited). **Open:** the exact memo rate limit (number) and mechanism. An **in-memory per-IP
@@ -253,8 +266,8 @@ micromanage.
   per-instance, so if the backend ever scales beyond one instance a shared counter (or a hosting-layer
   rate limit) would be needed. Decide the number (≈2/IP/day to start) and confirm single-instance at
   deploy.
-- **Multi-agent memo — OPEN (recommendation: ship single-call Sonnet for v1, add multi-agent as a
-  featured post-deploy enhancement).** The memo currently is **one** structured Sonnet call. It
+- **Multi-agent memo — RESOLVED as recommended: shipped single-call Sonnet for v1; multi-agent is in the
+  post-v1 backlog** (ROADMAP §6, gated behind binding rule 1). The memo is **one** structured Sonnet call. It
   decomposes naturally into a real multi-agent pipeline: scope is already deterministic; then per-law
   grounded analysis (one agent per in-scope law, parallel), then a **grounding/hedge reviewer** that
   enforces the not-legal-advice boundary (a genuinely valuable job, not decorative — the J.D. edge).

@@ -1,0 +1,318 @@
+# Phase 6 — IMPLEMENTATION (evals, deterministic-first and budget-aware)
+
+*As-built runbook for Phase 6, written at phase start (2026-06-23), reflecting how Phases 0–5 actually
+landed. Strategy/rationale lives in `phase-6-evals.md` (read it first). This is the first **post-v1**
+phase — the binding-rule-1 gate lifted when v1 shipped 2026-06-21, so evals are now unblocked.*
+
+*Two facts shaped this doc and override the plan where they conflict:*
+1. *The gold-set example in `phase-6-evals.md` §4 uses pre-Phase-4.6 field names (`jurisdiction_nexus`,
+   `ai_touches`, `role`). The real `Situation` is different (§3 below). The plan's **intent** is right;
+   its field names are stale. This doc uses the real contract.*
+2. *A hard budget constraint (≈$0.63 of Anthropic credit left as of 2026-06-23, more not available for
+   days). The whole phase is therefore split into a **free tier you build and run now at $0** and a
+   **paid tier you wire up now but run later**. This isn't a compromise — deterministic-first is the
+   correct eval discipline anyway (plan §5). The budget just makes us honest about it.*
+
+*Cadence unchanged: Opus scaffolds; **sjtroxel runs all terminal + git** (never Opus).*
+
+---
+
+## 0. Verified-at-build facts (confirm before relying on them)
+
+- **Model IDs + pricing (re-verified 2026-06-23 via the `claude-api` skill; unchanged from Phase 5):**
+  `claude-haiku-4-5` ($1 / $5 per 1M in/out), `claude-sonnet-4-6` ($3 / $15), `claude-opus-4-8`
+  ($5 / $25). These match what `config.py` already pins. Re-confirm at build (standing rule).
+- **Structured-output path is already in the repo.** `core/llm.py:complete_structured` calls
+  `client.messages.parse(model=…, output_format=schema)` and returns `resp.parsed_output`. The judge
+  reuses this exact path — no new SDK surface to learn. A `JudgeVerdict` Pydantic model is all that's new.
+- **The deterministic tier needs no API key and no network.** `applicable_laws()` is pure Python;
+  `retrieve()` uses **local** fastembed (already cached on this machine from Phase 5). Scope accuracy and
+  retrieval hit-rate run fully offline, free, repeatable. This is the tier you build and run now.
+- **The judge tier and gold-memo generation cost money.** Generating ~10 gold memos (Sonnet) plus judging
+  them (Opus) is on the order of your whole remaining balance for one run. So the harness builds with the
+  judge **behind a flag, default off**, and you run the paid tier only when credits return.
+- **Everything goes through `core/`** (the keystone invariant, ROADMAP §4). The harness constructs the
+  **same** retriever + LLM clients the API builds, so what evals measure is what production runs. A
+  harness that re-implements the path is worthless (plan §7).
+
+---
+
+## 1. What an eval actually is (you're new to this — here's the whole idea in one page)
+
+Until now "it works" has meant "I ran it and it looked right." An eval replaces that feeling with a
+number you can re-check. Three pieces:
+
+1. **A gold set** — a handful of hand-written situations where *you already know the right answer*
+   (because you can read the statute). Each case says: here's the input, here's the scope verdict I
+   expect, here are the obligations and the statute sections that should ground them.
+2. **A harness** — a small program that runs each gold case through the real `core/` functions and
+   compares the output to what you wrote down.
+3. **Metrics** — the comparison, scored. Some comparisons are objective ("did `applicable_laws` return
+   `yes` for Colorado like I said it should?") — those are **deterministic**, free, and the bulk of the
+   value. A few are subjective ("does this obligation actually follow from the statute text it cites?") —
+   those need a second LLM acting as a **judge**.
+
+That's it. No framework, no magic. You hand-write maybe 8 cases, you write ~150 lines of comparison
+code, and you get a scorecard. The scorecard is reusable infrastructure: every later change (a retrieval
+tweak in Phase 8, a third jurisdiction in Phase 9) gets measured against it.
+
+**Why this is the right next step for *you* specifically:** your J.D. edge makes the expensive part of
+evals — knowing the correct legal answer to write in the gold set — the cheap part. Most engineers can't
+author a gold set for a compliance tool without a lawyer. You can read CO § 6-1-1704 and write down what
+it requires. The scarce skill here is exactly the one you have.
+
+**Why it won't blow the budget:** the part that teaches you the most and measures the load-bearing logic
+(the deterministic scope screen) costs nothing to run. You'll do real eval work today for $0.
+
+---
+
+## 2. Build order (the budget split is the spine)
+
+### Tier A — free, build and run NOW (no API key, no spend)
+1. **Gold-set schema + 6–10 hand-authored cases** in `eval/gold/` (§3). Pure data; costs nothing.
+2. **The harness skeleton** that loads the gold set and builds the real `core/` path (§4).
+3. **Scope-accuracy metric** — `applicable_laws()` vs your expected verdicts. Deterministic, the
+   highest-value/cheapest signal (plan §5). Run it. Get your first scorecard today.
+4. **Retrieval-hit-rate metric** — does `retrieve()` surface the gold sections in top-k? Local
+   embeddings, free. Run it.
+5. **`make eval`** wired to run *only* the deterministic tier by default (§7). Green, offline, repeatable.
+
+At the end of Tier A you have a working, runnable eval harness and a real scorecard, having spent $0.
+
+### Tier B — wire up NOW, run LATER (needs credits)
+6. **Citation-exists metric** — every section a generated memo cites is real and in the corpus. Needs a
+   real memo (Sonnet), so it's a paid run, but the *check itself* is deterministic. Code it now; gate it.
+7. **`JudgeVerdict` schema + groundedness/coverage judge** (§6), behind `--judge` (default off).
+8. **Decision sweeps** (plan §8: Haiku-vs-Sonnet, embedding model, chunk/`top_k`) — these are the payoff,
+   but every sweep is a paid run. Script them; run when credits return.
+
+Steps 6–8 are fully written and unit-tested with a **stubbed judge** (§8) so the logic is correct and CI
+stays free. The first time you spend on them is one deliberate, opt-in `make eval-judge` run.
+
+---
+
+## 3. The gold set — real contract, real sections
+
+### 3a. The `Situation` you're actually feeding (post-Phase-4.6, from `core/contracts.py`)
+
+The plan's example fields are stale. The real input model:
+
+```python
+class Situation(BaseModel):
+    home_state: str = ""                       # context; counts as nexus iff it is a regulating state
+    jurisdictions: list[str] = []              # states the business has a NEXUS to (people it decides about)
+    decision_domains: list[ScopeDomain] = []   # e.g. "employment", "housing", "financial_lending"
+    roles: list[RegulatedRole] = []            # "developer" | "deployer"
+    ai_use: Literal["yes", "no", "unsure"] = "yes"
+    notes: str = ""
+```
+
+`ScopeDomain` values (from `corpus/.../metadata.py`): `education, employment, housing, financial_lending,
+insurance, health_care, government_services, online_safety_minors, ai_companion,
+generative_ai_provenance, frontier_models`. `RegulatedRole`: `developer, deployer`.
+
+### 3b. What the two laws actually cover (so out-of-scope cases are real, not invented)
+
+- **`co-sb26-189` (Colorado)** — domains: `education, employment, housing, financial_lending, insurance,
+  health_care, government_services`. Roles: developer, deployer. Key obligation sections: `6-1-1702`
+  (developer docs), `6-1-1703` (deployer records), `6-1-1704` (point-of-interaction notice), `6-1-1705`
+  (human review / correction), `6-1-1706` (AG enforcement). Operative term: "materially influence" (ADMT).
+- **`ct-sb5-pa26-15` (Connecticut)** — domains: `employment, ai_companion, generative_ai_provenance,
+  frontier_models` (note: **no housing/insurance/lending** — this is what makes clean CT-out-of-scope
+  cases). Roles: developer, deployer. Key sections: `Sec. 9` (point-of-interaction disclosure), `Sec. 10`
+  (deployer pre-decision notice, AERDT on/after 2027-10-01), `Sec. 8` (developer info duty), `Sec. 13/14`
+  (no-defense provisions), `Sec. 15` (gen-AI provenance). Operative term: "substantial factor" (AERDT).
+
+The key fact for gold cases: **employment is the only domain both laws share.** A Colorado housing case is
+CO-in / CT-out. A Connecticut employment case is CT-in / CO-out (no CO nexus). Both-employment with both
+nexuses is in-scope for both. Use these to cover the matrix.
+
+### 3c. Gold-case schema (`eval/gold/*.yaml` — one file or a list; decide at build)
+
+```yaml
+- id: co-employment-deployer
+  situation:
+    jurisdictions: [Colorado]
+    decision_domains: [employment]
+    roles: [deployer]
+    ai_use: yes
+  expect:
+    scope:                      # deterministic check — verdict per law_id
+      co-sb26-189: yes
+      ct-sb5-pa26-15: no        # no Connecticut nexus
+    grounding_sections:         # sections retrieval/citations should surface (CO numbering)
+      - "6-1-1704"
+      - "6-1-1705"
+    obligations:                # for the judged coverage metric (paraphrase allowed)
+      - "point-of-interaction notice that ADMT is in use"
+      - "consumer right to human review / correction"
+```
+
+`scope` values are the real `InScope` literals: `yes | no | uncertain`. **Include at least one
+`uncertain` case** (e.g. a blank `roles` with everything else matching — the CAUTIOUS policy returns
+`uncertain` on a necessary-element blank; see `scope.py` rule 3) and one clean **out-of-corpus / no-nexus**
+case (scope `no` for both). Cover: CO-alone, CT-alone, both-employment, a CO-housing (CT-out), an
+`uncertain` edge, a clean `no`. Six is enough to start; grow only where the scorecard is blind (plan §12).
+
+> Authoring tip: write the `expect` block by reading the statute, not by running the app. The whole point
+> is that the gold answer is independent of the code — otherwise you're testing the code against itself.
+
+---
+
+## 4. The harness — mirror the production path exactly
+
+Lives in `eval/` (ROADMAP §4 reserved it). The non-negotiable rule (plan §7): build the **same** objects
+the API builds, by copying the construction from `core/corpus/build.py` and `api/main.py:lifespan`:
+
+```python
+# eval/harness.py  (shape, not final code)
+from pathlib import Path
+from patchwork_assurance.config import settings
+from patchwork_assurance.core.corpus.loader import load_corpus
+from patchwork_assurance.core.embeddings import FastEmbedEmbedder
+from patchwork_assurance.core.vectorstore import ChromaVectorStore
+from patchwork_assurance.core.retrieval import Retriever
+from patchwork_assurance.core.scope import applicable_laws, load_law_metadata
+from patchwork_assurance.core.memo import generate_memo
+from patchwork_assurance.core.llm import build_llm
+
+def build_core():
+    embedder = FastEmbedEmbedder()
+    store = ChromaVectorStore(settings.chroma_path, embedder.model_name)
+    if store.count() == 0:                       # same idempotent build-on-empty as the API lifespan
+        load_corpus(Path(settings.corpus_path), store, embedder)
+    retriever = Retriever(store, embedder)        # same mismatch guard fires here too
+    laws = load_law_metadata(Path(settings.corpus_path))
+    return retriever, laws
+```
+
+- **Scope and retrieval need only `build_core()` — no LLM, no key.** That's the whole free tier.
+- **The memo path** additionally calls `build_llm(settings, settings.memo_model)` and
+  `generate_memo(situation, scope, retriever, llm, laws)`. Under `LLM_PROVIDER=stub` (the default) this
+  returns the canned stub memo — useful for testing the harness wiring for free, but **not** a real
+  measurement. A real citation/groundedness run needs `LLM_PROVIDER=anthropic` (paid).
+- Output: a human-readable scorecard now; a JSON sidecar so runs compare over time (plan §7). Keep it
+  simple — a dict per metric, dumped to `eval/results/<timestamp>.json`.
+
+---
+
+## 5. Deterministic metrics (Tier A — the free, high-value core)
+
+| Metric | Implementation | Needs |
+|---|---|---|
+| **Scope accuracy** | For each gold case: `applicable_laws(situation, laws)` → map `law_id → in_scope`; compare to `expect.scope` exact-match (incl. `uncertain`). Score = fraction of (case × law) verdicts correct. | nothing — pure Python |
+| **Retrieval hit-rate (recall@k)** | For each gold case: `retriever.retrieve(query, k=settings.top_k)`; collect `chunk.section_number`; score = fraction of `expect.grounding_sections` present in the returned set. | local embeddings |
+| **Citation-exists** | (Tier B — needs a real memo) Every section the memo cites resolves to a real section in the corpus. Build a set of valid sections once from the loaded chunks; check each memo citation against it. | a generated memo (paid) |
+
+Notes:
+- **Scope accuracy is the one to run first.** It directly measures the load-bearing Seam 3 logic
+  (`scope.py`), needs no API call, and if it's not ~100% on your gold set, that's a real bug worth more
+  than any judged metric.
+- **Retrieval query:** use the same `_focus(situation)` string the memo path builds (it's in `memo.py`),
+  or the raw situation text — decide at build and keep it consistent, because hit-rate is only comparable
+  across runs if the query construction is fixed.
+- **Section-number matching is generic over CO/CT.** CO sections are bare (`6-1-1704`), CT are `Sec. N`.
+  `RetrievedChunk.section_number` already carries them in the corpus form; match on the raw string so you
+  never hardcode a jurisdiction (invariant 2).
+
+---
+
+## 6. The judge tier (Tier B — wire now, run later)
+
+A judge is one extra LLM call that scores an output against a rubric and returns a **structured verdict**.
+Reuse the proven path:
+
+```python
+# eval/judge.py  (shape)
+from pydantic import BaseModel
+from typing import Literal
+
+class JudgeVerdict(BaseModel):
+    grounded: Literal["yes", "partial", "no"]
+    reason: str
+    unsupported_claims: list[str] = []
+
+# call via the SAME interface core/ uses:
+#   verdict = judge_llm.complete_structured(JUDGE_SYSTEM, [Msg(role="user", content=...)], JudgeVerdict)
+# under the hood that's client.messages.parse(output_format=JudgeVerdict) → parsed_output
+```
+
+**The judge-model choice — resolving the plan-vs-Phase-5 conflict.** Plan §6's rule is "the judge model
+must differ from the judged model" (don't let a model grade its own blind spots). Phase 5 split generation
+into **memo = Sonnet**, **chat = Haiku**. So:
+- **Judging the memo** (Sonnet output) → judge with **`claude-opus-4-8`**, not Sonnet. (Plan §6 said
+  "Sonnet as judge," but that predates the memo being Sonnet; Opus keeps judge≠judged and is the stronger
+  grounding judge anyway. Opus is pricier, but the gold set is tiny.)
+- **Judging chat** (Haiku output, if you eval chat) → Sonnet or Opus both satisfy judge≠judged.
+- Make it config: `judge_model` default `claude-opus-4-8`; `eval_use_judge` bool default **False**.
+
+**Groundedness** is the legal-integrity metric: show the judge the obligation claim + the cited statute
+chunk text and ask whether the claim is supported by *that text*. This is what catches a plausible-but-
+hallucinated obligation — the failure that matters most for a compliance tool
+(`.claude/rules/legal-content.md`). **Coverage** asks whether the gold obligations appear in the memo
+(paraphrase allowed) — start with fuzzy string match (free) and only escalate to the judge if fuzzy match
+proves too brittle.
+
+Keep judge prompts + rubric text versioned in `eval/` so a score is reproducible (plan §6).
+
+**Cost discipline:** every judged run spends. Before the first one, estimate it out loud (cases × ~tokens
+× rate) so you know what you're spending. A ~10-case judged run at Opus rates is on the order of your
+current full balance — so the first judged run waits for credits, and even then it's one deliberate
+invocation, not something `make eval` does by default.
+
+---
+
+## 7. `make eval`, config, dependencies
+
+- **Two targets, free-by-default:**
+  - `make eval` → deterministic tier only. No key, offline, the everyday command. Keep it green.
+  - `make eval-judge` → adds the paid tier (`LLM_PROVIDER=anthropic` + `eval_use_judge=1`). The opt-in,
+    spend-money command. Document that it costs real tokens.
+- **Config additions** (`config.py`): `judge_model: str = "claude-opus-4-8"`, `eval_use_judge: bool =
+  False`. Nothing else — the harness reads existing `corpus_path`, `chroma_path`, `top_k`, `memo_model`.
+- **Dependencies: none new.** Custom harness (decided 2026-06-17, plan §12) reuses `anthropic`, `pydantic`,
+  `pyyaml`, and `core/`. No Ragas/TruLens. If that ever changes, pin it here.
+
+---
+
+## 8. Testing the harness itself (keep CI free)
+
+The evals measure the app; a few small tests keep the *harness* honest without spending (plan §10):
+- Unit-test each deterministic metric on a tiny fixture: a known-correct and a known-wrong case →
+  expected score. Pure Python, runs in CI.
+- Unit-test the judge **logic** with a **stubbed judge** — feed a `StubLLM`-style client returning a known
+  `JudgeVerdict` and assert the metric aggregates it correctly. This tests the wiring offline; the real
+  judge is smoke-tested manually once, when credits allow.
+- This keeps the whole deterministic path (and the judge's plumbing) inside the existing `pytest` + CI
+  gate at $0, consistent with the project's green-quality-gate rule.
+
+---
+
+## 9. Open decisions to settle at build (small)
+
+- **Gold-set file layout** — one `eval/gold/cases.yaml` list vs one file per case. Lean one file for 6–10
+  cases; split only if it gets unwieldy.
+- **Retrieval query string** — `_focus(situation)` (reuse from `memo.py`) vs raw situation text. Pick one,
+  fix it, note it here (hit-rate is only comparable across runs if the query is stable).
+- **Coverage metric** — fuzzy string match (free) vs judge (paid). Start fuzzy; escalate only if needed.
+- **Judge model** — `claude-opus-4-8` recommended (judge≠judged vs the Sonnet memo). Opus only if Sonnet
+  judging proves too subtle is *not* the question here — Sonnet is the judged model, so Opus is the floor,
+  not an upgrade. Confirm at build.
+- **First paid run** — deferred until credits return. Tier A delivers a real scorecard before then.
+
+---
+
+## 10. As-built notes
+
+*(Fill during the build. Record: the final gold-set size + which matrix cells it covers; the scope-accuracy
+and retrieval-hit-rate numbers from the first free run; the exact harness construction; the judge model +
+rubric version; the measured cost of the first judged run when it happens; and any decision sweeps (plan
+§8) once they're run — Haiku-vs-Sonnet, embedding model, chunk/`top_k` — with the numbers that resolved
+them.)*
+
+---
+
+> **Reminder for whoever runs the paid tier:** `make eval` is free and is the default. `make eval-judge`
+> spends real Anthropic credit (Sonnet memos + Opus judge). Estimate the run before invoking it; the gold
+> set is small so it's cents-to-low-dollars, but with a near-empty balance, cents matter. Build all of
+> Tier A first — you get the highest-value signal (scope accuracy) for nothing.

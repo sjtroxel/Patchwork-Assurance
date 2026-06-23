@@ -1,0 +1,348 @@
+# Patchwork Assurance — gold evaluation set
+#
+# Hand-authored cases with known-correct answers, used by the Phase 6 eval harness.
+# See eval/gold/README.md for the schema and how to verify each case.
+#
+# Two kinds of expected answer, with different sources of truth:
+#   - expect.scope        : the CORRECT OUTPUT of the deterministic scope screen
+#                           (core/scope.py applicable_laws) given the corpus metadata.
+#                           Mechanical and verifiable by reading scope.py + the .meta.yaml —
+#                           NO legal judgment is needed to check these.
+#   - grounding_sections  : statute sections that should ground an in-scope answer
+#   + obligations           (retrieved / cited). Grounded in the actual statute text in
+#                           corpus/*.md — verifiable by reading the cited section.
+#
+# Scope verdict values are the real InScope literals: "yes" | "no" | "uncertain".
+# They are QUOTED on purpose: unquoted yes/no are YAML booleans (True/False), but the
+# scope screen returns the strings "yes"/"no" — quoting keeps the comparison string-vs-string.
+# Law ids: co-sb26-189 (Colorado), ct-sb5-pa26-15 (Connecticut).
+#
+# Coverage matrix (each case exercises a distinct branch of scope.py / grounding path):
+#    1 co-employment-deployer       CO yes / CT no          baseline; CT excluded by no nexus
+#    2 ct-employment-deployer       CO no  / CT yes          baseline, other law
+#    3 multistate-employment        CO yes / CT yes          the headline out-of-state nexus case
+#    4 colorado-based-employer      CO yes / CT no           home_state auto-nexus branch
+#    5 ct-resident-housing          CO no  / CT no           CT's law is employment-only (CT domain mismatch)
+#    6 co-employment-role-unknown   CO uncertain / CT no     uncertain via blank ROLE
+#    7 no-ai-in-decisions           CO no  / CT no           ai_use="no" affirmative-exclusion short-circuit
+#    8 no-regulating-nexus          CO no  / CT no           reaches neither state (jurisdiction mismatch)
+#    9 multistate-developer         CO yes / CT yes          DEVELOPER role -> different grounding (CO 1702, CT Sec.8)
+#   10 co-employment-ai-unsure      CO yes / CT no           ai_use="unsure" (tool-inventory memo branch)
+#   11 location-unknown             CO uncertain / CT unc.   uncertain via blank JURISDICTION (no nexus stated)
+#   12 ct-ai-companion              CO no  / CT yes          CT-only domain -> CO domain mismatch (mirror of #5)
+#   13 domain-unknown               CO uncertain / CT no     uncertain via blank DOMAIN
+#   14 ct-mixed-domains             CO no  / CT yes          MIXED domains: one matches (employment), one
+#                                                            doesn't (housing) -> any-match suffices
+#
+# Verdict-vs-grounding note: developer/deployer and ai_use yes/unsure do NOT change the scope VERDICT
+# (the role gate only tests membership; "unsure" only annotates). They earn their place because they
+# change GROUNDING/obligations (developer sections differ) and the memo's next-steps — i.e. they exercise
+# the retrieval-hit-rate and memo metrics, not scope-accuracy. The three "uncertain via blank X" cases
+# (6, 11, 13) cover all three blank elements so a refactor of the gate/blanks logic can't slip through.
+
+- id: co-employment-deployer
+  rationale: >
+    A business with Colorado employees/applicants that uses AI to help make employment
+    decisions, acting as the deployer. Colorado SB 26-189 covers employment as a
+    consequential-decision domain and regulates deployers, so it is facially in scope.
+    No Connecticut nexus, so Connecticut's law does not reach this business.
+  situation:
+    jurisdictions: [Colorado]
+    decision_domains: [employment]
+    roles: [deployer]
+    ai_use: "yes"
+  expect:
+    scope:
+      co-sb26-189: "yes"
+      ct-sb5-pa26-15: "no"
+    grounding_sections:
+      - "6-1-1704"   # point-of-interaction notice
+      - "6-1-1705"   # human review / reconsideration
+    obligations:
+      - "Before using a covered ADMT to materially influence a consequential decision, give the consumer a clear and conspicuous notice that a covered ADMT is in use (Colorado 6-1-1704(1))."
+      - "On an adverse outcome, on request provide the consumer an opportunity for meaningful human review and reconsideration, plus instructions to correct inaccurate personal data (Colorado 6-1-1705(1))."
+
+- id: ct-employment-deployer
+  rationale: >
+    A business with Connecticut employees/applicants using an automated employment-related
+    decision technology (AERDT) as the deployer. Connecticut PA 26-15 regulates AERDT in
+    employment decisions and regulates deployers, so it is in scope. No Colorado nexus.
+  situation:
+    jurisdictions: [Connecticut]
+    decision_domains: [employment]
+    roles: [deployer]
+    ai_use: "yes"
+  expect:
+    scope:
+      co-sb26-189: "no"
+      ct-sb5-pa26-15: "yes"
+    grounding_sections:
+      - "Sec. 9"    # interaction disclosure to employee/applicant
+      - "Sec. 10"   # pre-decision written notice
+    obligations:
+      - "Disclose to each employee or applicant who interacts with the AERDT, in plain language, that they are interacting with such technology, unless it would be obvious to a reasonable person (Connecticut Sec. 9). Applies to AERDT deployed on or after Oct 1, 2027."
+      - "Before the employment-related decision is made, give the employee or applicant a written notice stating that an AERDT was deployed, its purpose and the nature of the decision, its trade name, the categories and sources of personal data it analyzes, and the deployer's contact information (Connecticut Sec. 10). Applies to AERDT deployed on or after Oct 1, 2027."
+
+- id: multistate-employment
+  rationale: >
+    The headline nexus case. An out-of-state business (home state Indiana, which regulates
+    nothing here) that makes AI-assisted employment decisions about both Colorado and
+    Connecticut workers. Reach follows the people, not the headquarters, so BOTH laws apply.
+  situation:
+    home_state: Indiana
+    jurisdictions: [Colorado, Connecticut]
+    decision_domains: [employment]
+    roles: [deployer]
+    ai_use: "yes"
+  expect:
+    scope:
+      co-sb26-189: "yes"
+      ct-sb5-pa26-15: "yes"
+    grounding_sections:
+      # Union of both laws' employment-deployer sections. The harness retrieves PER in-scope
+      # jurisdiction (mirroring the memo path's per-law filtered retrieve), so each law is
+      # scored against its own sections — see eval/gold/README.md.
+      - "6-1-1704"
+      - "6-1-1705"
+      - "Sec. 9"
+      - "Sec. 10"
+    obligations:
+      - "Colorado: point-of-interaction notice (6-1-1704) and the human-review/correction rights (6-1-1705)."
+      - "Connecticut: interaction disclosure (Sec. 9) and pre-decision written notice (Sec. 10), for AERDT deployed on or after Oct 1, 2027."
+
+- id: colorado-based-employer
+  rationale: >
+    A Colorado-headquartered business that did not separately list Colorado as a nexus state.
+    Its home state IS a regulating jurisdiction, so the screen auto-counts a Colorado nexus
+    (a Colorado business obviously has Colorado people). Tests the home_state auto-nexus branch.
+    Same verdict as case 1 but reached through a different code path.
+  situation:
+    home_state: Colorado
+    jurisdictions: []
+    decision_domains: [employment]
+    roles: [deployer]
+    ai_use: "yes"
+  expect:
+    scope:
+      co-sb26-189: "yes"
+      ct-sb5-pa26-15: "no"
+    grounding_sections:
+      - "6-1-1704"
+      - "6-1-1705"
+    obligations:
+      - "Same Colorado deployer duties as case co-employment-deployer (6-1-1704 notice; 6-1-1705 human review)."
+
+- id: ct-resident-housing
+  rationale: >
+    A business making AI-assisted HOUSING decisions about Connecticut residents. Connecticut's
+    AI law (PA 26-15) regulates AERDT in EMPLOYMENT decisions only; it does not reach housing,
+    so it is out of scope here despite the Connecticut nexus. Colorado does cover housing, but
+    only with a Colorado nexus, which this business lacks. The honest answer is: neither law in
+    this corpus reaches this situation. A false "yes" here would be the worst kind of failure.
+  situation:
+    jurisdictions: [Connecticut]
+    decision_domains: [housing]
+    roles: [deployer]
+    ai_use: "yes"
+  expect:
+    scope:
+      co-sb26-189: "no"       # no Colorado nexus
+      ct-sb5-pa26-15: "no"    # Connecticut's AI law does not cover housing
+    grounding_sections: []  # out of scope for both — nothing to ground
+    obligations: []
+
+- id: co-employment-role-unknown
+  rationale: >
+    Colorado employment nexus and AI use are clear, but the business has not said whether it is
+    a developer or a deployer (role left blank). Under the default CAUTIOUS policy, a blank on a
+    necessary element returns "uncertain" rather than a false "no" — the screen says "you could
+    be in scope, but tell me your role." Tests the uncertain (silence) path.
+  situation:
+    jurisdictions: [Colorado]
+    decision_domains: [employment]
+    roles: []
+    ai_use: "yes"
+  expect:
+    scope:
+      co-sb26-189: "uncertain"
+      ct-sb5-pa26-15: "no"
+    grounding_sections:
+      # An uncertain law is still retrieved and explained by the memo (in_scope in {yes, uncertain}).
+      - "6-1-1704"
+      - "6-1-1705"
+    obligations:
+      - "If the business is a deployer, the Colorado deployer duties apply (6-1-1704 notice; 6-1-1705 human review). Role must be confirmed before scope is settled."
+
+- id: no-ai-in-decisions
+  rationale: >
+    A business with Colorado employees that has affirmatively said it does NOT use AI to make or
+    influence the relevant decisions. Both laws only bite AI-driven decisions, so this is a clean
+    "no" regardless of nexus, domain, or role. Tests the ai_use="no" short-circuit.
+  situation:
+    jurisdictions: [Colorado]
+    decision_domains: [employment]
+    roles: [deployer]
+    ai_use: "no"
+  expect:
+    scope:
+      co-sb26-189: "no"
+      ct-sb5-pa26-15: "no"
+    grounding_sections: []
+    obligations: []
+
+- id: no-regulating-nexus
+  rationale: >
+    A Texas business whose employees, applicants, and customers are all in Texas. Texas is not a
+    regulating jurisdiction in this corpus, so there is no Colorado or Connecticut nexus and
+    neither law reaches the business. Tests the jurisdiction-mismatch "no" (distinct from the
+    ai_use="no" path).
+  situation:
+    home_state: Texas
+    jurisdictions: [Texas]
+    decision_domains: [employment]
+    roles: [deployer]
+    ai_use: "yes"
+  expect:
+    scope:
+      co-sb26-189: "no"
+      ct-sb5-pa26-15: "no"
+    grounding_sections: []
+    obligations: []
+
+- id: multistate-developer
+  rationale: >
+    The developer counterpart to the multistate case. An out-of-state company that BUILDS an
+    automated employment-decision tool used on Colorado and Connecticut workers, acting as the
+    developer. Both laws regulate developers, so both are in scope — but the developer's duties
+    live in DIFFERENT sections than the deployer's, so this is the case that checks the developer
+    grounding is retrievable. Same verdict as multistate-employment, different obligations.
+  situation:
+    home_state: Indiana
+    jurisdictions: [Colorado, Connecticut]
+    decision_domains: [employment]
+    roles: [developer]
+    ai_use: "yes"
+  expect:
+    scope:
+      co-sb26-189: "yes"
+      ct-sb5-pa26-15: "yes"
+    grounding_sections:
+      - "6-1-1702"   # CO developer documentation duty
+      - "Sec. 8"     # CT developer info-to-deployer duty
+    obligations:
+      - "Colorado: a developer must make available to each deployer documentation covering the ADMT's intended and known harmful uses, training-data categories, known limitations and risks, instructions for human review, and the information the deployer needs to comply with 6-1-1704 (Colorado 6-1-1702, on or after Jan 1, 2027)."
+      - "Connecticut: a developer must provide the deployer all information the deployer needs to perform its Sec. 9 and Sec. 10 duties (Connecticut Sec. 8), for AERDT deployed on or after Oct 1, 2027."
+
+- id: co-employment-ai-unsure
+  rationale: >
+    A Colorado employer that uses some automated tools but is not sure which of them count as AI
+    in its hiring decisions (ai_use = "unsure"). "unsure" does NOT change the verdict — Colorado is
+    still in scope — but it does flip on the memo's tool-inventory next step ("list the tools that
+    score/rank/screen people first"). This case exists to exercise that memo branch, not the screen.
+  situation:
+    jurisdictions: [Colorado]
+    decision_domains: [employment]
+    roles: [deployer]
+    ai_use: "unsure"
+  expect:
+    scope:
+      co-sb26-189: "yes"
+      ct-sb5-pa26-15: "no"
+    grounding_sections:
+      - "6-1-1704"
+      - "6-1-1705"
+    obligations:
+      - "Same Colorado deployer duties as case co-employment-deployer (6-1-1704 notice; 6-1-1705 human review). Because the business is unsure which tools use AI, the memo should first prompt a tool inventory before the obligations apply."
+
+- id: location-unknown
+  rationale: >
+    The business described its AI use, domain, and role, but gave no location at all (no nexus
+    states, no home state). The screen cannot confirm OR exclude either law, so both come back
+    "uncertain" — the honest "you haven't told me where your people are" answer, not a false no.
+    Tests the uncertain path via a blank JURISDICTION (case 6 tests blank role; case 13 blank domain).
+  situation:
+    jurisdictions: []
+    decision_domains: [employment]
+    roles: [deployer]
+    ai_use: "yes"
+  expect:
+    scope:
+      co-sb26-189: "uncertain"
+      ct-sb5-pa26-15: "uncertain"
+    grounding_sections:
+      # Both laws are uncertain, so both are retrieved/explained (in_scope in {yes, uncertain}).
+      # Scored per in-scope jurisdiction, as in case multistate-employment.
+      - "6-1-1704"
+      - "6-1-1705"
+      - "Sec. 9"
+      - "Sec. 10"
+    obligations:
+      - "Neither law can be confirmed until the business says which states its employees/applicants are in. If a Colorado or Connecticut nexus exists, the respective deployer duties apply."
+
+- id: ct-ai-companion
+  rationale: >
+    A company that operates an AI companion product reaching both Colorado and Connecticut users.
+    Connecticut regulates AI companions (Sec. 4-6); Colorado's law does NOT list ai_companion as a
+    covered domain, so Colorado is out by domain mismatch even though there is a Colorado nexus.
+    This is the mirror image of ct-resident-housing (there CT lacked the domain; here CO does). It
+    also exercises the product-domain path. Note: "deployer" is the closest available form-role for
+    a companion "operator" — a deliberate coarse mapping in the model, not a precise statutory term.
+  situation:
+    jurisdictions: [Colorado, Connecticut]
+    decision_domains: [ai_companion]
+    roles: [deployer]
+    ai_use: "yes"
+  expect:
+    scope:
+      co-sb26-189: "no"        # ai_companion is not a Colorado covered domain
+      ct-sb5-pa26-15: "yes"
+    grounding_sections:
+      - "Sec. 5"   # AI companion operator: safety protocol + human-disclosure duties
+    obligations:
+      - "Connecticut: an AI-companion operator must maintain a safety protocol (detect risk of suicide/self-harm, refer users to the 988 Lifeline, prevent the companion from claiming to be human) and clearly disclose to users that they are interacting with an AI companion (Connecticut Sec. 5, effective Jan 1, 2027)."
+
+- id: domain-unknown
+  rationale: >
+    A Colorado employer (clear nexus and role) that has not said what kind of decision the AI
+    touches (decision_domains blank). Colorado therefore comes back "uncertain" — could be a covered
+    consequential decision, but the decision type is needed to confirm. Connecticut is a clean "no"
+    (no Connecticut nexus). Tests the uncertain path via a blank DOMAIN.
+  situation:
+    jurisdictions: [Colorado]
+    decision_domains: []
+    roles: [deployer]
+    ai_use: "yes"
+  expect:
+    scope:
+      co-sb26-189: "uncertain"
+      ct-sb5-pa26-15: "no"
+    grounding_sections:
+      - "6-1-1704"
+      - "6-1-1705"
+    obligations:
+      - "Colorado could reach this business, but the covered decision type must be confirmed first. If the AI touches a consequential decision (employment, housing, lending, insurance, health care, education, or government services), the deployer duties (6-1-1704 notice; 6-1-1705 human review) apply."
+
+- id: ct-mixed-domains
+  rationale: >
+    A Connecticut employer that uses AI in TWO decision types at once: employment (which Connecticut
+    covers) and housing (which it does not). Connecticut is still in scope, because a single matching
+    domain is enough — the screen does NOT require every listed domain to be covered. This pins the
+    "any-match" semantics of the domain gate (set intersection is non-empty, not equal): if the gate
+    were ever changed to require ALL listed domains to match, this case would catch it. Connecticut
+    reaches the employment AI; the housing use simply falls outside Connecticut's AI law. No Colorado
+    nexus, so Colorado is out.
+  situation:
+    jurisdictions: [Connecticut]
+    decision_domains: [employment, housing]
+    roles: [deployer]
+    ai_use: "yes"
+  expect:
+    scope:
+      co-sb26-189: "no"        # no Colorado nexus
+      ct-sb5-pa26-15: "yes"    # in scope via employment; housing is not CT-covered but doesn't defeat scope
+    grounding_sections:
+      # Only the employment sections — the part of this business CT actually reaches.
+      - "Sec. 9"
+      - "Sec. 10"
+    obligations:
+      - "Connecticut's employment notice duties (Sec. 9 interaction disclosure; Sec. 10 pre-decision written notice, for AERDT deployed on or after Oct 1, 2027) apply to the employment AI. The housing use is outside Connecticut's AI law (PA 26-15 covers AI in employment, not housing)."
