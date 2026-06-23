@@ -10,6 +10,12 @@ from patchwork_assurance.core.prompts import MEMO_SYSTEM, render_memo_user
 from patchwork_assurance.core.retrieval import RetrievalFilters
 
 _IN_SCOPE = ("yes", "uncertain")
+
+# How many statute chunks to retrieve per in-scope law for the memo. Raised 5 -> 8 after the
+# Phase 6 eval: retrieval recall@5 was 68% (CO 6-1-1705, the human-review right, ranked 6th-12th
+# for the deployer query), recall@8 ~95%. The eval reads THIS constant so it always measures the
+# real memo depth. A deeper fix (hybrid retrieval) is Phase 8; the facts card already backstops it.
+MEMO_RETRIEVAL_K = 8
 # Coverage beyond consequential decisions about people (e.g. CT's AI-companion / generative-AI /
 # frontier-model provisions) — surfaced as a note, not a form gate (Phase 4.6, Fork D).
 _PRODUCT_DOMAINS = {
@@ -34,7 +40,7 @@ def generate_memo(
             chunks += retriever.retrieve(
                 query=_focus(situation),
                 filters=RetrievalFilters(jurisdiction=s.jurisdiction),
-                k=5,
+                k=MEMO_RETRIEVAL_K,
             )
     user = render_memo_user(situation, scope, chunks, list(laws_by_id.values()))
     memo = llm.complete_structured(MEMO_SYSTEM, [Msg(role="user", content=user)], ComplianceMemo)

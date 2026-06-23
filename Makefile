@@ -1,6 +1,6 @@
 VENV := .venv
 
-.PHONY: install dev test lint
+.PHONY: install dev test lint eval
 
 install:
 	python -m venv $(VENV)
@@ -16,3 +16,7 @@ test:
 lint:
 	$(VENV)/bin/ruff check .
 	$(VENV)/bin/ruff format --check .
+
+# Deterministic eval tier — free, offline, no API key. (Judged tier added later behind a flag.)
+eval:
+	$(VENV)/bin/python -m eval.run

@@ -25,6 +25,9 @@ venv/
 chroma/
 *.sqlite3
 
+# Eval scorecards (JSON run output) — reproducible by re-running `make eval`
+eval/results/
+
 # Raw statute source PDFs — provenance only, reproducible from source_url in metadata.
 # The cleaned corpus/*.md (and *.meta.yaml) ARE committed; the heavy binaries are not.
 corpus/sources/
