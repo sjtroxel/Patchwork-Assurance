@@ -6,13 +6,18 @@ and tests the retrieval-metric aggregation with a stub retriever.
 
 from pathlib import Path
 
-from eval.harness import Core
+from eval.harness import Core, corpus_section_texts, locate_section
+from eval.judge import JudgeVerdict, score_groundedness
 from eval.loader import load_gold
-from eval.metrics import score_retrieval, score_scope
+from eval.metrics import score_citation_exists, score_coverage, score_retrieval, score_scope
+from eval.safety import confirm_spend
 
+from patchwork_assurance.core.contracts import ComplianceMemo, LawFinding, MemoObligation
 from patchwork_assurance.core.scope import load_law_metadata
 
 LAWS = load_law_metadata(Path("corpus"))
+SECTION_TEXTS = corpus_section_texts(Path("corpus"))
+SECTIONS = {jurisdiction: set(texts) for jurisdiction, texts in SECTION_TEXTS.items()}
 
 
 def test_gold_loads_and_is_well_formed():
@@ -82,3 +87,147 @@ def test_retrieval_recall_partial_when_a_section_is_missing():
 def test_retrieval_skips_out_of_scope_cases():
     core = Core(retriever=_FakeRetriever({}), laws=LAWS)
     assert score_retrieval(_case("no-ai-in-decisions"), core, k=5) is None
+
+
+# --- citation-exists ---
+
+
+def test_corpus_sections_contains_real_sections():
+    assert "6-1-1704" in SECTIONS["Colorado"]
+    assert "Sec. 9" in SECTIONS["Connecticut"]
+    assert "6-1-9999" not in SECTIONS["Colorado"]  # not a real section
+
+
+def _memo(*citations: str) -> ComplianceMemo:
+    return ComplianceMemo(
+        per_law=[
+            LawFinding(
+                law_id="co-sb26-189",
+                short_name="CO SB 26-189",
+                in_scope="yes",
+                why="test",
+                obligations=[MemoObligation(text="t", citation=c) for c in citations],
+            )
+        ],
+        disclaimer="d",
+    )
+
+
+def test_citation_exists_passes_real_flags_fake():
+    out = score_citation_exists(_memo("Colorado § 6-1-1704", "Colorado § 6-1-9999"), SECTIONS)
+    assert out.total == 2
+    assert out.valid == 1
+    assert out.invalid == ["Colorado § 6-1-9999"]
+
+
+def test_citation_exists_flags_cross_jurisdiction():
+    # A real Colorado section number, but cited as a Connecticut section -> not real for CT.
+    out = score_citation_exists(_memo("Connecticut § 6-1-1704"), SECTIONS)
+    assert out.invalid == ["Connecticut § 6-1-1704"]
+
+
+def test_citation_exists_section_boundary():
+    # "Sec. 99" must not match the real "Sec. 9" via substring.
+    out = score_citation_exists(_memo("Connecticut Sec. 99"), SECTIONS)
+    assert out.invalid == ["Connecticut Sec. 99"]
+    # but the real "Sec. 10" resolves.
+    assert score_citation_exists(_memo("Connecticut Sec. 10"), SECTIONS).valid == 1
+
+
+def test_locate_section_resolves_guards_and_boundary():
+    assert locate_section("Colorado § 6-1-1704", SECTIONS) == ("Colorado", "6-1-1704")
+    assert locate_section("Connecticut § 6-1-1704", SECTIONS) is None  # cross-jurisdiction
+    assert locate_section("Connecticut Sec. 99", SECTIONS) is None  # boundary guard
+    assert locate_section("Connecticut Sec. 10", SECTIONS) == ("Connecticut", "Sec. 10")
+
+
+# --- coverage (fuzzy, free) ---
+
+
+def test_coverage_matches_paraphrase_and_flags_missing():
+    memo = ComplianceMemo(
+        per_law=[
+            LawFinding(
+                law_id="co-sb26-189",
+                short_name="CO",
+                in_scope="yes",
+                why="t",
+                obligations=[
+                    MemoObligation(text="Provide a point-of-interaction notice", citation="x")
+                ],
+            )
+        ],
+        disclaimer="d",
+    )
+    out = score_coverage(memo, ["Provide a point-of-interaction notice", "Totally unrelated duty"])
+    assert out.total == 2
+    assert out.covered == 1
+    assert out.missed == ["Totally unrelated duty"]
+
+
+# --- judge tier (stubbed judge, no API calls) ---
+
+
+class _StubJudge:
+    """Stands in for the Opus judge: returns a fixed verdict for any call (no network)."""
+
+    def __init__(self, verdict: JudgeVerdict):
+        self._verdict = verdict
+
+    def complete_structured(self, system, messages, schema):
+        return self._verdict
+
+
+def test_judge_verdict_schema():
+    v = JudgeVerdict(grounded="partial", reason="overstated")
+    assert v.grounded == "partial"
+    assert v.unsupported_claims == []
+
+
+def test_groundedness_aggregates_verdicts():
+    memo = _memo("Colorado § 6-1-1704")
+    texts = {"Colorado": {"6-1-1704": "notice text"}}
+    yes = score_groundedness(memo, texts, _StubJudge(JudgeVerdict(grounded="yes", reason="ok")))
+    assert (yes.judged, yes.grounded_yes) == (1, 1)
+    no = score_groundedness(
+        memo, texts, _StubJudge(JudgeVerdict(grounded="no", reason="x", unsupported_claims=["foo"]))
+    )
+    assert no.grounded_yes == 0
+    assert no.unsupported == ["foo"]
+
+
+def test_groundedness_skips_unlocatable_citation():
+    memo = _memo("Colorado § 6-1-9999")  # not a real section -> nothing to judge against
+    out = score_groundedness(
+        memo, {"Colorado": {"6-1-1704": "t"}}, _StubJudge(JudgeVerdict(grounded="yes", reason=""))
+    )
+    assert out.judged == 0
+
+
+# --- spending guardrails ---
+
+
+class _FakeStdin:
+    def __init__(self, tty: bool):
+        self._tty = tty
+
+    def isatty(self) -> bool:
+        return self._tty
+
+
+def test_confirm_spend_blocks_over_cap():
+    # Hard cap is checked first, before any terminal/confirmation — a runaway can't even prompt.
+    assert confirm_spend(description="x", units=100, cap=50) is False
+
+
+def test_confirm_spend_refuses_non_interactive(monkeypatch):
+    monkeypatch.setattr("sys.stdin", _FakeStdin(tty=False))
+    assert confirm_spend(description="x", units=1, cap=50) is False
+
+
+def test_confirm_spend_requires_typed_yes(monkeypatch):
+    monkeypatch.setattr("sys.stdin", _FakeStdin(tty=True))
+    monkeypatch.setattr("builtins.input", lambda *_: "yes")
+    assert confirm_spend(description="x", units=1, cap=50, est_cost_usd=0.1) is True
+    monkeypatch.setattr("builtins.input", lambda *_: "nope")
+    assert confirm_spend(description="x", units=1, cap=50) is False

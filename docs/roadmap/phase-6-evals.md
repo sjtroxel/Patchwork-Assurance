@@ -26,18 +26,34 @@ couldn't tune those responsibly before because you couldn't measure them. Now yo
 
 ## 2. Definition of done
 
-- [ ] A **gold set** of hand-authored cases (`eval/gold/`): each a `Situation` + expected scope, expected
+- [x] A **gold set** of hand-authored cases (`eval/gold/`): each a `Situation` + expected scope, expected
       obligations, and the statute section(s) that should ground them.
-- [ ] A **harness** (`eval/`) that runs the gold set through the real `core/` functions and prints a
+      *Done — 14 cases (`eval/gold/cases.yaml`), scope column verified against the real screen, obligations grounded in statute text.*
+- [x] A **harness** (`eval/`) that runs the gold set through the real `core/` functions and prints a
       scorecard — same path as the app, not a parallel copy.
-- [ ] **Deterministic metrics** (no LLM, free, reproducible): scope accuracy, retrieval hit-rate
+      *Done — `eval/harness.py:build_core` mirrors `api/main.py:lifespan`.*
+- [x] **Deterministic metrics** (no LLM, free, reproducible): scope accuracy, retrieval hit-rate
       (recall@k), citation-exists (every cited section is real and in the corpus).
-- [ ] **LLM-as-judge metrics** for the subjective parts: citation **groundedness/faithfulness** (does
+      *Done — scope accuracy + retrieval hit-rate run free in `make eval`; citation-exists logic built + offline-tested (it scores a real memo, so its number comes from the judged tier).*
+- [-] **LLM-as-judge metrics** for the subjective parts: citation **groundedness/faithfulness** (does
       each obligation actually follow from its cited chunk?) and obligation coverage — structured
       verdicts, a **judge model different from the judged model**.
-- [ ] `make eval` runs it; the deterministic tier runs offline/free, the judge tier behind a flag.
-- [ ] A short results write-up that **resolves** the deferred model/retrieval decisions with the
+      *Built + stub-tested offline (`eval/judge.py`, judge = Opus vs the Sonnet memo). **First real judged run is deferred (paid)** — see status note below.*
+- [x] `make eval` runs it; the deterministic tier runs offline/free, the judge tier behind a flag.
+      *Done — `make eval` (free) and `make eval-judge` (paid, behind the spend guard).*
+- [-] A short results write-up that **resolves** the deferred model/retrieval decisions with the
       measured numbers.
+      *Deterministic half done (IMPLEMENTATION §10): scope 28/28; retrieval recall@5 68% → resolved by raising memo k to 8 (95%). **Model decisions (Haiku-vs-Sonnet, embeddings) + groundedness numbers await the paid run.***
+
+> **Marker legend:** `[x]` = done; `[-]` = built, tested, and committed, but its measured result is
+> **willfully deferred to the one paid run** — not empty, not forgotten.
+>
+> **Phase 6 status (2026-06-23): code-complete, CI-green, one paid run outstanding.** Everything is
+> built, tested offline, and committed; the deterministic tier runs free and surfaced a real retrieval
+> finding (resolved). The single remaining step is **one `make eval-judge` run** (generates memos with
+> Sonnet, judges with Opus) to produce the groundedness/coverage numbers and settle the Haiku-vs-Sonnet
+> decision. It is deferred until the Anthropic balance refills, and is the **user's to run** (it spends
+> tokens — the git-style hand-off rule, `docs/SPENDING_SAFETY.md`).
 
 Done = a repeatable scorecard for the app, and the earlier "tune later" decisions are now made.
 
@@ -162,9 +178,12 @@ The evals measure the app; a few small tests keep the *harness* honest:
   legal-groundedness metric that no generic RAG-eval framework models well. (Ragas/TruLens were familiar
   from Heritage Odyssey but this is a learning-first build; revisit only if the metric set outgrows a
   hand-rolled harness.)
-- **Judge model** (§6): `claude-sonnet-4-6` recommended; Opus if groundedness judging proves too subtle
-  for Sonnet (decide from the numbers).
-- **Gold set size** — start ~6–10 cases; grow only where the scorecard is blind.
+- ~~**Judge model** (§6): `claude-sonnet-4-6` recommended~~ — **DECIDED 2026-06-23: `claude-opus-4-8`.**
+  The Phase-5 split made the memo a Sonnet call, so a Sonnet judge would be grading its own model
+  (violates judge≠judged). Opus is the floor here, not an upgrade. Config `judge_model="claude-opus-4-8"`.
+- ~~**Gold set size** — start ~6–10 cases~~ — **DECIDED: 14 cases**, one per distinct branch of the scope
+  screen / grounding path (see the coverage matrix in `eval/gold/cases.yaml`). Grow only where the
+  scorecard is blind.
 
 ## 13. What this hands forward
 

@@ -5,10 +5,12 @@ coverage) are Tier B, wired later behind a flag (phase-6 IMPLEMENTATION §6) bec
 API tokens.
 """
 
+import difflib
 from dataclasses import dataclass
 
-from eval.harness import Core
+from eval.harness import Core, locate_section
 from eval.loader import GoldCase
+from patchwork_assurance.core.contracts import ComplianceMemo
 from patchwork_assurance.core.memo import _focus  # production query builder — see note below
 from patchwork_assurance.core.retrieval import RetrievalFilters
 from patchwork_assurance.core.scope import applicable_laws
@@ -64,3 +66,58 @@ def score_retrieval(case: GoldCase, core: Core, k: int) -> RetrievalOutcome | No
     hit = [s for s in want if s in retrieved]
     missed = [s for s in want if s not in retrieved]
     return RetrievalOutcome(case.id, want, hit, missed, len(hit) / len(want))
+
+
+# --- citation-exists (Tier B: deterministic check, but needs a real generated memo) ---
+# The cheap guard against the worst failure for a compliance tool: citing a statute section that
+# does not exist (phase-6 IMPLEMENTATION §5). Free to build/test now; measured on a real memo later.
+
+
+@dataclass
+class CitationOutcome:
+    case_id: str
+    total: int
+    valid: int
+    invalid: list[str]  # cited strings that don't resolve to a real corpus section
+
+
+def score_citation_exists(
+    memo: ComplianceMemo, sections: dict[str, set[str]], case_id: str = ""
+) -> CitationOutcome:
+    """Every section the memo's obligations cite must resolve to a real section in the corpus."""
+    cited = [ob.citation for finding in memo.per_law for ob in finding.obligations]
+    invalid = [c for c in cited if locate_section(c, sections) is None]
+    return CitationOutcome(case_id, len(cited), len(cited) - len(invalid), invalid)
+
+
+# --- obligation coverage (deterministic, fuzzy: free; needs a real generated memo to measure) ---
+# Are the gold obligations present in the memo (paraphrase allowed)? A coarse fuzzy proxy now; a
+# judge-based coverage check is the upgrade (phase-6 IMPLEMENTATION §6) when the metric outgrows it.
+
+
+@dataclass
+class CoverageOutcome:
+    case_id: str
+    total: int
+    covered: int
+    missed: list[str]  # gold obligations with no close match in the memo
+
+
+def score_coverage(
+    memo: ComplianceMemo, gold_obligations: list[str], threshold: float = 0.5, case_id: str = ""
+) -> CoverageOutcome:
+    """For each gold obligation, is there a memo obligation similar enough (difflib ratio >=
+    threshold)? Fuzzy text overlap is a weak proxy for paraphrase — the judge tier is the real
+    coverage signal; this is the free first cut."""
+    memo_texts = [ob.text for finding in memo.per_law for ob in finding.obligations]
+    missed = []
+    for gold in gold_obligations:
+        best = max(
+            (difflib.SequenceMatcher(None, gold.lower(), m.lower()).ratio() for m in memo_texts),
+            default=0.0,
+        )
+        if best < threshold:
+            missed.append(gold)
+    return CoverageOutcome(
+        case_id, len(gold_obligations), len(gold_obligations) - len(missed), missed
+    )

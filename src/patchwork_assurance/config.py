@@ -20,6 +20,14 @@ class Settings(BaseSettings):
     max_tokens: int = 16000
     memo_daily_limit_per_ip: int = 2  # Sonnet cost cap; 0 = unlimited
     cors_allow_origins: list[str] = ["http://localhost:8501"]
+    # Eval LLM-as-judge (Phase 6 Tier B). Judge model must differ from the judged model: the memo
+    # is Sonnet, so the judge is Opus (don't let a model grade its own blind spots). Off by default
+    # so `make eval` stays free; the judged tier spends tokens and is opt-in via --judge.
+    judge_model: str = "claude-opus-4-8"
+    eval_use_judge: bool = False
+    # Hard cap (circuit breaker): a single judged eval run may not generate more than this many
+    # memos, no matter how it was invoked. Raise it deliberately if the gold set grows past it.
+    eval_max_judged_cases: int = 50
 
 
 settings = Settings()

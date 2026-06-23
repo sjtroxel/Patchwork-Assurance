@@ -1,4 +1,4 @@
-# Phase 6 — IMPLEMENTATION (evals, deterministic-first and budget-aware)
+wi# Phase 6 — IMPLEMENTATION (evals, deterministic-first and budget-aware)
 
 *As-built runbook for Phase 6, written at phase start (2026-06-23), reflecting how Phases 0–5 actually
 landed. Strategy/rationale lives in `phase-6-evals.md` (read it first). This is the first **post-v1**
@@ -304,15 +304,71 @@ The evals measure the app; a few small tests keep the *harness* honest without s
 
 ## 10. As-built notes
 
-*(Fill during the build. Record: the final gold-set size + which matrix cells it covers; the scope-accuracy
-and retrieval-hit-rate numbers from the first free run; the exact harness construction; the judge model +
-rubric version; the measured cost of the first judged run when it happens; and any decision sweeps (plan
-§8) once they're run — Haiku-vs-Sonnet, embedding model, chunk/`top_k` — with the numbers that resolved
-them.)*
+**Phase 6 built 2026-06-23 — code-complete, CI-green (121 tests), one paid run outstanding.**
+
+**Gold set — 14 cases** (`eval/gold/cases.yaml`, `eval/gold/README.md`). Grew 8 → 13 → 14 in review,
+one case per distinct branch of the scope screen / grounding path (coverage matrix in the file header):
+each law alone, both at once, `home_state` auto-nexus, domain mismatch each direction (CT-no-housing,
+CO-no-companion), the mixed-domain any-match rule, `uncertain` via each of the three blanks (role /
+jurisdiction / domain), `ai_use="no"` and `="unsure"`, developer vs deployer, a no-nexus business. The
+scope column was verified against the **real** screen (`applicable_laws`), and that check is now a
+permanent test (`test_scope_accuracy_is_perfect_on_gold`). Obligations + section numbers grounded in the
+actual `corpus/*.md` text. (Gotcha logged: unquoted `yes`/`no` are YAML booleans — scope verdicts are
+quoted strings.)
+
+**Harness** (`eval/harness.py:build_core`) mirrors `api/main.py:lifespan` exactly. Added
+`corpus_section_texts` (the section → text index, via the same `chunk_markdown` the loader uses — no
+drift) and `locate_section` (jurisdiction-aware, digit-boundary citation matcher shared by
+citation-exists and groundedness).
+
+**Metrics shipped:** scope accuracy + retrieval hit-rate (deterministic, free, `eval/metrics.py`);
+citation-exists (deterministic logic, scores a real memo); coverage (fuzzy difflib, free logic);
+groundedness (LLM-judge, `eval/judge.py`). `make eval` runs the free tier; `make eval-judge` runs the
+paid tier behind the spend guard.
+
+### Results (deterministic tier — the free numbers)
+- **Scope accuracy: 28/28 = 100%.** The load-bearing Seam-3 logic is proven against the gold set, not
+  assumed.
+- **Retrieval recall@5 = 68.2%** at the original memo `k`. The miss was specific and repeatable: **CO
+  § 6-1-1705** (the consumer human-review right) ranked 6th–12th for the deployer-employment query
+  (semantically further from "deployer obligations" than the § 6-1-1704 notice). recall@8 = 95.5%,
+  recall@12 = 100% — so the section is **retrievable, just under-ranked**, a `k`/ranking property, not a
+  missing-data hole. The deterministic facts card already surfaces § 6-1-1705 to the memo regardless of
+  retrieval, so this was never a user-facing defect — only shallower excerpt-grounding for that one
+  obligation.
+  - **Decision (resolved with data): raised the memo's retrieval `k` from 5 → 8** (`memo.MEMO_RETRIEVAL_K`,
+    a single constant the eval also reads so they can't drift). Recovers ~95% for ~a penny more context.
+  - **Phase 8 baseline:** the last-mile (one `uncertain` case still misses § 6-1-1705 at k=8) is the
+    hybrid-retrieval target. recall@8 = 95.5% is the **before** number Phase 8 must beat.
+
+### Decisions resolved
+- **Judge model = `claude-opus-4-8`**, not the plan's Sonnet recommendation — the Phase-5 split made the
+  memo a Sonnet call, so a Sonnet judge would grade its own model (judge≠judged).
+- **Custom harness** (no Ragas/TruLens) — as planned; no new deps.
+- **Coverage = fuzzy difflib first** (free), judge-based coverage left as the upgrade.
+- **Memo retrieval k = 8** (above).
+
+### Deviations from the plan worth noting
+- The plan's gold-set example used pre-Phase-4.6 field names — corrected to the real `Situation`.
+- `_focus` (the memo's retrieval query) is imported into the metric on purpose so the eval queries the
+  exact production string; promoting it to a public helper is a clean future tidy.
+
+### The spending incident + guardrails (2026-06-23)
+A `python -m eval.run --judge` run to "check the skip" hit the **paid** path (the local `.env` had
+`LLM_PROVIDER=anthropic`, so the stub-skip never fired) and spent **$0.32** before it was caught and
+killed. Response: built `eval/safety.py:confirm_spend` — one chokepoint all paid paths route through
+(hard cap `config.eval_max_judged_cases`; refuse-if-unattended; typed confirmation with a cost estimate),
+plus the `docs/SPENDING_SAFETY.md` practice and the rule that **token-spending commands are human-run like
+git**. Full write-up: [[project-spending-incident-and-guardrail-2026-06-23]].
+
+### Deferred — the one paid run (do this when credits refill, ~next week)
+`make eval-judge` (interactive; it's gated). It will: generate a real memo per in-scope case (Sonnet),
+judge groundedness (Opus), score citation-exists + coverage on real output. That produces the **judged
+numbers** and settles the **Haiku-vs-Sonnet** generation decision (plan §8) — the only two DoD items left
+at `[-]` in `phase-6-evals.md` §2. Record those numbers + the measured cost back here when it runs.
 
 ---
 
 > **Reminder for whoever runs the paid tier:** `make eval` is free and is the default. `make eval-judge`
-> spends real Anthropic credit (Sonnet memos + Opus judge). Estimate the run before invoking it; the gold
-> set is small so it's cents-to-low-dollars, but with a near-empty balance, cents matter. Build all of
-> Tier A first — you get the highest-value signal (scope accuracy) for nothing.
+> spends real Anthropic credit and is gated (interactive + typed `yes`). It is the **user's** to run, not
+> the assistant's. Record the judged numbers + measured cost in §10 above when it happens.

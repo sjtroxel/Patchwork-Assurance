@@ -1,6 +1,6 @@
 VENV := .venv
 
-.PHONY: install dev test lint eval
+.PHONY: install dev test lint eval eval-judge
 
 install:
 	python -m venv $(VENV)
@@ -17,6 +17,11 @@ lint:
 	$(VENV)/bin/ruff check .
 	$(VENV)/bin/ruff format --check .
 
-# Deterministic eval tier — free, offline, no API key. (Judged tier added later behind a flag.)
+# Deterministic eval tier — free, offline, no API key.
 eval:
 	$(VENV)/bin/python -m eval.run
+
+# Judged tier — SPENDS API TOKENS. Generates real memos (Sonnet) + judges them (Opus).
+# Needs LLM_PROVIDER=anthropic + ANTHROPIC_API_KEY in .env.
+eval-judge:
+	$(VENV)/bin/python -m eval.run --judge
