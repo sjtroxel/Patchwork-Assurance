@@ -46,5 +46,8 @@ ignore = ["E501", "B008"]  # B008: Depends() in defaults is the intended FastAPI
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+# Put the repo root on sys.path so tests can import the top-level `eval` harness package
+# under a bare `pytest` (what CI and `make test` run), not just `python -m pytest`.
+pythonpath = ["."]
 markers = ["live: hits the real Anthropic API (deselected by default)"]
 addopts = "-m 'not live'"
