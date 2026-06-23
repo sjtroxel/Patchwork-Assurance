@@ -6,13 +6,14 @@ and tests the retrieval-metric aggregation with a stub retriever.
 
 from pathlib import Path
 
-from eval.harness import Core, corpus_section_texts, locate_section
+from eval.harness import Core
 from eval.judge import JudgeVerdict, score_groundedness
 from eval.loader import load_gold
 from eval.metrics import score_citation_exists, score_coverage, score_retrieval, score_scope
 from eval.safety import confirm_spend
 
 from patchwork_assurance.core.contracts import ComplianceMemo, LawFinding, MemoObligation
+from patchwork_assurance.core.grounding import corpus_section_texts, locate_section
 from patchwork_assurance.core.scope import load_law_metadata
 
 LAWS = load_law_metadata(Path("corpus"))

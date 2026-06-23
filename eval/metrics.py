@@ -8,9 +8,10 @@ API tokens.
 import difflib
 from dataclasses import dataclass
 
-from eval.harness import Core, locate_section
+from eval.harness import Core
 from eval.loader import GoldCase
 from patchwork_assurance.core.contracts import ComplianceMemo
+from patchwork_assurance.core.grounding import locate_section
 from patchwork_assurance.core.memo import _focus  # production query builder — see note below
 from patchwork_assurance.core.retrieval import RetrievalFilters
 from patchwork_assurance.core.scope import applicable_laws

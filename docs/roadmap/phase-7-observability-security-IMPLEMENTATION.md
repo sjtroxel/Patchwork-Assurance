@@ -205,6 +205,48 @@ fabricated prose — it is the load-bearing new code, so it gets the most test a
 
 ## 10. As-built notes
 
-*(Fill during the build: the structured-logging dep/version pinned; the exact trace shape + a sample line;
-the `core/grounding.py` move; the injection regression cases that pass; the loader-sanitization approach;
-and the first real cost numbers from a live request — the "pennies per memo" claim, measured.)*
+**Phase 7 batches 1–2 built 2026-06-23 — CI-green (133 tests). Batches 3–5 remaining.**
+
+**Batch 1 — observability foundation (build order item 1+2).**
+- **Decision: stdlib `logging` + a JSON formatter, NOT `structlog`** — zero new dependency, in keeping
+  with the project's no-framework ethos. (Supersedes the plan's "likely structlog.")
+- `core/obs.py`: JSON logger, `request_id` ContextVar, `log_event`, `log_llm_call` (metadata only),
+  `cost_summary` rolling totals. The privacy rule (no user content in logs) is enforced structurally
+  (helpers take only metadata) **and test-locked** — a sentinel input never appears in any log line.
+- `core/pricing.py`: rates in one spot + `cost_usd` with the additive-tokens formula (no double-count).
+- `core/llm.py`: `AnthropicLLM` all three methods instrumented (success + error paths; stream usage off
+  the final message); `StubLLM` emits zero-cost trace lines.
+- `core/retrieval.py`: retrieve-stage timing (logs `k`/`n_results`/jurisdiction/latency, never the query).
+- `api/main.py`: request-ID middleware (reads inbound `X-Request-ID` or generates; echoes it back).
+- `tests/test_obs.py` (7). **Trace shape:** one JSON line per LLM call —
+  `{ts, level, event:"llm_call", request_id, surface, model, known_rate, input_tokens, output_tokens,
+  cache_read_tokens, cache_write_tokens, latency_ms, est_cost_usd}`; retrieval —
+  `{event:"retrieve", k, n_results, jurisdiction, latency_ms}`.
+- **Runtime-verify item (not unit-testable):** ContextVar→threadpool propagation — confirm `request_id`
+  rides a real Seam-4 log line on the live deploy (unit tests are same-thread).
+
+**Batch 2 — grounding refactor + runtime citation guard (build order item 3).**
+- `core/grounding.py` (new): lifted `corpus_section_texts` + `locate_section` out of `eval/` (the
+  keystone-correct home — runtime + eval share one path); `eval/` repointed to it, all eval tests stayed
+  green. New **`cited_sections(text)`** — a format-aware prose parser that deliberately extracts
+  *fabricated* tokens (`6-1-9999`) so the guard can reject them (matching only real ones would let a
+  hallucinated cite slip through); ignores dates; handles `6-1-1704(1)` suffixes. `unresolved_citations`
+  is the guard output.
+- `api/main.py`: lifespan builds `app.state.corpus_sections`; `/analyze` checks the memo's **structured**
+  citations; `/chat` checks **parsed prose** citations **post-stream** (log-only — the reply is already
+  sent; chat can't block). Both **log + flag, never block**, and **no-op offline** (empty index) so
+  existing API tests are untouched. Log event:
+  `{event:"grounding_guard", surface:"memo"|"chat", unresolved:N, citations:[...]}`.
+- `tests/test_grounding.py` (5).
+
+**DoD status (`phase-7-observability-security.md` §2):** request tracing ✓, token/cost capture ✓ (numbers
+pending a live request — same paid constraint as Phase 6), output-grounding guard ✓ (log-only). Still
+open: defended chat surface (the injection regression set — batch 3), defended loader (batch 4), ops note
+(batch 5).
+
+**Deferred to a live run (paid):** the first real cost numbers per request (the "pennies per memo" claim,
+measured) — needs `LLM_PROVIDER=anthropic`, so it rides the same credits-refill timing as the Phase 6
+judged run.
+
+*(Batches 3–5 fill in below as built: the injection regression cases that pass; the loader-sanitization
+approach; the ops note.)*

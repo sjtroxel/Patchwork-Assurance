@@ -6,20 +6,21 @@ harness built a different path, its numbers would be worthless. No web layer, an
 the deterministic tier.
 """
 
-import re
 from dataclasses import dataclass, field
 from pathlib import Path
 
-import yaml
-
 from patchwork_assurance.config import settings
-from patchwork_assurance.core.corpus.chunk import chunk_markdown
 from patchwork_assurance.core.corpus.loader import load_corpus
 from patchwork_assurance.core.corpus.metadata import LawMetadata
 from patchwork_assurance.core.embeddings import FastEmbedEmbedder
+from patchwork_assurance.core.grounding import corpus_section_texts
 from patchwork_assurance.core.retrieval import Retriever
 from patchwork_assurance.core.scope import load_law_metadata
 from patchwork_assurance.core.vectorstore import ChromaVectorStore
+
+# The grounding primitives moved to core/ (Phase 7 §5) so the runtime guard and the eval share one
+# path. corpus_section_texts is imported above; eval call sites import locate_section directly from
+# patchwork_assurance.core.grounding.
 
 
 @dataclass
@@ -35,35 +36,6 @@ class Core:
     def sections(self) -> dict[str, set[str]]:
         """jurisdiction -> set of real section numbers (the keys of section_texts)."""
         return {jurisdiction: set(texts) for jurisdiction, texts in self.section_texts.items()}
-
-
-def corpus_section_texts(corpus_path: Path) -> dict[str, dict[str, str]]:
-    """Map each jurisdiction to {section_number: text}, using the SAME chunker the loader uses
-    (chunk_markdown) so the ground truth can't drift from what was indexed. A section that spans
-    multiple chunks is concatenated. Deterministic, no embeddings, no store access."""
-    out: dict[str, dict[str, str]] = {}
-    for meta_file in sorted(corpus_path.glob("*.meta.yaml")):
-        meta = LawMetadata(**yaml.safe_load(meta_file.read_text()))
-        md = (corpus_path / f"{meta.law_id}.md").read_text()
-        texts = out.setdefault(meta.jurisdiction, {})
-        for chunk in chunk_markdown(md):
-            if chunk.section_number:
-                prior = texts.get(chunk.section_number, "")
-                texts[chunk.section_number] = (prior + "\n" + chunk.text).strip()
-    return out
-
-
-def locate_section(citation: str, sections: dict[str, set[str]]) -> tuple[str, str] | None:
-    """Resolve the (jurisdiction, section) a citation string names, or None if it names nothing
-    real. Uses the jurisdiction named in the citation when present (so a Connecticut citation can't
-    borrow a Colorado section), and a digit-boundary match so 'Sec. 9' never matches 'Sec. 10'.
-    Generic over section formats — it escapes whatever real section strings exist."""
-    named = [j for j in sections if j.lower() in citation.lower()]
-    for jurisdiction in named or sections:
-        for section in sections[jurisdiction]:
-            if re.search(re.escape(section) + r"(?!\d)", citation):
-                return jurisdiction, section
-    return None
 
 
 def build_core() -> Core:

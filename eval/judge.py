@@ -15,8 +15,8 @@ from typing import Literal
 
 from pydantic import BaseModel
 
-from eval.harness import locate_section
 from patchwork_assurance.core.contracts import ComplianceMemo, Msg
+from patchwork_assurance.core.grounding import locate_section
 
 JUDGE_SYSTEM = (
     "You are a careful legal-evaluation judge. You are given an OBLIGATION CLAIM written by a "

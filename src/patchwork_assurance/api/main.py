@@ -12,7 +12,7 @@ from starlette.concurrency import iterate_in_threadpool, run_in_threadpool
 
 from patchwork_assurance.api.models import ChatRequest, ChatSources, HealthResponse, MemoQuota
 from patchwork_assurance.config import settings
-from patchwork_assurance.core import obs
+from patchwork_assurance.core import grounding, obs
 from patchwork_assurance.core.chat import chat_stream
 from patchwork_assurance.core.contracts import ComplianceMemo, CorpusVocab, Situation
 from patchwork_assurance.core.corpus.loader import load_corpus
@@ -40,6 +40,13 @@ async def lifespan(app: FastAPI):
     app.state.retriever = Retriever(store, embedder)
     app.state.laws = load_law_metadata(Path(settings.corpus_path))
     app.state.embedding_model = embedder.model_name
+    # Real corpus section index, for the runtime grounding guard (Phase 7): jurisdiction -> sections.
+    app.state.corpus_sections = {
+        jurisdiction: set(texts)
+        for jurisdiction, texts in grounding.corpus_section_texts(
+            Path(settings.corpus_path)
+        ).items()
+    }
     # Build the LLM clients once — for AnthropicLLM each owns an httpx connection pool, so
     # rebuilding per request would churn connections. Two-model split: chat=Haiku, memo=Sonnet.
     app.state.chat_llm = build_llm(settings, settings.chat_model)
@@ -80,6 +87,12 @@ def get_retriever(request: Request):
 
 def get_laws(request: Request):
     return request.app.state.laws
+
+
+def get_sections(request: Request):
+    # The real corpus section index for the grounding guard. Empty when the lifespan hasn't run
+    # (offline unit tests) — the guard then no-ops rather than false-flag.
+    return getattr(request.app.state, "corpus_sections", {})
 
 
 def get_chat_llm(request: Request):
@@ -190,10 +203,21 @@ def analyze(
     retriever=Depends(get_retriever),
     laws=Depends(get_laws),
     llm=Depends(get_memo_llm),
+    sections=Depends(get_sections),
     _rl: None = Depends(memo_rate_limit),
 ) -> ComplianceMemo:
     scope = applicable_laws(situation, laws)
-    return generate_memo(situation, scope, retriever, llm, laws)
+    memo = generate_memo(situation, scope, retriever, llm, laws)
+    # Grounding guard: every section the memo cites must be a real corpus section. A hijacked memo
+    # often cites a fabricated one. Log + flag (not block) — citation identifiers, not user content.
+    if sections:
+        cited = [ob.citation for finding in memo.per_law for ob in finding.obligations]
+        unresolved = grounding.unresolved_citations(cited, sections)
+        if unresolved:
+            obs.log_event(
+                "grounding_guard", surface="memo", unresolved=len(unresolved), citations=unresolved
+            )
+    return memo
 
 
 @app.post("/chat")
@@ -202,6 +226,7 @@ async def chat_endpoint(
     retriever=Depends(get_retriever),
     llm=Depends(get_chat_llm),
     laws=Depends(get_laws),
+    sections=Depends(get_sections),
 ):
     # chat_stream does the (blocking, CPU-bound) embed + retrieve up front, so run it in the
     # threadpool to keep the event loop free. Errors here are raised BEFORE the response starts,
@@ -215,12 +240,28 @@ async def chat_endpoint(
         # Once streaming starts the status is already 200, so a mid-stream failure can't be an
         # HTTP error code — surface it as a terminal SSE 'error' event so the client knows the
         # answer is incomplete (instead of the stream just going silent).
+        buffer: list[str] = []
         try:
             async for token in iterate_in_threadpool(token_iter):
+                buffer.append(token)
                 yield {"event": "token", "data": token}
         except LLMError as exc:
             yield {"event": "error", "data": json.dumps({"detail": f"Upstream LLM error: {exc}"})}
             return
+        # Grounding guard (post-stream, log-only — the reply is already sent, so chat can't block).
+        # Parse section citations from the reply PROSE (the citations list is retrieval-derived and
+        # always real, so it can't reveal a hijack); flag any that don't resolve to a real section.
+        if sections:
+            unresolved = grounding.unresolved_citations(
+                grounding.cited_sections("".join(buffer)), sections
+            )
+            if unresolved:
+                obs.log_event(
+                    "grounding_guard",
+                    surface="chat",
+                    unresolved=len(unresolved),
+                    citations=unresolved,
+                )
         sources = ChatSources(citations=citations, disclaimer=DISCLAIMER)
         yield {"event": "sources", "data": sources.model_dump_json()}
 
