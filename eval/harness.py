@@ -14,6 +14,7 @@ from patchwork_assurance.core.corpus.loader import load_corpus
 from patchwork_assurance.core.corpus.metadata import LawMetadata
 from patchwork_assurance.core.embeddings import FastEmbedEmbedder
 from patchwork_assurance.core.grounding import corpus_section_texts
+from patchwork_assurance.core.lexical import build_lexical_index
 from patchwork_assurance.core.retrieval import Retriever
 from patchwork_assurance.core.scope import load_law_metadata
 from patchwork_assurance.core.vectorstore import ChromaVectorStore
@@ -47,8 +48,9 @@ def build_core() -> Core:
     if store.count() == 0:
         load_corpus(Path(settings.corpus_path), store, embedder)
     corpus_path = Path(settings.corpus_path)
+    lexical = build_lexical_index(corpus_path) if settings.enable_lexical else None
     return Core(
-        retriever=Retriever(store, embedder),
+        retriever=Retriever(store, embedder, lexical),
         laws=load_law_metadata(corpus_path),
         section_texts=corpus_section_texts(corpus_path),
     )

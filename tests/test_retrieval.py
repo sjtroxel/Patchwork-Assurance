@@ -3,6 +3,7 @@
 import pytest
 
 from patchwork_assurance.core.contracts import RetrievedChunk
+from patchwork_assurance.core.lexical import LexicalIndex
 from patchwork_assurance.core.retrieval import RetrievalFilters, Retriever
 
 # ---- stub helpers ----
@@ -40,6 +41,7 @@ class _StubStore:
                         "section_heading": c["section_heading"],
                         "jurisdiction": c["jurisdiction"],
                         "law_id": c["law_id"],
+                        "chunk_index": c.get("chunk_index", 0),
                     }
                     for c in chosen
                 ]
@@ -164,3 +166,61 @@ def test_no_stamped_model_skips_guard():
     retriever = Retriever(null_store, _StubEmbedder(model_name="anything"))
     chunks = retriever.retrieve("test", k=1)
     assert len(chunks) == 1
+
+
+# ---- query() dispatch (Phase 8) ----
+
+
+def test_query_filtered_matches_retrieve():
+    retriever = Retriever(_StubStore(SAMPLE_CHUNKS), _StubEmbedder())
+    f = RetrievalFilters(jurisdiction="CO")
+    assert retriever.query("notice", f, k=2, mode="filtered") == retriever.retrieve(
+        "notice", f, k=2
+    )
+
+
+def test_query_semantic_ignores_filters():
+    store = _StubStore(SAMPLE_CHUNKS)
+    retriever = Retriever(store, _StubEmbedder())
+    retriever.query("notice", RetrievalFilters(jurisdiction="CO"), k=2, mode="semantic")
+    assert store._last_where is None  # semantic drops the filter
+
+
+def test_query_hybrid_without_lexical_falls_back_to_filtered():
+    retriever = Retriever(_StubStore(SAMPLE_CHUNKS), _StubEmbedder())  # no lexical index
+    f = RetrievalFilters(jurisdiction="CO")
+    assert retriever.query("notice", f, k=2, mode="hybrid") == retriever.retrieve("notice", f, k=2)
+
+
+def test_query_hybrid_fuses_and_dedupes_with_lexical():
+    # A lexical chunk sharing the semantic CO chunk's identity (co-sb-26-189:0) should be boosted by
+    # appearing in both rankings; an unrelated lexical chunk with no shared term contributes nothing.
+    lex = LexicalIndex(
+        [
+            RetrievedChunk(
+                text="Deployers must provide notice to consumers.",
+                citation="c",
+                section_number="6-1-1703",
+                section_heading="h",
+                jurisdiction="CO",
+                law_id="co-sb-26-189",
+                score=0.0,
+                chunk_index=0,
+            ),
+            RetrievedChunk(
+                text="Unrelated content about periodic audits.",
+                citation="c",
+                section_number="6-1-1709",
+                section_heading="h",
+                jurisdiction="CO",
+                law_id="co-sb-26-189",
+                score=0.0,
+                chunk_index=5,
+            ),
+        ]
+    )
+    retriever = Retriever(_StubStore(SAMPLE_CHUNKS), _StubEmbedder(), lex)
+    hits = retriever.query("notice", RetrievalFilters(jurisdiction="CO"), k=2, mode="hybrid")
+    ids = [h.chunk_id for h in hits]
+    assert ids[0] == "co-sb-26-189:0"  # in both rankings -> top after fusion
+    assert len(ids) == len(set(ids)) == 2  # deduped; the no-term audit chunk didn't enter

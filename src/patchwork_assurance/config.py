@@ -18,6 +18,12 @@ class Settings(BaseSettings):
     anthropic_api_key: str | None = None  # read from env ANTHROPIC_API_KEY; never commit
     top_k: int = 5
     max_tokens: int = 16000
+    # Retrieval strategy (Phase 8). The eval sweep picks the production default; `filtered` is the
+    # conservative placeholder (== Phase 1/2 behavior) until the scorecard justifies hybrid/routed.
+    # `routed` and the agentic router arrive in Phase 8 batch 4. enable_lexical builds the BM25 index.
+    retrieval_mode: str = "filtered"  # semantic | filtered | hybrid | routed
+    router: str = "rules"  # rules | agentic
+    enable_lexical: bool = True
     memo_daily_limit_per_ip: int = 2  # Sonnet cost cap; 0 = unlimited
     cors_allow_origins: list[str] = ["http://localhost:8501"]
     # Eval LLM-as-judge (Phase 6 Tier B). Judge model must differ from the judged model: the memo

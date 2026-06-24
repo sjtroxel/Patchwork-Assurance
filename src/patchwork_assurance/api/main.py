@@ -18,6 +18,7 @@ from patchwork_assurance.core.contracts import ComplianceMemo, CorpusVocab, Situ
 from patchwork_assurance.core.corpus.loader import load_corpus
 from patchwork_assurance.core.embeddings import FastEmbedEmbedder
 from patchwork_assurance.core.health import core_status
+from patchwork_assurance.core.lexical import build_lexical_index
 from patchwork_assurance.core.llm import LLMError, build_llm
 from patchwork_assurance.core.memo import generate_memo
 from patchwork_assurance.core.meta import corpus_vocab
@@ -37,7 +38,10 @@ async def lifespan(app: FastAPI):
     if store.count() == 0:
         n = load_corpus(Path(settings.corpus_path), store, embedder)
         print(f"[startup] built corpus index: {n} chunks ({store.count()} total).")
-    app.state.retriever = Retriever(store, embedder)
+    # Lexical (BM25) index over the same corpus chunks, for hybrid retrieval (Phase 8). Built from the
+    # committed corpus, in-memory, free. `query()` fuses it with semantic when mode="hybrid".
+    lexical = build_lexical_index(Path(settings.corpus_path)) if settings.enable_lexical else None
+    app.state.retriever = Retriever(store, embedder, lexical)
     app.state.laws = load_law_metadata(Path(settings.corpus_path))
     app.state.embedding_model = embedder.model_name
     # Real corpus section index, for the runtime grounding guard (Phase 7): jurisdiction -> sections.

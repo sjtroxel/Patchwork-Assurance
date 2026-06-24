@@ -82,6 +82,24 @@ def run_judged(core, cases) -> None:
         )
 
 
+def _retrieval(core, cases, k: int, mode: str) -> tuple[float, int, list[str]]:
+    """Mean recall@k for one retrieval mode (free, deterministic), plus per-case lines."""
+    recalls: list[float] = []
+    lines: list[str] = []
+    for case in cases:
+        outcome = score_retrieval(case, core, k, mode)
+        if outcome is None:
+            continue
+        recalls.append(outcome.recall)
+        mark = "ok  " if outcome.recall == 1.0 else "MISS"
+        line = f"    {mark} {case.id}: {len(outcome.hit)}/{len(outcome.want)}"
+        if outcome.missed:
+            line += f"   missing {outcome.missed}"
+        lines.append(line)
+    mean = sum(recalls) / len(recalls) if recalls else 0.0
+    return mean, len(recalls), lines
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description="Patchwork eval — deterministic tier")
     parser.add_argument("--strict", action="store_true", help="exit nonzero on any scope miss")
@@ -91,16 +109,22 @@ def main() -> int:
     parser.add_argument(
         "--k", type=int, default=MEMO_RETRIEVAL_K, help="retrieval top-k (defaults to the memo's k)"
     )
+    parser.add_argument(
+        "--mode", default=settings.retrieval_mode, help="retrieval mode: semantic|filtered|hybrid"
+    )
+    parser.add_argument(
+        "--sweep",
+        action="store_true",
+        help="compare semantic|filtered|hybrid recall (free, deterministic — the Phase 8 ladder)",
+    )
     args = parser.parse_args()
 
     core = build_core()
     cases = load_gold()
 
+    # Scope accuracy is retrieval-mode-independent — compute it once.
     scope_correct = scope_total = 0
     scope_failures: list[str] = []
-    recalls: list[float] = []
-    retrieval_lines: list[str] = []
-
     for case in cases:
         scope = score_scope(case, core)
         scope_correct += scope.correct
@@ -111,18 +135,7 @@ def main() -> int:
                     scope_failures.append(
                         f"    {case.id}: {law_id} expected {want!r}, got {scope.got.get(law_id)!r}"
                     )
-
-        retrieval = score_retrieval(case, core, args.k)
-        if retrieval is not None:
-            recalls.append(retrieval.recall)
-            mark = "ok  " if retrieval.recall == 1.0 else "MISS"
-            line = f"    {mark} {case.id}: {len(retrieval.hit)}/{len(retrieval.want)}"
-            if retrieval.missed:
-                line += f"   missing {retrieval.missed}"
-            retrieval_lines.append(line)
-
     scope_acc = scope_correct / scope_total if scope_total else 0.0
-    mean_recall = sum(recalls) / len(recalls) if recalls else 0.0
 
     print("=" * 64)
     print("PATCHWORK EVAL  —  deterministic tier (free, offline)")
@@ -131,10 +144,21 @@ def main() -> int:
     if scope_failures:
         print("  scope failures:")
         print("\n".join(scope_failures))
-    print(
-        f"\n  Retrieval recall@{args.k}:  mean {mean_recall:.1%} over {len(recalls)} in-scope cases"
-    )
-    print("\n".join(retrieval_lines))
+
+    modes = ["semantic", "filtered", "hybrid"] if args.sweep else [args.mode]
+    mode_recalls: dict[str, float] = {}
+    cases_scored = 0
+    for mode in modes:
+        mean, n, lines = _retrieval(core, cases, args.k, mode)
+        mode_recalls[mode] = mean
+        cases_scored = n
+        print(f"\n  Retrieval recall@{args.k} [{mode}]:  mean {mean:.1%} over {n} in-scope cases")
+        if not args.sweep:
+            print("\n".join(lines))
+    if args.sweep:
+        print(f"\n  Sweep comparison (mean recall@{args.k}):")
+        for mode in modes:
+            print(f"    {mode:9} {mode_recalls[mode]:.1%}")
     print()
 
     RESULTS_DIR.mkdir(exist_ok=True)
@@ -149,8 +173,11 @@ def main() -> int:
                 "scope_correct": scope_correct,
                 "scope_total": scope_total,
                 "scope_failures": scope_failures,
-                "retrieval_recall_at_k": mean_recall,
-                "retrieval_cases_scored": len(recalls),
+                "retrieval_modes": mode_recalls,
+                "retrieval_recall_at_k": mode_recalls.get(
+                    args.mode, next(iter(mode_recalls.values()))
+                ),
+                "retrieval_cases_scored": cases_scored,
             },
             indent=2,
         )

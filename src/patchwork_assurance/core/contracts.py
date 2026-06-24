@@ -16,6 +16,13 @@ class RetrievedChunk(BaseModel):
     jurisdiction: str
     law_id: str
     score: float
+    chunk_index: int = 0  # position within the law; with law_id forms the stable chunk identity
+
+    @property
+    def chunk_id(self) -> str:
+        """Stable chunk identity ({law_id}:{chunk_index}, the vector-store ID, rag.md). The key that
+        lets lexical and semantic results for the same chunk fuse exactly (Phase 8 §7)."""
+        return f"{self.law_id}:{self.chunk_index}"
 
     @property
     def pinpoint(self) -> str:

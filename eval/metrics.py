@@ -49,10 +49,13 @@ class RetrievalOutcome:
     recall: float
 
 
-def score_retrieval(case: GoldCase, core: Core, k: int) -> RetrievalOutcome | None:
+def score_retrieval(
+    case: GoldCase, core: Core, k: int, mode: str = "filtered"
+) -> RetrievalOutcome | None:
     """Retrieve per in-scope jurisdiction (mirroring memo.generate_memo's filtered retrieve) and
-    check which gold grounding sections were surfaced in the top-k. Returns None for out-of-scope
-    cases (no grounding to score)."""
+    check which gold grounding sections were surfaced in the top-k. Routes through the Phase 8
+    query() entry point so the sweep measures the configured `mode` (semantic | filtered | hybrid).
+    Returns None for out-of-scope cases (no grounding to score)."""
     want = case.expect.grounding_sections
     if not want:
         return None
@@ -60,8 +63,8 @@ def score_retrieval(case: GoldCase, core: Core, k: int) -> RetrievalOutcome | No
     retrieved: set[str] = set()
     for result in applicable_laws(case.situation, core.laws):
         if result.in_scope in _IN_SCOPE:
-            chunks = core.retriever.retrieve(
-                query, RetrievalFilters(jurisdiction=result.jurisdiction), k=k
+            chunks = core.retriever.query(
+                query, RetrievalFilters(jurisdiction=result.jurisdiction), k=k, mode=mode
             )
             retrieved |= {c.section_number for c in chunks}
     hit = [s for s in want if s in retrieved]

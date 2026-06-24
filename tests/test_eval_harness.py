@@ -54,6 +54,11 @@ class _FakeRetriever:
         jurisdiction = filters.jurisdiction if filters else None
         return [_Chunk(s) for s in self._by.get(jurisdiction, [])[:k]]
 
+    def query(self, query, filters=None, k=5, mode="filtered"):
+        # The metric routes through query() (Phase 8); the fake has no lexical index, so filtered
+        # and hybrid both reduce to the canned filtered retrieve.
+        return self.retrieve(query, filters, k)
+
 
 def _case(case_id: str):
     return next(c for c in load_gold() if c.id == case_id)
