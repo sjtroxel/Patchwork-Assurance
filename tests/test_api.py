@@ -12,6 +12,7 @@ from patchwork_assurance.api.main import (
     get_memo_llm,
     get_retriever,
 )
+from patchwork_assurance.config import settings
 from patchwork_assurance.core.contracts import ComplianceMemo
 from patchwork_assurance.core.llm import LLMError, StubLLM
 
@@ -90,8 +91,10 @@ def test_health_reports_both_models():
     body = r.json()
     assert body["api"] == "ok"
     assert isinstance(body["core"]["corpus_size"], int)
-    assert body["chat_model"] == "claude-haiku-4-5"
-    assert body["memo_model"] == "claude-sonnet-4-6"
+    # Assert the endpoint echoes the configured models (whatever provider/.env is active) rather than
+    # hardcoding Claude ids — so a local run on OpenRouter free models stays green too.
+    assert body["chat_model"] == settings.chat_model
+    assert body["memo_model"] == settings.memo_model
 
 
 # ---- /meta ----

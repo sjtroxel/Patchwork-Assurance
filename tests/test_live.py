@@ -90,12 +90,16 @@ class _MiniLive(BaseModel):
 
 @pytest.fixture
 def openrouter_llm():
-    if not os.environ.get("OPENROUTER_API_KEY"):
-        pytest.skip("OPENROUTER_API_KEY not set")
+    # Read the key the way the app does — from .env via Settings — so you don't have to inline it
+    # (an inline OPENROUTER_API_KEY=... on the command line OVERRIDES .env; pasting a placeholder there
+    # silently shadows your real key). The model id is still passed inline since it's not a config field.
+    s = Settings(llm_provider="openrouter")
+    if not s.openrouter_api_key:
+        pytest.skip("OPENROUTER_API_KEY not set (in .env or env)")
     model = os.environ.get("OPENROUTER_TEST_MODEL")
     if not model:
         pytest.skip("set OPENROUTER_TEST_MODEL to a current model id from openrouter.ai/models")
-    return build_llm(Settings(llm_provider="openrouter"), model)
+    return build_llm(s, model)
 
 
 def test_live_openrouter_complete(openrouter_llm):

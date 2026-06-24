@@ -21,7 +21,7 @@ from eval.loader import load_gold
 from eval.metrics import score_citation_exists, score_coverage, score_retrieval, score_scope
 from eval.safety import confirm_spend
 from patchwork_assurance.config import settings
-from patchwork_assurance.core.llm import build_llm
+from patchwork_assurance.core.llm import LLMError, build_llm
 from patchwork_assurance.core.memo import MEMO_RETRIEVAL_K, generate_memo
 from patchwork_assurance.core.scope import applicable_laws
 
@@ -32,12 +32,24 @@ _IN_SCOPE = ("yes", "uncertain")
 _EST_USD_PER_JUDGED_CASE = 0.10
 
 
-def run_judged(core, cases) -> None:
-    """Tier B: generate a real memo per in-scope case (Sonnet) and judge it (Opus). Paid."""
+def _is_free_run() -> bool:
+    """A provably-$0 judged run: OpenRouter with only `:free` model ids. The spend gate exists to stop
+    accidental PAID spend (the Phase 6 incident); free models can't incur cost, so they don't need the
+    attended/typed confirmation. A non-`:free` OpenRouter id or any Anthropic model still goes through
+    the full confirm_spend chokepoint. Added 2026-06-24 when OpenRouter free models came online."""
+    return settings.llm_provider == "openrouter" and all(
+        m.endswith(":free") for m in (settings.memo_model, settings.judge_model)
+    )
+
+
+def run_judged(core, cases, limit: int | None = None) -> None:
+    """Tier B: generate a real memo per in-scope case and judge it. Paid on Anthropic / non-free
+    OpenRouter; $0 on OpenRouter `:free` models. `limit` caps the cases run — useful on a free model
+    whose shared upstream rate-limits a full 14-case burst (run a few at a time)."""
     if settings.llm_provider == "stub":
         print(
-            "\n  [judged tier skipped] Set LLM_PROVIDER=anthropic + ANTHROPIC_API_KEY to run it.\n"
-            "  It generates real memos (Sonnet) and judges them (Opus) — it spends tokens.\n"
+            "\n  [judged tier skipped] Set LLM_PROVIDER=anthropic|openrouter to run it.\n"
+            "  It generates real memos (memo_model) and judges them (judge_model).\n"
         )
         return
 
@@ -46,11 +58,21 @@ def run_judged(core, cases) -> None:
         for case in cases
         if any(s.in_scope in _IN_SCOPE for s in applicable_laws(case.situation, core.laws))
     ]
+    if limit is not None:
+        in_scope_cases = in_scope_cases[:limit]
 
-    # All spending goes through one chokepoint (eval/safety.py): hard cap, then no-unattended,
-    # then typed confirmation with a cost estimate. The estimate is rough — one Sonnet memo plus a
-    # few Opus judge calls per case — and exists to make the spend visible, not to be exact.
-    if not confirm_spend(
+    # Spending goes through one chokepoint (eval/safety.py): hard cap, no-unattended, typed confirm.
+    # A provably-free run ($0 OpenRouter :free models) skips the attended/typed layers — there's no
+    # money to protect — but the hard cap still applies as a runaway circuit breaker.
+    if _is_free_run():
+        if len(in_scope_cases) > settings.eval_max_judged_cases:
+            print("\n  [blocked] exceeds the hard cap even for a free run.\n")
+            return
+        print(
+            f"\n  [free run] OpenRouter :free models (memo={settings.memo_model}, "
+            f"judge={settings.judge_model}) — $0, skipping the spend confirmation.\n"
+        )
+    elif not confirm_spend(
         description="judged eval tier (generate memos + judge them)",
         units=len(in_scope_cases),
         cap=settings.eval_max_judged_cases,
@@ -64,12 +86,20 @@ def run_judged(core, cases) -> None:
     print("\n" + "=" * 64)
     print(f"  JUDGED TIER (paid)  —  memo={settings.memo_model}  judge={settings.judge_model}")
     print("=" * 64)
+    errors = 0
     for case in in_scope_cases:
-        scope = applicable_laws(case.situation, core.laws)
-        memo = generate_memo(case.situation, scope, core.retriever, memo_llm, core.laws)
-        cite = score_citation_exists(memo, core.sections, case.id)
-        grounded = score_groundedness(memo, core.section_texts, judge_llm, case.id)
-        coverage = score_coverage(memo, case.expect.obligations, case_id=case.id)
+        # Tolerate a per-case LLM failure (e.g. a transient free-tier 429) — report it and keep going
+        # rather than crashing the whole run on one bad call.
+        try:
+            scope = applicable_laws(case.situation, core.laws)
+            memo = generate_memo(case.situation, scope, core.retriever, memo_llm, core.laws)
+            cite = score_citation_exists(memo, core.sections, case.id)
+            grounded = score_groundedness(memo, core.section_texts, judge_llm, case.id)
+            coverage = score_coverage(memo, case.expect.obligations, case_id=case.id)
+        except LLMError as e:
+            errors += 1
+            print(f"\n  {case.id}\n    [skipped] LLM error: {str(e)[:160]}")
+            continue
         print(f"\n  {case.id}")
         print(
             f"    citations real: {cite.valid}/{cite.total}"
@@ -80,6 +110,8 @@ def run_judged(core, cases) -> None:
             f"    coverage:       {coverage.covered}/{coverage.total}"
             + (f"  missed {coverage.missed}" if coverage.missed else "")
         )
+    if errors:
+        print(f"\n  ({errors}/{len(in_scope_cases)} case(s) skipped on LLM errors)")
 
 
 def _retrieval(core, cases, k: int, mode: str) -> tuple[float, int, list[str]]:
@@ -116,6 +148,12 @@ def main() -> int:
         "--sweep",
         action="store_true",
         help="compare semantic|filtered|hybrid recall (free, deterministic — the Phase 8 ladder)",
+    )
+    parser.add_argument(
+        "--limit",
+        type=int,
+        default=None,
+        help="cap judged-tier cases (helps under a free model's upstream rate limit)",
     )
     args = parser.parse_args()
 
@@ -185,7 +223,7 @@ def main() -> int:
     print(f"  wrote {out.relative_to(Path.cwd())}\n")
 
     if args.judge or settings.eval_use_judge:
-        run_judged(core, cases)
+        run_judged(core, cases, limit=args.limit)
 
     if args.strict and scope_correct < scope_total:
         return 1

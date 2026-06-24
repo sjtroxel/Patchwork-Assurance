@@ -367,6 +367,19 @@ judge groundedness (Opus), score citation-exists + coverage on real output. That
 numbers** and settles the **Haiku-vs-Sonnet** generation decision (plan §8) — the only two DoD items left
 at `[-]` in `phase-6-evals.md` §2. Record those numbers + the measured cost back here when it runs.
 
+**2026-06-24 — attempted on OpenRouter FREE models ($0), judged numbers still pending.** With the Phase 8
+OpenRouter provider online, ran `eval.run --judge` on free models (memo=`openai/gpt-oss-120b:free`,
+judge=`google/gemma-4-31b-it:free`) to fill this for $0. What this *validated*: the provider path end to
+end, a free-run spend gate (`_is_free_run` skips the typed confirmation only when provider=openrouter and
+all models are `:free`; the hard cap still applies), a resilient per-case judged loop (`--limit`; a
+per-case `LLMError` is reported and skipped, not fatal), and that `gpt-oss-120b:free` produced a
+schema-valid `ComplianceMemo` at least once. What it did **not** produce: trustworthy judged numbers — the
+shared free tier rate-limits a multi-case burst (HTTP 429), and the weak models intermittently emit
+malformed JSON (stray control chars — now stripped) or echo the schema instead of a verdict. **So the two
+`[-]` items stay `[-]`:** the *plumbing* is validated for $0, but a clean judged *measurement* still needs
+either a less-throttled free run (a few cases at a time after a cooldown) or a stronger model. See
+[[project-openrouter-judged-tier-attempt-2026-06-24]].
+
 ---
 
 > **Reminder for whoever runs the paid tier:** `make eval` is free and is the default. `make eval-judge`

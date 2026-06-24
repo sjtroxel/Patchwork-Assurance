@@ -161,6 +161,9 @@ def _strip_json_fence(s: str) -> str:
     if s.startswith("```"):
         s = re.sub(r"^```\w*\s*", "", s)
         s = re.sub(r"\s*```$", "", s)
+    # Weak/free models sometimes emit stray control chars inside the JSON, which break strict parsing.
+    # Drop them (keep \t \n \r, which JSON allows in formatting).
+    s = re.sub(r"[\x00-\x08\x0b\x0c\x0e-\x1f]", "", s)
     return s.strip()
 
 
