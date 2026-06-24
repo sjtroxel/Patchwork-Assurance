@@ -2,8 +2,10 @@ from pathlib import Path
 
 import yaml
 
+from patchwork_assurance.core import obs
 from patchwork_assurance.core.corpus.chunk import Chunk, chunk_markdown
 from patchwork_assurance.core.corpus.metadata import LawMetadata
+from patchwork_assurance.core.corpus.sanitize import scan_for_injection
 
 
 def _flatten(meta: LawMetadata, chunk: Chunk) -> dict:
@@ -32,6 +34,22 @@ def load_corpus(corpus_path: Path, store, embedder) -> int:
         meta = LawMetadata(**yaml.safe_load(meta_file.read_text()))
         md_file = corpus_path / f"{meta.law_id}.md"
         chunks = chunk_markdown(md_file.read_text())
+
+        # Indirect-injection defense (Phase 7 §4): flag instruction-like content for human review.
+        # Flag, don't block — v1 corpus is trusted official statutes; this is load-bearing for the
+        # Phase 9 auto-write agent, whose proposed writes a human reviews before they're indexed.
+        # Flagged phrases are corpus-document text (public statute / agent-proposed), not user data.
+        for c in chunks:
+            flagged = scan_for_injection(c.text)
+            if flagged:
+                obs.log_event(
+                    "corpus_injection_flag",
+                    law_id=meta.law_id,
+                    section=c.section_number,
+                    chunk_index=c.chunk_index,
+                    n_flags=len(flagged),
+                    phrases=flagged,
+                )
 
         ids = [f"{meta.law_id}:{c.chunk_index}" for c in chunks]
         documents = [c.text for c in chunks]

@@ -25,18 +25,38 @@ crucially **before** Phase 9's agent starts auto-writing to the corpus.
 
 ## 2. Definition of done
 
-- [ ] Every `/analyze` and `/chat` request is **traced**: a request ID flows UI→API→`core`→retrieval→LLM,
+- [x] Every `/analyze` and `/chat` request is **traced**: a request ID flows UI→API→`core`→retrieval→LLM,
       with per-stage latency.
-- [ ] **Token + cost** captured per LLM call from the Anthropic `usage` object (input/output/cache
+      *Done — `request_id` ContextVar + API middleware (X-Request-ID in/out); Seam-4 `llm_call` logs +
+      `retrieve`-stage timing. (Threadpool propagation of the id is a live-box check — IMPLEMENTATION §0.)*
+- [x] **Token + cost** captured per LLM call from the Anthropic `usage` object (input/output/cache
       tokens → estimated cost), logged and summable.
-- [ ] A defended **chat surface**: the not-legal-advice posture and grounding hold under prompt-injection
+      *Done — `obs.log_llm_call` records the four token fields + `est_cost_usd` (`core/pricing.py`,
+      additive-tier formula) + `cost_summary` rolling total. Real numbers ride a live (paid) request.*
+- [x] A defended **chat surface**: the not-legal-advice posture and grounding hold under prompt-injection
       attempts (override, system-prompt exfiltration, "ignore the disclaimer"); a regression set of
       injection cases passes.
-- [ ] A defended **corpus loader**: retrieved text is treated strictly as data, never instructions;
+      *Done — instruction hierarchy + calibrated meta-request refusal + excerpts-as-data in `CHAT_SYSTEM`;
+      `tests/test_injection.py` (offline locks the chrome; live tests behind the `live` marker prove model
+      resistance + a false-positive guard).*
+- [x] A defended **corpus loader**: retrieved text is treated strictly as data, never instructions;
       provenance is validated; a poisoned-document test case does not hijack generation.
-- [ ] An **output-grounding guard** on responses (reusing Phase 6's citation-exists/groundedness check)
+      *Done — `core/corpus/sanitize.py` flags injection idioms at ingest (`corpus_injection_flag`),
+      flag-not-block (the human gate is the control); `source_url` already required by `LawMetadata`;
+      `tests/test_sanitize.py` (real corpus clean, poison flagged).*
+- [x] An **output-grounding guard** on responses (reusing Phase 6's citation-exists/groundedness check)
       that flags answers not supported by real corpus text.
-- [ ] A short ops note: how to read the traces and the cost log.
+      *Done (batch 2) — `core/grounding.py` citation guard on `/analyze` (structured cites) and `/chat`
+      (parsed prose, post-stream); log + flag. Per-request groundedness-via-judge deliberately NOT used
+      (it would add an Opus call per turn); citation-exists is the free, always-on guard.*
+- [x] A short ops note: how to read the traces and the cost log.
+      *Done — `docs/OBSERVABILITY.md`.*
+
+> **Phase 7 status (2026-06-23): COMPLETE, CI-green (141 tests).** All six DoD items closed; the two
+> injection surfaces are defended and tested. Deferred to a live run (paid, not code gaps): the first real
+> per-request cost *numbers*, the live injection-resistance tests (`pytest -m live`), and the
+> threadpool-`request_id` propagation check — all ride the same credits-refill timing as the Phase 6
+> judged run.
 
 Done = you can see cost/latency per request, and the two injection surfaces are defended and tested.
 

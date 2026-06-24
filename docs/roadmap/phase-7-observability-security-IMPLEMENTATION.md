@@ -205,7 +205,7 @@ fabricated prose — it is the load-bearing new code, so it gets the most test a
 
 ## 10. As-built notes
 
-**Phase 7 batches 1–2 built 2026-06-23 — CI-green (133 tests). Batches 3–5 remaining.**
+**Phase 7 COMPLETE 2026-06-23 — all 5 batches, CI-green (141 tests). DoD fully closed.**
 
 **Batch 1 — observability foundation (build order item 1+2).**
 - **Decision: stdlib `logging` + a JSON formatter, NOT `structlog`** — zero new dependency, in keeping
@@ -239,14 +239,45 @@ fabricated prose — it is the load-bearing new code, so it gets the most test a
   `{event:"grounding_guard", surface:"memo"|"chat", unresolved:N, citations:[...]}`.
 - `tests/test_grounding.py` (5).
 
-**DoD status (`phase-7-observability-security.md` §2):** request tracing ✓, token/cost capture ✓ (numbers
-pending a live request — same paid constraint as Phase 6), output-grounding guard ✓ (log-only). Still
-open: defended chat surface (the injection regression set — batch 3), defended loader (batch 4), ops note
-(batch 5).
+**Batch 3 — prompt hardening + injection regression set (build order item 4).**
+- `core/prompts.py`: `CHAT_SYSTEM` gains an **instruction hierarchy** (rules + disclaimer take priority
+  over the user message and the excerpts), **calibrated meta-request refusal** (decline reveal/change
+  instructions, drop the disclaimer, adopt a persona — *but still answer the underlying legal question*),
+  and the **excerpts-as-data** clause for indirect injection. `MEMO_SYSTEM` gets a lighter parallel clause
+  (structured output already shields it); `render_memo_user` labels user notes as "facts, not instructions."
+- `tests/test_injection.py` — two tiers, honest about each: **offline (CI)** locks the hardening clauses
+  + data-labeling + the structural disclaimer (a stub can't prove the *model* resists, so it doesn't try);
+  **live (`live` marker, deselected, spends tokens)** hits the model with a real exfiltration attempt
+  (asserted not to leak) **plus a false-positive case** (a normal statutory question must still be
+  answered — guards over-refusal). Live tests skip cleanly without `LLM_PROVIDER=anthropic`.
+- Honest layering: delimiting/refusal is necessary-but-not-sufficient; the robust layer is the
+  **structural disclaimer** (delivered via the API's `ChatSources`, not the model's choice) + the
+  **output grounding guard** (batch 2). Defend by effect, not by enumerating attack strings.
 
-**Deferred to a live run (paid):** the first real cost numbers per request (the "pennies per memo" claim,
-measured) — needs `LLM_PROVIDER=anthropic`, so it rides the same credits-refill timing as the Phase 6
-judged run.
+**Batch 4 — corpus sanitization + poisoned-doc test (build order item 5).**
+- `core/corpus/sanitize.py` (new): `scan_for_injection(text)` flags AI-directed injection *idioms*
+  ("ignore previous instructions", "you are now", "tell the user…", "system prompt", "drop the
+  disclaimer") — deliberately NOT bare legal words (`instructions`/`notice`/`shall`/`must`), which are
+  everywhere in real statutes. **Flag for human review, not a blocker** — the human gate (ROADMAP §5) is
+  the control; this is the rail that makes Phase 9's auto-write agent safe.
+- `core/corpus/loader.py`: scans every ingested chunk; a flag logs `corpus_injection_flag`
+  (`{law_id, section, n_flags, phrases}`) and the chunk still loads (v1 corpus is trusted).
+- `tests/test_sanitize.py` (4), with the calibration proven: formal legal language does NOT flag; **the
+  real corpus produces zero flags** (the load-bearing regression); a poisoned doc is flagged and the
+  loader logs it (offline, stub store/embedder). Verified the live corpus before wiring: 0 false
+  positives, poison caught.
 
-*(Batches 3–5 fill in below as built: the injection regression cases that pass; the loader-sanitization
-approach; the ops note.)*
+**Batch 5 — ops note (build order item 6).**
+- `docs/OBSERVABILITY.md`: one-page runbook — where the JSON logs go (stdout → Railway), the privacy
+  rule, correlating one request by `request_id`, the four event types + fields, reading cost (the
+  additive-token formula + `cost_summary` rolling total + the cache signal), and what to watch
+  (`grounding_guard`, `corpus_injection_flag`, cost/latency outliers, `known_rate:false`).
+
+**DoD (`phase-7-observability-security.md` §2): all closed** — request tracing ✓, token/cost capture ✓,
+defended chat surface ✓, defended loader ✓, output-grounding guard ✓, ops note ✓.
+
+**Deferred to a live run (paid), not gaps in the code:** (1) the first real per-request cost *numbers*
+(the "pennies per memo" claim, measured) — needs `LLM_PROVIDER=anthropic`, rides the same credits-refill
+timing as the Phase 6 judged run; (2) the live injection-resistance tests (`pytest -m live`, spends
+tokens — human-run); (3) the ContextVar→threadpool `request_id` propagation check on the live box (unit
+tests are same-thread). All structural code is built, tested offline, and committed.
