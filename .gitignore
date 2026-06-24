@@ -10,6 +10,8 @@ private/
 # Secrets — NEVER commit API keys (Anthropic/OpenAI/etc.)
 .env
 .env.*
+# keep the key-less template tracked (it documents the config)
+!.env.example
 *.key
 
 # Python

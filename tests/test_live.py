@@ -8,12 +8,21 @@ so CI and a keyless `make test` never run these. Run manually with a key:
 These are the ONLY tests that exercise the AnthropicLLM path end-to-end (does Haiku return a
 schema-valid ComplianceMemo via messages.parse; does streaming/chat round-trip). They also require
 the Phase 1 Chroma store at .chroma to be populated.
+
+OpenRouter (Phase 8 interlude) has its own live smoke tests below — they verify a real free model
+through the OpenRouterLLM path for $0. Run them with your key + a current free model id:
+
+    OPENROUTER_API_KEY=sk-or-... OPENROUTER_TEST_MODEL=<a :free id from openrouter.ai/models> pytest -m live
+
+(The model id is required, not hardcoded, because the free-model lineup churns and which ones support
+JSON-object / structured output varies — the structured test tells you whether the one you picked does.)
 """
 
 import os
 from pathlib import Path
 
 import pytest
+from pydantic import BaseModel
 
 from patchwork_assurance.config import Settings
 from patchwork_assurance.core.chat import chat
@@ -69,3 +78,38 @@ def test_live_chat(live_llm, retriever):
     )
     assert isinstance(turn, ChatTurn)
     assert turn.reply
+
+
+# ---- OpenRouter (free-model) live smoke tests (Phase 8 interlude) ----
+
+
+class _MiniLive(BaseModel):
+    name: str
+    n: int
+
+
+@pytest.fixture
+def openrouter_llm():
+    if not os.environ.get("OPENROUTER_API_KEY"):
+        pytest.skip("OPENROUTER_API_KEY not set")
+    model = os.environ.get("OPENROUTER_TEST_MODEL")
+    if not model:
+        pytest.skip("set OPENROUTER_TEST_MODEL to a current model id from openrouter.ai/models")
+    return build_llm(Settings(llm_provider="openrouter"), model)
+
+
+def test_live_openrouter_complete(openrouter_llm):
+    out = openrouter_llm.complete(
+        "You are concise.", [Msg(role="user", content="Reply with the single word: ready")]
+    )
+    assert out.strip()  # the free model returned some text through the OpenRouterLLM path
+
+
+def test_live_openrouter_structured(openrouter_llm):
+    # Whether a given free model honors JSON-object mode varies — this is the check that tells you.
+    out = openrouter_llm.complete_structured(
+        "Extract the fields from the message.",
+        [Msg(role="user", content="name is Ada, n is 4")],
+        _MiniLive,
+    )
+    assert out.name and isinstance(out.n, int)

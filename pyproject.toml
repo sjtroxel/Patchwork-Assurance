@@ -19,6 +19,7 @@ dependencies = [
     "fastembed",
     "pyyaml",
     "anthropic",
+    "openai",  # OpenRouter provider (OpenAI-compatible API); Seam 4 — only core/llm.py imports it
     "sse-starlette",
 ]
 

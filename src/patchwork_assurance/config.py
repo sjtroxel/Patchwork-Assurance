@@ -10,12 +10,17 @@ class Settings(BaseSettings):
     api_base_url: str = "http://localhost:8000"
     corpus_path: str = "corpus"
     chroma_path: str = ".chroma"
-    llm_provider: str = "stub"  # "stub" | "anthropic"
+    llm_provider: str = "stub"  # "stub" | "anthropic" | "openrouter"
     # Two-model split (Phase 5): chat gets fast/cheap Haiku (unlimited); the memo gets Sonnet's higher
     # reasoning (rate-limited, see api memo_rate_limit). Re-verify IDs/pricing at build (standing rule).
     chat_model: str = "claude-haiku-4-5"
     memo_model: str = "claude-sonnet-4-6"
     anthropic_api_key: str | None = None  # read from env ANTHROPIC_API_KEY; never commit
+    # OpenRouter (Phase 8 interlude): one OpenAI-compatible key fronts ~315 models incl. free ones.
+    # Set llm_provider=openrouter, OPENROUTER_API_KEY, and override chat/memo/judge_model with
+    # OpenRouter IDs (e.g. "deepseek/deepseek-chat:free", "anthropic/claude-haiku-4-5"). Key never commits.
+    openrouter_api_key: str | None = None  # read from env OPENROUTER_API_KEY
+    openrouter_base_url: str = "https://openrouter.ai/api/v1"
     top_k: int = 5
     max_tokens: int = 16000
     # Retrieval strategy (Phase 8). The eval sweep picks the production default; `filtered` is the
