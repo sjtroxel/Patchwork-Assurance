@@ -12,6 +12,7 @@ from pydantic import BaseModel
 from patchwork_assurance.core.contracts import InScope, Situation
 
 GOLD_PATH = Path(__file__).parent / "gold" / "cases.yaml"
+RETRIEVAL_GOLD_PATH = Path(__file__).parent / "gold" / "retrieval_cases.yaml"
 
 
 class GoldExpect(BaseModel):
@@ -30,3 +31,18 @@ class GoldCase(BaseModel):
 def load_gold(path: Path = GOLD_PATH) -> list[GoldCase]:
     raw = yaml.safe_load(path.read_text())
     return [GoldCase(**case) for case in raw]
+
+
+class RetrievalQueryCase(BaseModel):
+    """An exact-term / citation retrieval case (Phase 8 §7): a free-text query whose answer is a known
+    statute section. Drives the lexical/hybrid/routed rungs on the queries semantic retrieval misses."""
+
+    id: str
+    query: str
+    jurisdiction: str | None = None
+    grounding_sections: list[str] = []
+
+
+def load_retrieval_gold(path: Path = RETRIEVAL_GOLD_PATH) -> list[RetrievalQueryCase]:
+    raw = yaml.safe_load(path.read_text())
+    return [RetrievalQueryCase(**case) for case in raw]

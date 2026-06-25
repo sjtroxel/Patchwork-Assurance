@@ -119,3 +119,12 @@ class Msg(BaseModel):
 class ChatTurn(BaseModel):
     reply: str
     citations: list[str] = []
+
+
+class ToolRunResult(BaseModel):
+    """The result of an agentic tool-use loop (Phase 8 §6): the model's final text plus the ordered
+    names of the tools it chose to call. `tools_called` is what the router/eval/trace read to see which
+    retrieval path the model picked — never the tool inputs/outputs (privacy: those can carry the query)."""
+
+    text: str
+    tools_called: list[str] = []

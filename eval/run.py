@@ -17,8 +17,14 @@ from pathlib import Path
 
 from eval.harness import build_core
 from eval.judge import score_groundedness
-from eval.loader import load_gold
-from eval.metrics import score_citation_exists, score_coverage, score_retrieval, score_scope
+from eval.loader import load_gold, load_retrieval_gold
+from eval.metrics import (
+    score_citation_exists,
+    score_coverage,
+    score_query_retrieval,
+    score_retrieval,
+    score_scope,
+)
 from eval.safety import confirm_spend
 from patchwork_assurance.config import settings
 from patchwork_assurance.core.llm import LLMError, build_llm
@@ -142,12 +148,14 @@ def main() -> int:
         "--k", type=int, default=MEMO_RETRIEVAL_K, help="retrieval top-k (defaults to the memo's k)"
     )
     parser.add_argument(
-        "--mode", default=settings.retrieval_mode, help="retrieval mode: semantic|filtered|hybrid"
+        "--mode",
+        default=settings.retrieval_mode,
+        help="retrieval mode: semantic|filtered|hybrid|routed",
     )
     parser.add_argument(
         "--sweep",
         action="store_true",
-        help="compare semantic|filtered|hybrid recall (free, deterministic — the Phase 8 ladder)",
+        help="compare semantic|filtered|hybrid|routed recall (free, deterministic — the Phase 8 ladder)",
     )
     parser.add_argument(
         "--limit",
@@ -183,7 +191,7 @@ def main() -> int:
         print("  scope failures:")
         print("\n".join(scope_failures))
 
-    modes = ["semantic", "filtered", "hybrid"] if args.sweep else [args.mode]
+    modes = ["semantic", "filtered", "hybrid", "routed"] if args.sweep else [args.mode]
     mode_recalls: dict[str, float] = {}
     cases_scored = 0
     for mode in modes:
@@ -197,6 +205,16 @@ def main() -> int:
         print(f"\n  Sweep comparison (mean recall@{args.k}):")
         for mode in modes:
             print(f"    {mode:9} {mode_recalls[mode]:.1%}")
+
+        # Exact-term / citation gold set — the queries where lexical/hybrid/routed can beat semantic.
+        q_cases = load_retrieval_gold()
+        q_recalls: dict[str, float] = {}
+        for mode in modes:
+            outcomes = [score_query_retrieval(qc, core, args.k, mode) for qc in q_cases]
+            q_recalls[mode] = sum(o.recall for o in outcomes) / len(outcomes)
+        print(f"\n  Exact-term / citation queries (mean recall@{args.k}, {len(q_cases)} cases):")
+        for mode in modes:
+            print(f"    {mode:9} {q_recalls[mode]:.1%}")
     print()
 
     RESULTS_DIR.mkdir(exist_ok=True)

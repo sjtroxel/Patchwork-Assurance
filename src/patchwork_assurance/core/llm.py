@@ -1,7 +1,7 @@
 import json
 import re
 import time
-from collections.abc import Iterator
+from collections.abc import Callable, Iterator
 from types import SimpleNamespace
 from typing import Protocol, TypeVar
 
@@ -13,10 +13,18 @@ from patchwork_assurance.core.contracts import (
     LawFinding,
     MemoObligation,
     Msg,
+    ToolRunResult,
 )
 from patchwork_assurance.core.prompts import DISCLAIMER
 
 T = TypeVar("T", bound=BaseModel)
+
+# Bound on the agentic tool-use loop (§6) so a model that keeps calling tools can't spin forever.
+_MAX_TOOL_ITERS = 6
+
+# A tool dispatcher: given a tool name and its parsed input, run it and return a string result the
+# model reads back. The retrieval tools live in core/router.py; this module stays provider-only.
+ToolDispatch = Callable[[str, dict], str]
 
 
 class LLMError(Exception):
@@ -32,6 +40,14 @@ class LLMClient(Protocol):
     def stream(
         self, system: str, messages: list[Msg], max_tokens: int = 16000
     ) -> Iterator[str]: ...
+    def run_tools(
+        self,
+        system: str,
+        messages: list[Msg],
+        tools: list[dict],
+        dispatch: ToolDispatch,
+        max_tokens: int = 16000,
+    ) -> ToolRunResult: ...
 
 
 class AnthropicLLM:
@@ -118,13 +134,70 @@ class AnthropicLLM:
                     self._model, final.usage, (time.perf_counter() - start) * 1000, surface="stream"
                 )
 
+    def run_tools(self, system, messages, tools, dispatch, max_tokens=16000):
+        # Manual agentic loop (Phase 8 §0): the intermediate turns carry content *blocks* (tool_use /
+        # tool_result), which Msg/_dump can't model — so the loop manages raw message dicts here, inside
+        # the provider. Public input is still system + list[Msg] + tools + a dispatcher. tool_choice
+        # stays "auto" (forcing a tool would defeat measuring the model's routing judgment).
+        convo: list[dict] = self._dump(messages)
+        called: list[str] = []
+        for _ in range(_MAX_TOOL_ITERS):
+            start = time.perf_counter()
+            try:
+                resp = self._client.messages.create(
+                    model=self._model,
+                    max_tokens=max_tokens,
+                    system=system,
+                    messages=convo,
+                    tools=tools,
+                    tool_choice={"type": "auto"},
+                )
+            except self._anthropic.AnthropicError as e:
+                obs.log_llm_call(
+                    self._model,
+                    None,
+                    (time.perf_counter() - start) * 1000,
+                    surface="run_tools:error",
+                )
+                raise LLMError(str(e)) from e
+            obs.log_llm_call(
+                self._model, resp.usage, (time.perf_counter() - start) * 1000, surface="run_tools"
+            )
+            if resp.stop_reason != "tool_use":
+                text = next((b.text for b in resp.content if b.type == "text"), "")
+                return ToolRunResult(text=text, tools_called=called)
+            convo.append({"role": "assistant", "content": resp.content})
+            results = []
+            for b in resp.content:
+                if b.type == "tool_use":
+                    called.append(b.name)
+                    results.append(
+                        {
+                            "type": "tool_result",
+                            "tool_use_id": b.id,
+                            "content": dispatch(b.name, b.input),
+                        }
+                    )
+            convo.append({"role": "user", "content": results})
+        # Iteration budget spent without a final answer — surface what was called, no fabricated text.
+        return ToolRunResult(text="", tools_called=called)
+
 
 class StubLLM:
     """Deterministic, offline, schema-valid output for tests/dev."""
 
-    def __init__(self, text: str = "(stub)", structured: BaseModel | None = None) -> None:
+    def __init__(
+        self,
+        text: str = "(stub)",
+        structured: BaseModel | None = None,
+        tool_script: list | None = None,
+    ) -> None:
         self._text = text
         self._structured = structured
+        # A scripted tool program for run_tools: a list of steps, each either a bare tool name or a
+        # (name, input_dict) tuple. The stub "calls" each via dispatch (exercising the wiring) and
+        # returns `text` as the final answer — deterministic, zero tokens. (Phase 8 §6.)
+        self._tool_script = tool_script or []
 
     def complete(self, system, messages, max_tokens=16000) -> str:
         obs.log_llm_call("stub", None, 0.0, surface="complete")
@@ -143,6 +216,15 @@ class StubLLM:
     def stream(self, system, messages, max_tokens=16000):
         obs.log_llm_call("stub", None, 0.0, surface="stream")
         yield from self._text.split()
+
+    def run_tools(self, system, messages, tools, dispatch, max_tokens=16000):
+        obs.log_llm_call("stub", None, 0.0, surface="run_tools")
+        called: list[str] = []
+        for step in self._tool_script:
+            name, args = step if isinstance(step, tuple) else (step, {})
+            dispatch(name, args)  # drive the real dispatcher so the wiring is what gets tested
+            called.append(name)
+        return ToolRunResult(text=self._text, tools_called=called)
 
 
 def _openai_usage(usage) -> SimpleNamespace | None:
@@ -167,6 +249,11 @@ def _strip_json_fence(s: str) -> str:
     return s.strip()
 
 
+def _retry_backoff(attempt: int) -> float:
+    """Exponential backoff in seconds (2, 4, 8, ... capped at 30) for rate-limited retries."""
+    return min(2.0 * (2**attempt), 30.0)
+
+
 class OpenRouterLLM:
     """OpenAI-compatible provider via OpenRouter (Phase 8 interlude). Lets the app run on free / penny
     models without an Anthropic key — the budget play and the multi-provider-gateway learning rep.
@@ -178,18 +265,33 @@ class OpenRouterLLM:
     while we're on the free tier.)"""
 
     def __init__(
-        self, model: str, api_key: str | None = None, base_url: str = "", client=None
+        self,
+        model: str,
+        api_key: str | None = None,
+        base_url: str = "",
+        client=None,
+        max_retries: int = 2,
+        sleep=time.sleep,
     ) -> None:
         import openai  # dep; imported here so stub/anthropic users don't need it (lazy like AnthropicLLM)
 
         self._openai = openai  # for the SDK exception base when wrapping into LLMError
         self._model = model
+        # Free models are flaky for structured output; complete_structured retries up to this many
+        # times. `sleep` is injectable so tests exercise the backoff without real delay.
+        self._max_retries = max_retries
+        self._sleep = sleep
         # `client` injection keeps the unit tests offline; production passes None and builds the real one.
         self._client = client or openai.OpenAI(
             api_key=api_key,
             base_url=base_url or "https://openrouter.ai/api/v1",
             default_headers={"X-Title": "Patchwork Assurance"},
         )
+
+    def _is_rate_limit(self, e: Exception) -> bool:
+        """True for an upstream 429. Free models on OpenRouter return these under load; a bounded
+        backoff-retry recovers from the transient ones."""
+        return isinstance(e, self._openai.RateLimitError) or getattr(e, "status_code", None) == 429
 
     def _msgs(self, system: str, messages: list[Msg]) -> list[dict]:
         return [{"role": "system", "content": system}] + [
@@ -219,39 +321,63 @@ class OpenRouterLLM:
         # JSON-object mode + the schema in the system prompt + client-side validation — the broadest
         # path across OpenRouter's free models (strict json_schema needs additionalProperties:false /
         # all-required, which Pydantic schemas don't satisfy by default; a future upgrade).
+        #
+        # Free models are unreliable here: they intermittently emit empty, truncated, or malformed
+        # JSON (json_object mode is not always grammar-enforced upstream) or 429 under load. So make
+        # a bounded number of attempts — regenerate on a parse/validation failure, back off on a
+        # rate limit — and only surface the last error once the budget is spent.
         sys_with_schema = (
             f"{system}\n\nReturn ONLY a JSON object matching this schema "
             f"(no prose, no code fences):\n{json.dumps(schema.model_json_schema())}"
         )
-        start = time.perf_counter()
-        try:
-            resp = self._client.chat.completions.create(
-                model=self._model,
-                max_tokens=max_tokens,
-                messages=self._msgs(sys_with_schema, messages),
-                response_format={"type": "json_object"},
-            )
-        except self._openai.OpenAIError as e:
+        msgs = self._msgs(sys_with_schema, messages)
+        last_err: LLMError | None = None
+        for attempt in range(self._max_retries + 1):
+            start = time.perf_counter()
+            try:
+                resp = self._client.chat.completions.create(
+                    model=self._model,
+                    max_tokens=max_tokens,
+                    messages=msgs,
+                    response_format={"type": "json_object"},
+                )
+            except self._openai.OpenAIError as e:
+                obs.log_llm_call(
+                    self._model,
+                    None,
+                    (time.perf_counter() - start) * 1000,
+                    surface="complete_structured:error",
+                )
+                last_err = LLMError(str(e))
+                # Back off and retry a transient rate limit; any other provider error is not
+                # something a retry fixes, so surface it immediately.
+                if self._is_rate_limit(e) and attempt < self._max_retries:
+                    self._sleep(_retry_backoff(attempt))
+                    continue
+                raise last_err from e
             obs.log_llm_call(
                 self._model,
-                None,
+                _openai_usage(resp.usage),
                 (time.perf_counter() - start) * 1000,
-                surface="complete_structured:error",
+                surface="complete_structured",
             )
-            raise LLMError(str(e)) from e
-        obs.log_llm_call(
-            self._model,
-            _openai_usage(resp.usage),
-            (time.perf_counter() - start) * 1000,
-            surface="complete_structured",
-        )
-        content = resp.choices[0].message.content or ""
-        try:
-            return schema.model_validate_json(_strip_json_fence(content))
-        except ValidationError as e:
-            # A weak free model can return malformed/incomplete JSON — surface it as an LLMError
-            # (the web layer maps to 502) rather than a raw ValidationError.
-            raise LLMError(f"structured output did not match {schema.__name__}: {e}") from e
+            content = resp.choices[0].message.content or ""
+            try:
+                # json.loads(strict=False) tolerates literal control chars (e.g. unescaped newlines)
+                # INSIDE string values — weak free models emit those constantly, and Pydantic's
+                # strict JSON parser rejects them ("control character found while parsing a string").
+                # Parse leniently, then validate the dict. (Strong models hit the same parser; this
+                # is a parser fix, not a model-quality fix.)
+                data = json.loads(_strip_json_fence(content), strict=False)
+                return schema.model_validate(data)
+            except (ValidationError, json.JSONDecodeError) as e:
+                # Empty / truncated / malformed JSON — a weak free model often succeeds on a fresh
+                # attempt, so regenerate. The final failure surfaces as LLMError (web layer → 502).
+                last_err = LLMError(f"structured output did not match {schema.__name__}: {e}")
+                if attempt < self._max_retries:
+                    continue
+                raise last_err from e
+        raise last_err  # pragma: no cover — the loop always returns or raises above
 
     def stream(self, system, messages, max_tokens=16000):
         start = time.perf_counter()
@@ -284,6 +410,81 @@ class OpenRouterLLM:
                     (time.perf_counter() - start) * 1000,
                     surface="stream",
                 )
+
+    def run_tools(self, system, messages, tools, dispatch, max_tokens=16000):
+        # Same manual loop as AnthropicLLM, in OpenAI/OpenRouter shape: tools and tool-call/tool-result
+        # messages use the OpenAI schema, so the Anthropic-shaped `tools` are converted once up front.
+        convo: list[dict] = self._msgs(system, messages)
+        oa_tools = [_to_openai_tool(t) for t in tools]
+        called: list[str] = []
+        for _ in range(_MAX_TOOL_ITERS):
+            start = time.perf_counter()
+            try:
+                resp = self._client.chat.completions.create(
+                    model=self._model,
+                    max_tokens=max_tokens,
+                    messages=convo,
+                    tools=oa_tools,
+                    tool_choice="auto",
+                )
+            except self._openai.OpenAIError as e:
+                obs.log_llm_call(
+                    self._model,
+                    None,
+                    (time.perf_counter() - start) * 1000,
+                    surface="run_tools:error",
+                )
+                raise LLMError(str(e)) from e
+            obs.log_llm_call(
+                self._model,
+                _openai_usage(resp.usage),
+                (time.perf_counter() - start) * 1000,
+                surface="run_tools",
+            )
+            msg = resp.choices[0].message
+            tool_calls = getattr(msg, "tool_calls", None)
+            if not tool_calls:
+                return ToolRunResult(text=msg.content or "", tools_called=called)
+            convo.append(
+                {
+                    "role": "assistant",
+                    "content": msg.content,
+                    "tool_calls": [
+                        {
+                            "id": tc.id,
+                            "type": "function",
+                            "function": {
+                                "name": tc.function.name,
+                                "arguments": tc.function.arguments,
+                            },
+                        }
+                        for tc in tool_calls
+                    ],
+                }
+            )
+            for tc in tool_calls:
+                called.append(tc.function.name)
+                args = json.loads(tc.function.arguments or "{}")
+                convo.append(
+                    {
+                        "role": "tool",
+                        "tool_call_id": tc.id,
+                        "content": dispatch(tc.function.name, args),
+                    }
+                )
+        return ToolRunResult(text="", tools_called=called)
+
+
+def _to_openai_tool(tool: dict) -> dict:
+    """Anthropic tool shape ({name, description, input_schema}) → OpenAI function-tool shape."""
+    return {
+        "type": "function",
+        "function": {
+            "name": tool["name"],
+            "description": tool.get("description", ""),
+            "parameters": tool["input_schema"],
+        },
+    }
 
 
 def _default_memo() -> ComplianceMemo:

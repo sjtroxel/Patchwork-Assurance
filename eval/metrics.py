@@ -9,7 +9,7 @@ import difflib
 from dataclasses import dataclass
 
 from eval.harness import Core
-from eval.loader import GoldCase
+from eval.loader import GoldCase, RetrievalQueryCase
 from patchwork_assurance.core.contracts import ComplianceMemo
 from patchwork_assurance.core.grounding import locate_section
 from patchwork_assurance.core.memo import _focus  # production query builder — see note below
@@ -70,6 +70,22 @@ def score_retrieval(
     hit = [s for s in want if s in retrieved]
     missed = [s for s in want if s not in retrieved]
     return RetrievalOutcome(case.id, want, hit, missed, len(hit) / len(want))
+
+
+def score_query_retrieval(
+    case: RetrievalQueryCase, core: Core, k: int, mode: str = "filtered"
+) -> RetrievalOutcome:
+    """Recall@k for an exact-term / citation query (Phase 8 §7): query the corpus with the case's raw
+    free-text string (optionally jurisdiction-filtered) through the same query() entry point, and check
+    which expected sections surfaced. This is where lexical/hybrid/routed can beat semantic — a bare
+    section number is a strong lexical signal and a weak semantic one."""
+    want = case.grounding_sections
+    filters = RetrievalFilters(jurisdiction=case.jurisdiction) if case.jurisdiction else None
+    chunks = core.retriever.query(case.query, filters, k=k, mode=mode)
+    retrieved = {c.section_number for c in chunks}
+    hit = [s for s in want if s in retrieved]
+    missed = [s for s in want if s not in retrieved]
+    return RetrievalOutcome(case.id, want, hit, missed, len(hit) / len(want) if want else 0.0)
 
 
 # --- citation-exists (Tier B: deterministic check, but needs a real generated memo) ---

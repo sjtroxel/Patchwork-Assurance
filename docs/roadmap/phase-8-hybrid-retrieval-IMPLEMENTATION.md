@@ -265,6 +265,41 @@ versions, the final scorecard table per rung, which `retrieval_mode`/`router` be
 why, the re-tuned knob values with before/after, and an honest verdict on whether hybrid earned its keep
 at N=2 or was banked for Phase 9.)*
 
+**Batch 4 as-built (2026-06-24): routing + the tool-use loop.**
+- `run_tools(system, messages, tools, dispatch, max_tokens) -> ToolRunResult` added to the `LLMClient`
+  Protocol and **all three** impls: `AnthropicLLM` (manual agentic loop over raw block dicts),
+  `StubLLM` (a `tool_script` drives `dispatch` deterministically, zero tokens), and `OpenRouterLLM`
+  (same loop in OpenAI shape — Anthropic tool schema → `{"type":"function",...}` via `_to_openai_tool`,
+  tool_calls echoed back, `role:"tool"` results). `tool_choice` stays `auto`; the loop is bounded by
+  `_MAX_TOOL_ITERS=6`. Each iteration emits a Phase 7 `run_tools` log line (cost visible).
+- `core/router.py`: `rules_route(question) -> Route` (deterministic cue map — citation/defined-term or
+  factual → `hybrid`, else `filtered`; zero tokens) and `agentic_route(question, llm, retriever, conn)`
+  (builds the `search_corpus` / `query_metadata` tools + dispatcher, runs `llm.run_tools`, returns the
+  grounded answer + observed `tools_called`). `Retriever.query(mode="routed")` dispatches via
+  `rules_route` (local import dodges the retrieval↔router cycle) and logs a metadata-only `route` event.
+- The free sweep now includes `routed`: **routed = filtered = hybrid = 95.5%** recall@8 at N=2
+  (semantic-only 63.6%) — i.e. *filtering* carries recall here; lexical/routing don't move it at two
+  laws. That is the expected "semantic+filter is enough at N=2" finding (plan §14); the rungs are
+  **banked** for Phase 9 corpus growth. Default stays `filtered` + `rules` pending the judged-quality
+  signal. Tests: `tests/test_router.py` (11) + `run_tools` loop tests in `test_llm_openrouter.py`.
+- **Exact-term / citation gold set added** (`eval/gold/retrieval_cases.yaml`, 5 free-text query cases;
+  loader `load_retrieval_gold`, metric `score_query_retrieval`, surfaced in `--sweep`). This closes the
+  batch-3 carryover: it exercises the rungs on the queries semantic is weakest at. **Result: all four
+  modes tie — 100% @8, 60% @3, 40% @1.** Hybrid/routed do **not** beat filtered even here. Diagnosed
+  (not guessed): BM25 nails distinctive *terms* ("human review and reconsideration" → 6-1-1705 strongly
+  #1) but is **noisy on bare section numbers**, because statutes cross-reference sections by number, so
+  many chunks contain "6-1-1706" / "Sec. 8" and the *defining* section doesn't rank first. So the
+  citation advantage hybrid was supposed to add is diluted by statutory cross-referencing, and the
+  semantic side already catches the term queries — hence the tie. Honest verdict: **semantic+filter is
+  enough at N=2; hybrid/lexical/routing are built, measured, and banked for Phase 9**, when a larger
+  corpus (the cited section no longer in the top-k by semantics alone) is where they should pay off.
+  Tests: `tests/test_router.py` (11) + `run_tools` loop tests in `test_llm_openrouter.py` + the
+  exact-term loader/metric tests in `test_eval_harness.py`.
+- **OpenRouter caveat (honest):** `OpenRouterLLM.run_tools` exists so the Protocol holds and a funded
+  penny-tier model can run the agentic router — but tool use is the most demanding capability yet, and
+  the free models that already fail structured memos won't run it reliably. The agentic router's *real*
+  activation is paid-gated, same bucket as the items below.
+
 **Deferred to a live/paid run (not gaps in the code):** the text→SQL and agentic-router *eval numbers*
 and the `live`-marked "does the model route well / write valid SQL" checks — both need
 `LLM_PROVIDER=anthropic` + credits and ride the same spend chokepoint and credits-refill timing as the

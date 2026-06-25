@@ -1,0 +1,36 @@
+# Patchwork Assurance — retrieval gold set (exact-term / citation queries)
+#
+# Phase 8 §7. Unlike cases.yaml (situation-prose → memo path), these are free-text QUERY strings whose
+# answer is a known statute section. They exist to exercise the lexical / hybrid / routed rungs on the
+# one thing pure semantic retrieval is weakest at: a bare section number or a distinctive defined term.
+# If hybrid/routed beats filtered anywhere, it should be here — and if it doesn't even here at N=2, that
+# is the honest "semantic+filter is enough until the corpus grows" verdict (plan §9, §14).
+#
+# Schema: id, query (free text), jurisdiction (filter — Colorado | Connecticut), grounding_sections
+# (the section_number(s) that should appear in the top-k). Section numbers verified against the corpus
+# 2026-06-24 (CO uses dotted ids like 6-1-1704; CT uses "Sec. N").
+
+- id: co-cite-1704
+  query: "What must a deployer do under section 6-1-1704?"
+  jurisdiction: Colorado
+  grounding_sections: ["6-1-1704"]
+
+- id: co-cite-1706
+  query: "Explain the requirements of 6-1-1706."
+  jurisdiction: Colorado
+  grounding_sections: ["6-1-1706"]
+
+- id: co-term-human-review
+  query: "Which provision gives a consumer the right to human review and to correct personal data?"
+  jurisdiction: Colorado
+  grounding_sections: ["6-1-1705"]
+
+- id: co-term-developer-docs
+  query: "developer duty to provide documentation and disclosures to deployers"
+  jurisdiction: Colorado
+  grounding_sections: ["6-1-1702"]
+
+- id: ct-cite-sec8
+  query: "What does Sec. 8 of the Connecticut AI act require?"
+  jurisdiction: Connecticut
+  grounding_sections: ["Sec. 8"]

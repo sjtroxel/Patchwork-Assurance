@@ -8,8 +8,14 @@ from pathlib import Path
 
 from eval.harness import Core
 from eval.judge import JudgeVerdict, score_groundedness
-from eval.loader import load_gold
-from eval.metrics import score_citation_exists, score_coverage, score_retrieval, score_scope
+from eval.loader import RetrievalQueryCase, load_gold, load_retrieval_gold
+from eval.metrics import (
+    score_citation_exists,
+    score_coverage,
+    score_query_retrieval,
+    score_retrieval,
+    score_scope,
+)
 from eval.safety import confirm_spend
 
 from patchwork_assurance.core.contracts import ComplianceMemo, LawFinding, MemoObligation
@@ -26,6 +32,16 @@ def test_gold_loads_and_is_well_formed():
     assert len(cases) >= 14
     ids = [c.id for c in cases]
     assert len(ids) == len(set(ids)), "gold case ids must be unique"
+
+
+def test_retrieval_gold_loads_and_is_well_formed():
+    cases = load_retrieval_gold()
+    assert len(cases) >= 5
+    ids = [c.id for c in cases]
+    assert len(ids) == len(set(ids)), "retrieval gold ids must be unique"
+    assert all(c.query and c.grounding_sections for c in cases), (
+        "each case needs a query + sections"
+    )
 
 
 def test_scope_accuracy_is_perfect_on_gold():
@@ -93,6 +109,17 @@ def test_retrieval_recall_partial_when_a_section_is_missing():
 def test_retrieval_skips_out_of_scope_cases():
     core = Core(retriever=_FakeRetriever({}), laws=LAWS)
     assert score_retrieval(_case("no-ai-in-decisions"), core, k=5) is None
+
+
+def test_query_retrieval_scores_exact_term_case():
+    # Exact-term metric: query the (faked) corpus and check the cited section surfaced. The fake
+    # returns canned sections per jurisdiction, so this locks the metric wiring, not the model.
+    core = Core(retriever=_FakeRetriever({"Colorado": ["6-1-1704", "6-1-1703"]}), laws=LAWS)
+    case = RetrievalQueryCase(
+        id="q", query="section 6-1-1704?", jurisdiction="Colorado", grounding_sections=["6-1-1704"]
+    )
+    outcome = score_query_retrieval(case, core, k=5, mode="hybrid")
+    assert outcome.recall == 1.0 and outcome.missed == []
 
 
 # --- citation-exists ---

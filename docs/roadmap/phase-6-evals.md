@@ -38,22 +38,44 @@ couldn't tune those responsibly before because you couldn't measure them. Now yo
 - [-] **LLM-as-judge metrics** for the subjective parts: citation **groundedness/faithfulness** (does
       each obligation actually follow from its cited chunk?) and obligation coverage — structured
       verdicts, a **judge model different from the judged model**.
-      *Built + stub-tested offline (`eval/judge.py`, judge = Opus vs the Sonnet memo). **First real judged run is deferred (paid)** — see status note below.*
+      *Built + stub-tested offline (`eval/judge.py`). Path validated end-to-end on free OpenRouter models 2026-06-24 (judge `qwen3-next-80b` ≠ memo `gpt-oss-120b`); a full clean run is deferred — see the deferred ticket below.*
 - [x] `make eval` runs it; the deterministic tier runs offline/free, the judge tier behind a flag.
       *Done — `make eval` (free) and `make eval-judge` (paid, behind the spend guard).*
 - [-] A short results write-up that **resolves** the deferred model/retrieval decisions with the
       measured numbers.
-      *Deterministic half done (IMPLEMENTATION §10): scope 28/28; retrieval recall@5 68% → resolved by raising memo k to 8 (95%). **Model decisions (Haiku-vs-Sonnet, embeddings) + groundedness numbers await the paid run.***
+      *Deterministic half done (IMPLEMENTATION §10): scope 28/28; retrieval recall@5 68% → resolved by raising memo k to 8 (95%). **Production model decision (provider/model — see scope note) + groundedness numbers await the one judged run (deferred ticket above).***
 
 > **Marker legend:** `[x]` = done; `[-]` = built, tested, and committed, but its measured result is
-> **willfully deferred to the one paid run** — not empty, not forgotten.
->
-> **Phase 6 status (2026-06-23): code-complete, CI-green, one paid run outstanding.** Everything is
-> built, tested offline, and committed; the deterministic tier runs free and surfaced a real retrieval
-> finding (resolved). The single remaining step is **one `make eval-judge` run** (generates memos with
-> Sonnet, judges with Opus) to produce the groundedness/coverage numbers and settle the Haiku-vs-Sonnet
-> decision. It is deferred until the Anthropic balance refills, and is the **user's to run** (it spends
-> tokens — the git-style hand-off rule, `docs/SPENDING_SAFETY.md`).
+> **willfully deferred to one judged run** — not empty, not forgotten. The two `[-]` items above are a
+> single bounded ticket, specified below; do not flip them to `[x]` until the numbers exist.
+
+### Deferred ticket — the one judged run (closes both `[-]` items)
+
+**Status (2026-06-24): code-complete, CI-green, one judged run outstanding.** Everything is built, tested
+offline, and committed. The deterministic tier runs free and surfaced a real retrieval finding (resolved).
+The whole judged *path* is now proven to run end to end — only a full, clean *measurement* is owed.
+
+**What is owed (exactly two numbers, aggregated over the gold set):**
+1. **Groundedness** — % of memo obligations the judge rates fully supported by their cited statute text.
+2. **Coverage** — % of each case's expected obligations the memo actually surfaces.
+   (Citations-real already scores from this same run; one live free case scored 5/5 real, 4/5 grounded,
+   0/2 coverage — a smoke result on a weak model, *not* the metric.)
+
+**The one action that clears it:** `make eval-judge` (or `python -m eval.run --judge`) on the full gold
+set, behind the `eval/safety.py:confirm_spend` gate (`docs/SPENDING_SAFETY.md`). **User's to run** — it
+spends tokens (git-style hand-off rule).
+
+**Two ways to run it; pick one when a window opens:**
+- **Anthropic (recommended, clean):** native structured output, no 429s. Set `LLM_PROVIDER=anthropic`.
+  One-time cost ≈ **$1–3** measured from real token counts (Sonnet memo + Opus judge ≈ $1.65; Haiku+Sonnet
+  ≈ $0.80). Gate: Anthropic balance funded.
+- **OpenRouter free (\$0, flaky):** validated end-to-end 2026-06-24 but slow (~10 min/case) and throttle-prone;
+  the parser fix + bounded retry loop in `core/llm.py` (added 2026-06-24) make it survivable but not fast.
+  Gate: a quiet free-tier window and patience for retries/skips.
+
+**Scope note (provider pivot):** the original DoD said this run "settles Haiku-vs-Sonnet." That framing is
+**stale** — the provider strategy shifted toward OpenRouter for budget. Re-read item 2 below as "settle the
+production memo/judge model choice (Anthropic tier *or* OpenRouter model)," not specifically Haiku-vs-Sonnet.
 
 Done = a repeatable scorecard for the app, and the earlier "tune later" decisions are now made.
 
