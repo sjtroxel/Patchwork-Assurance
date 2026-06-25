@@ -15,7 +15,7 @@ inject_brand_css()
 render_chrome()
 render_hero(
     "Ask a question",
-    "Ask about Colorado SB 26-189 or Connecticut SB 5. Answers are grounded in the statute "
+    "Ask about the state AI laws in our corpus. Answers are grounded in the statute "
     "text with citations. Not legal advice.",
 )
 render_seam()
@@ -33,7 +33,7 @@ for m in st.session_state.messages:
     with st.chat_message(m["role"]):
         st.markdown(m["content"])
 
-if prompt := st.chat_input("Ask about Colorado or Connecticut AI rules…"):
+if prompt := st.chat_input("Ask about US state AI rules…"):
     st.session_state.messages.append({"role": "user", "content": prompt})
     with st.chat_message("user"):
         st.markdown(prompt)

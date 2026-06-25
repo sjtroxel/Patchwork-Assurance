@@ -337,3 +337,108 @@ ingestion (Batch 6) is itself the headline paid run — pennies (one classify + 
 source-format reality found in Batch 0, the operative-term/mechanism-sourcing verdict from §7, whether the
 agent's CA/NYC drafts needed human correction at the gate and what kind, and the manual-Illinois-vs-
 agent-drafted-CA/NYC comparison for the writeup.)*
+
+### §7 operative-term-sourcing verdict — 2026-06-25 (Opus, pre-Sonnet handoff)
+
+**Verdict: the engine is genuinely generic over N. "Zero code change" HOLDS for the
+retrieval/scope/memo/chat engine *and* the memo form. Adding Illinois forces NO blocking code change.**
+The §7 risk (a hardcoded CO/CT operative-term map) did **not** materialize. Evidence checked in the
+source:
+
+1. **Per-law operative term/mechanism is read from metadata, not hardcoded.**
+   `core/prompts.py:render_law_facts()` builds the authoritative law-facts block by reading
+   `law.operative_standard`, `law.regulated_roles`, `law.scope_domains`, `law.enforcement_authority`,
+   `law.key_obligations` per law — straight from `LawMetadata`. Both the memo
+   (`render_memo_user`) and chat inject this block. There is no `if colorado` term map in the
+   description path.
+2. **`LawMetadata` accommodates IL with NO schema change.** `operative_standard: str` and
+   `regulated_tech_term: str` are free text (IL's effect-based "results in discrimination" mechanism
+   fits without a defined term); `ScopeDomain` Literal already includes `employment`; `Status` includes
+   `effective`. One conscious modeling decision to **record in IL's `.meta.yaml`** (not a code change):
+   IL's regulated party is the **employer-as-`deployer`** (the `RegulatedRole` Literal is
+   `developer|deployer`; an employer using an AI hiring tool is a deployer in this taxonomy — note it in
+   the meta rather than widening the enum). If a later law needs a role outside developer/deployer,
+   *that* is a real schema decision — IL is not.
+3. **The memo form's options are corpus-driven.** `ui/memo.py` populates the
+   jurisdiction/domain/role multiselects from `GET /meta` → `core/meta.corpus_vocab(laws)`; the
+   hardcoded `["Colorado","Connecticut"]` at `memo.py:101` is `_FALLBACK_META`, used **only if /meta is
+   unreachable**. `US_STATES` (home-state field) already lists Illinois. So once IL is loaded, it
+   auto-appears as a selectable nexus state — zero form code change.
+4. `core/scope.py` and `core/grounding.py` are already explicitly generic over N.
+
+### Batch 0 (Illinois) — as-built (2026-06-25, Sonnet)
+
+**COMPLETE.** Illinois is indexed, 201 tests pass, ruff green.
+
+**Source format:** Official text at `https://www.ilga.gov/documents/legislation/publicacts/103/103-0804.htm`
+is **clean machine-readable HTML** — no image-scan, no OCR needed. This is the key Batch 0
+source-format finding (contrast with CO/CT which required 400-DPI Tesseract re-OCR). PA 103-0804 was
+published as amended full sections (2-101 + 2-102), so only the AI-specific provisions (defs M/N + civil
+rights violation L) are included in the corpus file.
+
+**Effective date:** Jan 1, 2026 (all provisions). No phase-in split to decide.
+
+**AIVII decision:** HB 3773 only (not the AI Video Interview Act). AIVII is a 2020 disclosure law
+(consent + retention for AI video interview analysis), different mechanism + older. Parked as a future
+candidate; does not belong in this batch.
+
+**Infrastructure additions for IL:**
+- `core/corpus/chunk.py:_SECTION_NUM` — added `\d+ ILCS \d+/\d+-\d+` to extract ILCS citations
+  (`775 ILCS 5/2-101`, `775 ILCS 5/2-102`) as short section numbers rather than the full heading string.
+  This is the generic fix for ILCS-style statutes; future IL laws use the same pattern.
+- `core/grounding.py:_CITATION_PATTERNS` — added `\d+ ILCS \d+/\d+-\d+` so citation-exists metric
+  extracts IL citations from generated memo prose. `locate_section` already handles them generically.
+
+**§7-B hand-updates done (expected, not cosmetic):**
+- `ui/memo.py` intro copy + `_FALLBACK_META` — generalized; Illinois added to fallback
+- `ui/chat.py` hero copy + input placeholder — generalized
+- `core/prompts.py` MEMO_SYSTEM — "the two laws' terms" → "the laws' terms"
+- `site/index.html` — added Illinois to the "already passed laws" paragraph
+- `README.md` — updated "two laws" framing + status section
+- `CLAUDE.md` — updated "v1 covers two laws" line
+
+**Gold cases:** 14 existing cases updated with `il-hb3773` scope verdicts; 4 new IL cases added
+(il-employment-deployer, il-tristate-employment, il-home-state, il-domain-mismatch). 18 total cases.
+`test_scope_accuracy_is_perfect_on_gold` passes on all 18.
+
+**Verified:** `corpus_vocab` returns `Illinois` in `jurisdictions`; `GET /meta` auto-adds IL to form
+with zero code change (corpus-driven). Scope engine correctly returns IL yes for employment deployers,
+IL no for housing, IL no for developer role (IL regulates employers-as-deployers only).
+
+**Note on §13 router:** `core/router.py:_DEFINED_TERM` still hardcodes CO/CT operative terms; IL's
+effect-based mechanism doesn't get lexical boost in the banked agentic router. Correct at the agentic
+router activation (plan Batch 1+), not now. Retrieval is still semantically correct for IL.
+
+---
+
+### Batch 0 (Illinois) — Sonnet runway steps (executed 2026-06-25, archived here for reference)
+
+Steps as-planned:
+
+1. **Source HB 3773 from the primary official source; determine format first.** Check whether the
+   official text is clean machine-readable or an image-scan PDF (the CO/CT pain). Do NOT assert from
+   memory. If image-scan, reuse the Phase 1 Tesseract-400dpi method. Verify the effective date
+   (Jan 1 vs later-2026 provisions) and decide HB 3773 only vs also the IL AI Video Interview Act
+   (AIVII) — per plan §6 Batch 0.
+2. **Author `corpus/il-hb3773.md` (cleaned official text only, never LLM-authored) +
+   `il-hb3773.meta.yaml`.** Record the employer-as-`deployer` decision (verdict §2 above),
+   `operative_standard` describing the effect-based mechanism in IL's own words, `source_url` +
+   `retrieved_on`. Validate against `LawMetadata` (it will fail loudly if incomplete).
+3. **`load_corpus`; eyeball memo + chat** for an IL situation. Confirm IL appears in the form
+   (corpus-driven) and scope/memo/chat treat it generically.
+4. **Presentation hand-updates (the §7-B retroactive list — expected, not cosmetic):**
+   - `ui/memo.py:16-17` intro copy ("Colorado SB 26-189 and Connecticut SB 5 …") — generalize.
+   - `ui/chat.py:18,36` placeholder copy ("Ask about Colorado or Connecticut …").
+   - `_FALLBACK_META` at `ui/memo.py:101` — add Illinois (graceful-degradation only, but keep honest).
+   - `site/` landing page + `README` + any `CLAUDE.md` "v1 covers two laws" line — generalize or mark
+     v1-historical.
+   - `prompts.py:16` says "the two laws' terms" — reword to "the laws' terms" (works as-is, but stale).
+5. **Eval gold cases (`eval/gold/cases.yaml`)** — add IL situations + expected grounding sections so IL
+   is *measured*; confirm CO/CT verdicts don't regress (a jurisdiction without gold cases is untested).
+
+**Off the default path — note, do NOT block on (quality, not correctness):** `core/router.py:34`
+`_DEFINED_TERM` hardcodes CO/CT operative terms, and `router.py:66/78/84` (the banked Phase-8 agentic
+router, not the live default) hardcodes "Colorado/Connecticut" in its tool description + jurisdiction
+param. IL term-queries will route filtered-semantic instead of hybrid — retrieval is still correct
+(semantic recall), just not lexically boosted. Ideal fix is to derive these cue terms / the tool's
+jurisdiction list from corpus metadata; do it when the agentic router goes live, not as an IL blocker.

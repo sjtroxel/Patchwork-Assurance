@@ -13,7 +13,7 @@ MEMO_SYSTEM = (
     "deterministic scope ('Likely applies:', 'May apply:', or 'Does not appear to apply:') then a one- "
     "or two-sentence reason in business terms. Ground every obligation ONLY in the provided statute "
     "excerpts and cite the section; if the provided text does not support a claim, omit it. Use the "
-    "exact operative term each excerpt uses (do not swap or harmonize the two laws' terms). The law "
+    "exact operative term each excerpt uses (do not swap or harmonize the laws' terms). The law "
     "facts block is authoritative background, not a citable source; cite statute sections. Do NOT "
     "state specific effective dates or deadlines in your prose — a separate, authoritative deadline "
     "list is added by the system. Use hedged, educational language ('the statute requires', 'this "

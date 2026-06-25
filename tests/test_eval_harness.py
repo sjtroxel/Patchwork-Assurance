@@ -128,6 +128,7 @@ def test_query_retrieval_scores_exact_term_case():
 def test_corpus_sections_contains_real_sections():
     assert "6-1-1704" in SECTIONS["Colorado"]
     assert "Sec. 9" in SECTIONS["Connecticut"]
+    assert "775 ILCS 5/2-102" in SECTIONS["Illinois"]
     assert "6-1-9999" not in SECTIONS["Colorado"]  # not a real section
 
 
@@ -172,6 +173,11 @@ def test_locate_section_resolves_guards_and_boundary():
     assert locate_section("Connecticut § 6-1-1704", SECTIONS) is None  # cross-jurisdiction
     assert locate_section("Connecticut Sec. 99", SECTIONS) is None  # boundary guard
     assert locate_section("Connecticut Sec. 10", SECTIONS) == ("Connecticut", "Sec. 10")
+    assert locate_section("Illinois 775 ILCS 5/2-102(L)(1)", SECTIONS) == (
+        "Illinois",
+        "775 ILCS 5/2-102",
+    )
+    assert locate_section("775 ILCS 5/2-999", SECTIONS) is None  # not a real IL section
 
 
 # --- coverage (fuzzy, free) ---

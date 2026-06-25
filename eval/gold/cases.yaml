@@ -15,24 +15,29 @@
 # Scope verdict values are the real InScope literals: "yes" | "no" | "uncertain".
 # They are QUOTED on purpose: unquoted yes/no are YAML booleans (True/False), but the
 # scope screen returns the strings "yes"/"no" — quoting keeps the comparison string-vs-string.
-# Law ids: co-sb26-189 (Colorado), ct-sb5-pa26-15 (Connecticut).
+# Law ids: co-sb26-189 (Colorado), ct-sb5-pa26-15 (Connecticut), il-hb3773 (Illinois).
 #
 # Coverage matrix (each case exercises a distinct branch of scope.py / grounding path):
-#    1 co-employment-deployer       CO yes / CT no          baseline; CT excluded by no nexus
-#    2 ct-employment-deployer       CO no  / CT yes          baseline, other law
-#    3 multistate-employment        CO yes / CT yes          the headline out-of-state nexus case
-#    4 colorado-based-employer      CO yes / CT no           home_state auto-nexus branch
-#    5 ct-resident-housing          CO no  / CT no           CT's law is employment-only (CT domain mismatch)
-#    6 co-employment-role-unknown   CO uncertain / CT no     uncertain via blank ROLE
-#    7 no-ai-in-decisions           CO no  / CT no           ai_use="no" affirmative-exclusion short-circuit
-#    8 no-regulating-nexus          CO no  / CT no           reaches neither state (jurisdiction mismatch)
-#    9 multistate-developer         CO yes / CT yes          DEVELOPER role -> different grounding (CO 1702, CT Sec.8)
-#   10 co-employment-ai-unsure      CO yes / CT no           ai_use="unsure" (tool-inventory memo branch)
-#   11 location-unknown             CO uncertain / CT unc.   uncertain via blank JURISDICTION (no nexus stated)
-#   12 ct-ai-companion              CO no  / CT yes          CT-only domain -> CO domain mismatch (mirror of #5)
-#   13 domain-unknown               CO uncertain / CT no     uncertain via blank DOMAIN
-#   14 ct-mixed-domains             CO no  / CT yes          MIXED domains: one matches (employment), one
-#                                                            doesn't (housing) -> any-match suffices
+#    1 co-employment-deployer       CO yes / CT no  / IL no   baseline; CT/IL excluded by no nexus
+#    2 ct-employment-deployer       CO no  / CT yes / IL no   baseline, other law
+#    3 multistate-employment        CO yes / CT yes / IL no   the headline out-of-state nexus case
+#    4 colorado-based-employer      CO yes / CT no  / IL no   home_state auto-nexus branch
+#    5 ct-resident-housing          CO no  / CT no  / IL no   CT law is employment-only (CT domain mismatch)
+#    6 co-employment-role-unknown   CO unc / CT no  / IL no   uncertain via blank ROLE
+#    7 no-ai-in-decisions           CO no  / CT no  / IL no   ai_use="no" affirmative-exclusion short-circuit
+#    8 no-regulating-nexus          CO no  / CT no  / IL no   reaches no state in corpus (jurisdiction mismatch)
+#    9 multistate-developer         CO yes / CT yes / IL no   DEVELOPER role -> different grounding (CO 1702, CT Sec.8)
+#                                                             IL no: IL regulates employers-as-deployers, not developers
+#   10 co-employment-ai-unsure      CO yes / CT no  / IL no   ai_use="unsure" (tool-inventory memo branch)
+#   11 location-unknown             CO unc / CT unc / IL unc  uncertain via blank JURISDICTION (no nexus stated)
+#   12 ct-ai-companion              CO no  / CT yes / IL no   CT-only domain -> CO/IL domain mismatch (mirror of #5)
+#   13 domain-unknown               CO unc / CT no  / IL no   uncertain via blank DOMAIN
+#   14 ct-mixed-domains             CO no  / CT yes / IL no   MIXED domains: one matches (employment), one
+#                                                             doesn't (housing) -> any-match suffices
+#   15 il-employment-deployer       CO no  / CT no  / IL yes  baseline IL in-scope case
+#   16 il-tristate-employment       CO yes / CT no  / IL yes  IL + CO multistate: two laws simultaneously
+#   17 il-home-state                CO no  / CT no  / IL yes  home_state=Illinois auto-nexus branch
+#   18 il-domain-mismatch           CO no  / CT no  / IL no   IL employment-only: housing domain = no (mirror of #5)
 #
 # Verdict-vs-grounding note: developer/deployer and ai_use yes/unsure do NOT change the scope VERDICT
 # (the role gate only tests membership; "unsure" only annotates). They earn their place because they
@@ -55,6 +60,7 @@
     scope:
       co-sb26-189: "yes"
       ct-sb5-pa26-15: "no"
+      il-hb3773: "no"
     grounding_sections:
       - "6-1-1704"   # point-of-interaction notice
       - "6-1-1705"   # human review / reconsideration
@@ -76,6 +82,7 @@
     scope:
       co-sb26-189: "no"
       ct-sb5-pa26-15: "yes"
+      il-hb3773: "no"
     grounding_sections:
       - "Sec. 9"    # interaction disclosure to employee/applicant
       - "Sec. 10"   # pre-decision written notice
@@ -98,6 +105,7 @@
     scope:
       co-sb26-189: "yes"
       ct-sb5-pa26-15: "yes"
+      il-hb3773: "no"
     grounding_sections:
       # Union of both laws' employment-deployer sections. The harness retrieves PER in-scope
       # jurisdiction (mirroring the memo path's per-law filtered retrieve), so each law is
@@ -126,6 +134,7 @@
     scope:
       co-sb26-189: "yes"
       ct-sb5-pa26-15: "no"
+      il-hb3773: "no"
     grounding_sections:
       - "6-1-1704"
       - "6-1-1705"
@@ -148,6 +157,7 @@
     scope:
       co-sb26-189: "no"       # no Colorado nexus
       ct-sb5-pa26-15: "no"    # Connecticut's AI law does not cover housing
+      il-hb3773: "no"
     grounding_sections: []  # out of scope for both — nothing to ground
     obligations: []
 
@@ -166,6 +176,7 @@
     scope:
       co-sb26-189: "uncertain"
       ct-sb5-pa26-15: "no"
+      il-hb3773: "no"
     grounding_sections:
       # An uncertain law is still retrieved and explained by the memo (in_scope in {yes, uncertain}).
       - "6-1-1704"
@@ -187,6 +198,7 @@
     scope:
       co-sb26-189: "no"
       ct-sb5-pa26-15: "no"
+      il-hb3773: "no"
     grounding_sections: []
     obligations: []
 
@@ -206,6 +218,7 @@
     scope:
       co-sb26-189: "no"
       ct-sb5-pa26-15: "no"
+      il-hb3773: "no"
     grounding_sections: []
     obligations: []
 
@@ -226,6 +239,7 @@
     scope:
       co-sb26-189: "yes"
       ct-sb5-pa26-15: "yes"
+      il-hb3773: "no"
     grounding_sections:
       - "6-1-1702"   # CO developer documentation duty
       - "Sec. 8"     # CT developer info-to-deployer duty
@@ -248,6 +262,7 @@
     scope:
       co-sb26-189: "yes"
       ct-sb5-pa26-15: "no"
+      il-hb3773: "no"
     grounding_sections:
       - "6-1-1704"
       - "6-1-1705"
@@ -269,6 +284,7 @@
     scope:
       co-sb26-189: "uncertain"
       ct-sb5-pa26-15: "uncertain"
+      il-hb3773: "uncertain"
     grounding_sections:
       # Both laws are uncertain, so both are retrieved/explained (in_scope in {yes, uncertain}).
       # Scored per in-scope jurisdiction, as in case multistate-employment.
@@ -296,6 +312,7 @@
     scope:
       co-sb26-189: "no"        # ai_companion is not a Colorado covered domain
       ct-sb5-pa26-15: "yes"
+      il-hb3773: "no"
     grounding_sections:
       - "Sec. 5"   # AI companion operator: safety protocol + human-disclosure duties
     obligations:
@@ -316,6 +333,7 @@
     scope:
       co-sb26-189: "uncertain"
       ct-sb5-pa26-15: "no"
+      il-hb3773: "no"
     grounding_sections:
       - "6-1-1704"
       - "6-1-1705"
@@ -340,9 +358,101 @@
     scope:
       co-sb26-189: "no"        # no Colorado nexus
       ct-sb5-pa26-15: "yes"    # in scope via employment; housing is not CT-covered but doesn't defeat scope
+      il-hb3773: "no"
     grounding_sections:
       # Only the employment sections — the part of this business CT actually reaches.
       - "Sec. 9"
       - "Sec. 10"
     obligations:
       - "Connecticut's employment notice duties (Sec. 9 interaction disclosure; Sec. 10 pre-decision written notice, for AERDT deployed on or after Oct 1, 2027) apply to the employment AI. The housing use is outside Connecticut's AI law (PA 26-15 covers AI in employment, not housing)."
+
+- id: il-employment-deployer
+  rationale: >
+    The baseline Illinois case. A business with Illinois employees or applicants that uses AI
+    to make or assist employment decisions, acting as an employer (deployer in this corpus
+    taxonomy). Illinois HB 3773 prohibits AI use that has the discriminatory effect of
+    subjecting employees to discrimination based on protected classes, and requires notice to
+    employees. No Colorado or Connecticut nexus, so neither of those laws reaches this business.
+  situation:
+    jurisdictions: [Illinois]
+    decision_domains: [employment]
+    roles: [deployer]
+    ai_use: "yes"
+  expect:
+    scope:
+      co-sb26-189: "no"
+      ct-sb5-pa26-15: "no"
+      il-hb3773: "yes"
+    grounding_sections:
+      - "775 ILCS 5/2-102"   # civil rights violation — prohibition + notice
+    obligations:
+      - "Prohibition: do not use AI in recruitment, hiring, promotion, renewal, training, discharge, discipline, tenure, or terms/conditions of employment in a way that has the effect of discriminating against employees based on protected classes, or that uses zip codes as a proxy for protected classes (Illinois 775 ILCS 5/2-102(L)(1))."
+      - "Notice: provide employees notice that AI is being used for those purposes (Illinois 775 ILCS 5/2-102(L)(2)). IDHR rulemaking on notice specifics is pending as of 2026."
+
+- id: il-tristate-employment
+  rationale: >
+    An out-of-state company (home state Ohio) making AI-assisted employment decisions about
+    workers in both Illinois and Colorado. Both laws reach this company because both states have
+    people it makes AI-driven decisions about. Tests the IL+CO combination: the scope engine
+    handles them independently. Connecticut is out (no Connecticut nexus).
+  situation:
+    home_state: Ohio
+    jurisdictions: [Illinois, Colorado]
+    decision_domains: [employment]
+    roles: [deployer]
+    ai_use: "yes"
+  expect:
+    scope:
+      co-sb26-189: "yes"
+      ct-sb5-pa26-15: "no"
+      il-hb3773: "yes"
+    grounding_sections:
+      - "6-1-1704"           # CO point-of-interaction notice
+      - "6-1-1705"           # CO human review / reconsideration
+      - "775 ILCS 5/2-102"   # IL civil rights violation — prohibition + notice
+    obligations:
+      - "Colorado: point-of-interaction notice (6-1-1704) and human review / correction rights on an adverse outcome (6-1-1705), effective Jan 1, 2027."
+      - "Illinois: do not use AI with discriminatory effect in covered employment decisions (775 ILCS 5/2-102(L)(1)); notify employees of AI use (775 ILCS 5/2-102(L)(2)), effective Jan 1, 2026."
+
+- id: il-home-state
+  rationale: >
+    An Illinois-headquartered employer that did not separately list Illinois as a nexus state.
+    The scope engine auto-adds the home state when it is a regulating jurisdiction (an Illinois
+    employer obviously has Illinois employees). Tests the home_state auto-nexus branch for IL,
+    mirroring case 4 (colorado-based-employer) for a different state. No CO or CT nexus.
+  situation:
+    home_state: Illinois
+    jurisdictions: []
+    decision_domains: [employment]
+    roles: [deployer]
+    ai_use: "yes"
+  expect:
+    scope:
+      co-sb26-189: "no"
+      ct-sb5-pa26-15: "no"
+      il-hb3773: "yes"
+    grounding_sections:
+      - "775 ILCS 5/2-102"
+    obligations:
+      - "Same Illinois deployer duties as case il-employment-deployer (discrimination prohibition 775 ILCS 5/2-102(L)(1); employee notice 775 ILCS 5/2-102(L)(2))."
+
+- id: il-domain-mismatch
+  rationale: >
+    A business making AI-assisted HOUSING decisions about Illinois residents. Illinois HB 3773
+    covers only EMPLOYMENT decisions (it amends the Illinois Human Rights Act's employment
+    civil rights provisions). Housing is outside Illinois's scope in this corpus, so IL does
+    not reach this business despite the Illinois nexus. Colorado covers housing, but only with
+    a Colorado nexus, which this business lacks. This is the IL mirror of case 5
+    (ct-resident-housing): a false "yes" here would assert obligations the law does not impose.
+  situation:
+    jurisdictions: [Illinois]
+    decision_domains: [housing]
+    roles: [deployer]
+    ai_use: "yes"
+  expect:
+    scope:
+      co-sb26-189: "no"       # no Colorado nexus
+      ct-sb5-pa26-15: "no"    # no Connecticut nexus
+      il-hb3773: "no"         # Illinois HB 3773 covers employment, not housing
+    grounding_sections: []
+    obligations: []

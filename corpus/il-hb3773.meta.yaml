@@ -1,0 +1,28 @@
+law_id: il-hb3773
+jurisdiction: Illinois
+short_name: IL HB 3773 (PA 103-0804)
+law_name: "An Act concerning business (Amendment to Illinois Human Rights Act — AI in Employment)"
+citation: "775 ILCS 5/2-101(M)-(N); 5/2-102(L) (Public Act 103-0804, 103rd General Assembly, 2024)"
+also_known_as:
+  - "Illinois AI in Employment Law"
+  - "Illinois Human Rights Act AI Amendment"
+status: effective
+signed_date: 2024-08-09
+effective_dates:
+  - { date: 2026-01-01, applies_to: "All provisions — AI civil rights violation prohibition, employer notice obligation, and AI definitions" }
+operative_standard: 'Effect-based employment discrimination: an employer uses artificial intelligence that "has the effect of subjecting employees to discrimination on the basis of protected classes" — no discriminatory intent required. Operative mechanism is discriminatory effect, not a named decision-influence standard. Employer also prohibited from using zip codes as a proxy for protected classes. Employer notice obligation: must notify employees when using AI for covered employment decisions.'
+regulated_tech_term: '"Artificial intelligence" — a machine-based system that, for explicit or implicit objectives, infers from the input it receives how to generate outputs such as predictions, content, recommendations, or decisions that can influence physical or virtual environments. Includes generative artificial intelligence.'
+regulated_roles: [deployer]
+scope_domains: [employment]
+enforcement_authority: "Illinois Department of Human Rights (IDHR); Illinois Human Rights Commission (IHRC)"
+enforcement_mechanism: "Civil rights violation charge filed with the Illinois Department of Human Rights; IDHR investigates; if probable cause found, complaint filed before the Illinois Human Rights Commission (IHRC) for a hearing; parties may also elect circuit court jurisdiction after IDHR dismissal or expiration of 365-day investigation period. No AG-exclusive enforcement — individuals may invoke the complaint process."
+cure_period: null
+private_right_of_action: true
+key_obligations:
+  - { section: "775 ILCS 5/2-102(L)(1)", label: "Prohibition: employer may not use AI that has the effect of discriminating against employees based on protected classes in covered employment decisions (recruitment, hiring, promotion, renewal, training, discharge, discipline, tenure, terms/conditions)" }
+  - { section: "775 ILCS 5/2-102(L)(1)", label: "Prohibition: employer may not use zip codes as a proxy for protected classes when using AI in covered employment decisions" }
+  - { section: "775 ILCS 5/2-102(L)(2)", label: "Notice obligation: employer must notify employees when using AI for covered employment decisions (IDHR to adopt rules on circumstances, timing, and means; rules pending as of 2026-06-25)" }
+  - { section: "IDHR rulemaking", label: "IDHR rulemaking: Department must adopt rules on notice circumstances, timeline, and means to ensure employees are adequately informed" }
+source_url: "https://www.ilga.gov/documents/legislation/publicacts/103/103-0804.htm"
+source_page: "https://www.ilga.gov/Legislation/publicacts/view/103-0804"
+retrieved_on: 2026-06-25

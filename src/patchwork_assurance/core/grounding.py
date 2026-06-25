@@ -56,6 +56,7 @@ def locate_section(citation: str, sections: dict[str, set[str]]) -> tuple[str, s
 _CITATION_PATTERNS = (
     r"\d+-\d+-\d{4}",  # Colorado, e.g. 6-1-1704
     r"Sec\.\s*\d+",  # Connecticut, e.g. Sec. 9
+    r"\d+ ILCS \d+/\d+-\d+",  # Illinois, e.g. 775 ILCS 5/2-102
 )
 
 

@@ -13,8 +13,8 @@ inject_brand_css()
 render_chrome()
 render_hero(
     "Compliance Memo",
-    "Describe your situation for a grounded, educational summary of how Colorado SB 26-189 and "
-    "Connecticut SB 5 may reach your business, even from out of state. Not legal advice.",
+    "Describe your situation for a grounded, educational summary of how the state AI laws in our "
+    "corpus may reach your business, even from out of state. Not legal advice.",
 )
 
 # Business-language labels for the consequential-decision domains (presentation only). The form
@@ -98,7 +98,7 @@ US_STATES = [
 
 # Used only if /meta is unreachable, so the form still renders.
 _FALLBACK_META = {
-    "jurisdictions": ["Colorado", "Connecticut"],
+    "jurisdictions": ["Colorado", "Connecticut", "Illinois"],
     "decision_domains": list(DOMAIN_LABELS),
     "roles": ["deployer", "developer"],
 }

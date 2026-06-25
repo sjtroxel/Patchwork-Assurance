@@ -6,7 +6,8 @@ invariants. Depth lives in `docs/ROADMAP.md`. Contracts live in `docs/SPEC_V1.md
 ## What this is
 
 An AI-native tool for understanding how the state-by-state patchwork of US AI-regulation law applies to
-a business's situation. v1 covers two laws (Colorado SB 26-189, Connecticut SB 5) over one shared
+a business's situation. The corpus currently covers Colorado SB 26-189, Connecticut SB 5, and Illinois
+HB 3773, over one shared
 retrieval core, exposed as two surfaces: a structured compliance memo generator and a chatbot. Full
 Python stack. It is an **educational / portfolio tool, not legal advice** (see below).
 
