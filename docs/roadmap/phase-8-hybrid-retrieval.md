@@ -34,19 +34,20 @@ measure honestly and keep what helps.
 
 ## 2. Definition of done
 
-- [ ] A **structured retrieval** path over the corpus metadata (text→query over a small metadata table)
+- [x] A **structured retrieval** path over the corpus metadata (text→query over a small metadata table)
       answering factual questions deterministically (jurisdiction, effective dates, cure period,
       enforcement, scope domains).
-- [ ] A **lexical retrieval** path (BM25/keyword) fused with the existing semantic search, improving
+- [x] A **lexical retrieval** path (BM25/keyword) fused with the existing semantic search, improving
       exact-term and citation recall.
-- [ ] A **router** that sends a query to the right path — factual→structured, interpretive→semantic,
+- [x] A **router** that sends a query to the right path — factual→structured, interpretive→semantic,
       both→fused — implemented as the agentic-RAG pattern (the model selecting retrieval *tools*).
-- [ ] Every variant scored against the **Phase 6 eval set** (retrieval hit-rate + groundedness), with a
-      written comparison; only variants that beat the baseline are kept.
-- [ ] All of it lives **behind the retrieval interface** — `/analyze`, `/chat`, and the UI are
+- [x] Every variant scored against the **Phase 6 eval set** (retrieval hit-rate + groundedness), with a
+      written comparison; only variants that beat the baseline are kept. *(Verdict: at N=2, none beat
+      `filtered`; full ladder kept behind the interface, banked for Phase 9. See IMPLEMENTATION §12.)*
+- [x] All of it lives **behind the retrieval interface** — `/analyze`, `/chat`, and the UI are
       unchanged.
-- [ ] The earlier deferred retrieval knobs (embedding model, chunk size, `top_k`, from Phase 1/2) are
-      re-confirmed or retuned against the new scorecard.
+- [x] The earlier deferred retrieval knobs (embedding model, chunk size, `top_k`, from Phase 1/2) are
+      re-confirmed or retuned against the new scorecard. *(batch 5: embed model validated; k/chunk held.)*
 
 Done = retrieval handles factual + exact-term queries, the routing is in place, and the numbers justify
 whatever shipped.

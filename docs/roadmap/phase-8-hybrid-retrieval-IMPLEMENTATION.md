@@ -300,18 +300,76 @@ at N=2 or was banked for Phase 9.)*
   the free models that already fail structured memos won't run it reliably. The agentic router's *real*
   activation is paid-gated, same bucket as the items below.
 
+**Batch 5 as-built (2026-06-25): re-tuning the deferred knobs.** `eval/sweep_knobs.py` (free, offline;
+`make sweep-knobs`) measures the three knobs set by judgment in Phase 1/2, one factor at a time around
+the production baseline (model `BAAI/bge-small-en-v1.5`, chunk 2800/400 chars, `k=8`). Each non-baseline
+config is built into an **isolated temp Chroma index** (production `.chroma` untouched) with a
+chunk-aligned lexical index, scored through the same `score_retrieval` / `score_query_retrieval` the
+eval uses. `chunk_markdown` / `load_corpus` / `build_lexical_index` gained optional `max_chars` /
+`overlap_chars` params (default = the tuned constants, so production behavior is unchanged) to make the
+chunk knob addressable. Scored on both gold sets — grounding (14 cases) and exact-term (5 cases),
+mean recall@k:
+
+| knob (others at baseline) | value | grounding | exact-term |
+|---|---|---|---|
+| top_k | 3 | 63.6% | 60.0% |
+| top_k | 5 | 68.2% | 100.0% |
+| top_k | **8 (baseline)** | **95.5%** | **100.0%** |
+| top_k | 10 | 100.0% | 100.0% |
+| chunk max_chars | 1800 | 90.9% | 80.0% |
+| chunk max_chars | **2800 (baseline)** | **95.5%** | **100.0%** |
+| chunk max_chars | 3600 | 100.0% | 100.0% |
+| embed model | **bge-small-en-v1.5 (baseline)** | **95.5%** | **100.0%** |
+| embed model | all-MiniLM-L6-v2 | 72.7% | 100.0% |
+
+**Chosen values: hold k=8, chunk 2800/400, bge-small — with one evidence-backed change banked, none
+made.** Reading the numbers honestly:
+- **Embedding model — keep bge-small (scale-independent win).** It beats MiniLM 95.5% vs 72.7% on
+  grounding; this is a real model-quality gap, not a corpus-size artifact. The Phase 1 choice is
+  validated by measurement, not vibes.
+- **top_k and chunk size — the "bigger → 100%" gains are largely an N=2 artifact, so the defaults
+  hold.** Retrieval is jurisdiction-filtered, so each query draws k from a **single** statute of only
+  ~20–30 chunks (50 total at baseline size). `k=8` already pulls ~30–40% of one filtered law; `k=10`
+  pulls ~half. Driving grounding to 100% by retrieving half a 50-chunk corpus (or by merging sections
+  into 3600-char chunks so `k=8` covers more text) is a property of the tiny corpus, not a
+  generalizable retrieval improvement — and a higher `k` injects more chunks into every memo, a real
+  recurring token cost. The senior call is to **not overfit the knobs to N=2**: keep `k=8` / 2800,
+  which leave headroom and bounded cost, and **re-run `make sweep-knobs` at Phase 9 scale** when a
+  larger corpus is where a `k`/chunk bump would earn its keep. (Same "built, measured, banked for
+  Phase 9" verdict as the retrieval rungs.)
+
+**Batch 6 as-built (2026-06-25): default chosen, Phase 8 closed.** With both scorecards in (the rung
+sweep in batch 4, the knob sweep in batch 5), the production defaults are confirmed from the numbers,
+not a placeholder:
+
+- **`retrieval_mode = filtered`, `router = rules`** (the existing `config.py` defaults — no code change).
+  Justification on record: `routed = filtered = hybrid = 95.5%` recall@8 and all four modes tie on the
+  exact-term set, so filtering carries recall at N=2 and the fancier rungs don't beat it. Per the phase's
+  binding rule (a rung ships as default only if it beats baseline on its target metric), `filtered`/`rules`
+  is the honest pick. The full ladder — hybrid, agentic router, structured/text→SQL — stays **built,
+  tested, and behind the interface**, banked for Phase 9 corpus growth, switchable by one config line.
+- **Knobs held** at `k=8` / chunk 2800/400 / `bge-small-en-v1.5` (batch-5 table above; embedding model a
+  measured win, k/chunk gains declined as N=2 artifacts).
+- **Public-writeup scorecard:** the two tables in this §12 (rung sweep + knob sweep) are the comparison
+  the public writeup draws from — the "we compared the flavors of RAG and the simple one won at this
+  scale, here are the numbers and why" story. Honest verdict for the writeup: *at two laws, semantic +
+  metadata filtering is enough; hybrid/lexical/agentic/text→SQL are implemented and measured but earn
+  their keep only as the corpus grows.* That is the intended senior narrative, not a shortfall.
+
+**Phase 8 DoD: met.** All six items checked in the plan doc. The deferred paid-run items below are
+*measurement on a funded run*, not unbuilt code — the same standing posture as Phase 6's judged tier.
+
 **Deferred to a live/paid run (not gaps in the code):** the text→SQL and agentic-router *eval numbers*
 and the `live`-marked "does the model route well / write valid SQL" checks — both need
 `LLM_PROVIDER=anthropic` + credits and ride the same spend chokepoint and credits-refill timing as the
 Phase 6 judged run and the Phase 7 live injection tests. All structural code is built, tested offline
 with `StubLLM`, and committed before any paid run.
 
-## 13. Open decisions remaining (small, decide at build)
+## 13. Open decisions remaining — resolved at build
 
-- **`rank_bm25` dep vs hand-rolled BM25** — decide at build by which reads cleaner for a corpus this
-  size (Phase 7-style stdlib-vs-dep call).
-- **Extend `cases.yaml` vs a sibling `retrieval_cases.yaml`** for the new query classes — whichever the
-  loader handles most cleanly; keep one gold-loading path.
-- **Default `retrieval_mode`/`router`** — genuinely open until the sweep runs; `filtered` + `rules` is
-  the conservative placeholder, and "semantic+filter is enough at N=2" is an acceptable, documented
-  conclusion (plan §14).
+- **`rank_bm25` dep vs hand-rolled BM25** — RESOLVED: hand-rolled BM25 in `core/lexical.py` (batch 2),
+  no dep, reads cleanly for a corpus this size.
+- **Extend `cases.yaml` vs a sibling `retrieval_cases.yaml`** — RESOLVED: a sibling
+  `eval/gold/retrieval_cases.yaml` with its own loader/metric (batch 4), keeping one gold-loading path.
+- **Default `retrieval_mode`/`router`** — RESOLVED: `filtered` + `rules` (batch 6, above). "Semantic +
+  filter is enough at N=2" is the documented, numbers-backed conclusion (plan §14).

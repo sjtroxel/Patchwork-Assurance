@@ -17,8 +17,14 @@ class Chunk:
     chunk_index: int
 
 
-def chunk_markdown(text: str) -> list[Chunk]:
-    """Split cleaned statute markdown into section-aware chunks that keep their citation."""
+def chunk_markdown(
+    text: str, max_chars: int = _MAX_CHARS, overlap_chars: int = _OVERLAP_CHARS
+) -> list[Chunk]:
+    """Split cleaned statute markdown into section-aware chunks that keep their citation.
+
+    max_chars/overlap_chars default to the tuned size bound; they are parameters so the Phase 8
+    knob sweep (eval/sweep_knobs.py) can measure recall at other sizes without touching production.
+    """
     sections: list[tuple[str, str, list[str]]] = []  # (section_number, heading, body_lines)
     current: tuple[str, str, list[str]] | None = None
 
@@ -37,19 +43,19 @@ def chunk_markdown(text: str) -> list[Chunk]:
     idx = 0
     for section_number, heading, body_lines in sections:
         body = f"## {heading}\n" + "\n".join(body_lines).strip()
-        for piece in _split_by_size(body):
+        for piece in _split_by_size(body, max_chars, overlap_chars):
             chunks.append(Chunk(piece, section_number, heading, idx))
             idx += 1
     return chunks
 
 
-def _split_by_size(body: str) -> list[str]:
+def _split_by_size(body: str, max_chars: int, overlap_chars: int) -> list[str]:
     """One chunk per section unless it exceeds the size bound — then split with overlap."""
-    if len(body) <= _MAX_CHARS:
+    if len(body) <= max_chars:
         return [body]
     pieces, start = [], 0
     while start < len(body):
-        end = start + _MAX_CHARS
+        end = start + max_chars
         pieces.append(body[start:end])
-        start = end - _OVERLAP_CHARS
+        start = end - overlap_chars
     return pieces

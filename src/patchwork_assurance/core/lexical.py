@@ -75,14 +75,24 @@ class LexicalIndex:
         return [c.model_copy(update={"score": s}) for c, s in ranked[:k] if s > 0.0]
 
 
-def build_lexical_index(corpus_path: Path) -> LexicalIndex:
+def build_lexical_index(
+    corpus_path: Path, max_chars: int | None = None, overlap_chars: int | None = None
+) -> LexicalIndex:
     """Build the index over the same chunks the loader indexes (chunk_markdown + the law metadata),
-    keyed by the same {law_id}:{chunk_index} identity, so fusion lines up with the vector store."""
+    keyed by the same {law_id}:{chunk_index} identity, so fusion lines up with the vector store.
+
+    max_chars/overlap_chars must match what load_corpus used (None = the tuned default), so the
+    lexical and vector views stay chunk-aligned under the Phase 8 knob sweep."""
+    chunk_kwargs = {}
+    if max_chars is not None:
+        chunk_kwargs["max_chars"] = max_chars
+    if overlap_chars is not None:
+        chunk_kwargs["overlap_chars"] = overlap_chars
     chunks: list[RetrievedChunk] = []
     for meta_file in sorted(corpus_path.glob("*.meta.yaml")):
         meta = LawMetadata(**yaml.safe_load(meta_file.read_text()))
         md = (corpus_path / f"{meta.law_id}.md").read_text()
-        for c in chunk_markdown(md):
+        for c in chunk_markdown(md, **chunk_kwargs):
             chunks.append(
                 RetrievedChunk(
                     text=c.text,

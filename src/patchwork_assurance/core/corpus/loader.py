@@ -27,13 +27,27 @@ def _flatten(meta: LawMetadata, chunk: Chunk) -> dict:
     return flat
 
 
-def load_corpus(corpus_path: Path, store, embedder) -> int:
-    """Ingest every <law_id>.meta.yaml + sibling <law_id>.md. Returns chunk count indexed."""
+def load_corpus(
+    corpus_path: Path,
+    store,
+    embedder,
+    max_chars: int | None = None,
+    overlap_chars: int | None = None,
+) -> int:
+    """Ingest every <law_id>.meta.yaml + sibling <law_id>.md. Returns chunk count indexed.
+
+    max_chars/overlap_chars override the chunk size bound (None = the tuned default); the Phase 8
+    knob sweep passes them to build throwaway indices at other sizes."""
+    chunk_kwargs = {}
+    if max_chars is not None:
+        chunk_kwargs["max_chars"] = max_chars
+    if overlap_chars is not None:
+        chunk_kwargs["overlap_chars"] = overlap_chars
     total = 0
     for meta_file in sorted(corpus_path.glob("*.meta.yaml")):
         meta = LawMetadata(**yaml.safe_load(meta_file.read_text()))
         md_file = corpus_path / f"{meta.law_id}.md"
-        chunks = chunk_markdown(md_file.read_text())
+        chunks = chunk_markdown(md_file.read_text(), **chunk_kwargs)
 
         # Indirect-injection defense (Phase 7 §4): flag instruction-like content for human review.
         # Flag, don't block — v1 corpus is trusted official statutes; this is load-bearing for the

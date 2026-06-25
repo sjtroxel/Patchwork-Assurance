@@ -30,6 +30,16 @@ def test_chunk_index_is_sequential():
     assert [c.chunk_index for c in chunks] == list(range(len(chunks)))
 
 
+def test_smaller_max_chars_yields_more_chunks():
+    # The knob sweep relies on max_chars being an addressable parameter (Phase 8 batch 5).
+    long_body = "word " * 2000
+    text = f"## 1-1-200. Long section\n{long_body}"
+    default = chunk_markdown(text)
+    smaller = chunk_markdown(text, max_chars=1000, overlap_chars=100)
+    assert len(smaller) > len(default)
+    assert all(len(c.text) <= 1000 for c in smaller)
+
+
 def test_long_section_splits_with_overlap():
     # Build a section that exceeds _MAX_CHARS.
     long_body = "word " * ((_MAX_CHARS // 5) + 10)
