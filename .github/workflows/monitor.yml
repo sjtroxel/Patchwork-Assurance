@@ -1,0 +1,107 @@
+name: Corpus monitor
+
+# Phase 9 §5 — scheduled poll + diff + assess + draft (stages 1–4).
+# Stage 5 (the human gate) is the PR opened by this workflow; sjtroxel reviews
+# the diff and merges. On merge, load_corpus re-indexes at next Railway boot.
+#
+# Cost keystone: the Python pipeline only calls an LLM when content actually
+# changed (the diff gate). A typical no-change run is free (GitHub Actions
+# minutes + HTTP fetches only).
+#
+# Required secrets:
+#   ANTHROPIC_API_KEY — used by the pipeline (stages 3–4); set in repo Settings > Secrets
+# Default GITHUB_TOKEN (auto-provided) is used for PR creation.
+
+on:
+  schedule:
+    - cron: "0 6 * * *"  # daily at 06:00 UTC
+  workflow_dispatch:      # manual trigger for testing / one-off runs
+
+jobs:
+  monitor:
+    name: Poll + diff + assess + draft
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install
+        run: pip install -e ".[dev]"
+
+      - name: Run monitoring pipeline (stages 1–4)
+        id: pipeline
+        run: python -m patchwork_assurance.core.agent | tee pipeline_summary.json
+        env:
+          LLM_PROVIDER: anthropic
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          STAGING_PATH: corpus/_staging
+          HASH_STORE_PATH: .agent_hashes.json
+
+      - name: Open PR if staged files exist
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          if [ -z "$(ls corpus/_staging/ 2>/dev/null)" ]; then
+            echo "No staged files — nothing to PR."
+            exit 0
+          fi
+
+          BRANCH="auto/corpus-update-$(date +%Y%m%d-%H%M%S)"
+          git config user.name "patchwork-monitor[bot]"
+          git config user.email "patchwork-monitor[bot]@users.noreply.github.com"
+          git checkout -b "$BRANCH"
+
+          # Move staged files into the live corpus directory
+          cp corpus/_staging/*.md corpus/ 2>/dev/null || true
+          cp corpus/_staging/*.meta.yaml corpus/ 2>/dev/null || true
+          rm -f corpus/_staging/*.md corpus/_staging/*.meta.yaml
+
+          git add corpus/
+          git commit -m "agent: draft corpus addition from monitoring pipeline ($(date +%Y-%m-%d))"
+          git push origin "$BRANCH"
+
+          JURISDICTIONS=$(python - <<'EOF'
+          import json, sys
+          with open("pipeline_summary.json") as f:
+              data = json.load(f)
+          staged = [s["jurisdiction"] for s in data["sources"] if s["staged"]]
+          print(", ".join(staged) if staged else "unknown")
+          EOF
+          )
+
+          gh pr create \
+            --title "agent: proposed corpus addition — ${JURISDICTIONS} ($(date +%Y-%m-%d))" \
+            --body "$(cat <<'BODY'
+          ## Proposed corpus addition
+
+          This PR was opened automatically by the Phase 9 monitoring pipeline.
+
+          **Review checklist (human gate — do not merge without completing):**
+          - [ ] Statute text matches the official source verbatim (no LLM paraphrase)
+          - [ ] \`source_url\` points to the official document
+          - [ ] \`retrieved_on\` is accurate
+          - [ ] \`operative_standard\` correctly describes the law's mechanism
+          - [ ] \`scope_domains\` and \`regulated_roles\` are correct
+          - [ ] \`effective_dates\` match the enacted text
+          - [ ] No injection-pattern flags (check the pipeline log)
+
+          **After merging:** the corpus re-indexes at the next Railway deploy/restart.
+          Add Phase 6 gold cases for the new jurisdiction to lock in regression coverage.
+
+          > **Human gate — never auto-merge.** The agent drafts; a human disposes.
+          BODY
+          )" \
+            --base main \
+            --head "$BRANCH"

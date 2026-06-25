@@ -475,6 +475,96 @@ overrides. `classify_model`, `draft_model`, `staging_path` also added — used i
 
 ---
 
+### Batch 4 (PR-as-gate: pipeline runner + GitHub Actions) — as-built (2026-06-25, Sonnet)
+
+**COMPLETE.** 19 new tests; 269 total pass, ruff green.
+
+**`core/agent/pipeline.py` — `run_pipeline(...) → PipelineResult`.**
+Orchestrates stages 1–4 for every source in `source_set`. Public API:
+- `SourceResult` — per-source outcome: `source`, `changed`, `verdict`, `staged`, `staged_files`, `rejection_reason`
+- `PipelineResult` — aggregate: `source_results`, `total_changed`, `total_staged`, `all_staged_files`
+
+**Stage routing:**
+- `changed=False` → `SourceResult(verdict=None, staged=False)` — no LLM call (diff-gate keystone)
+- `changed=True, verdict=not_relevant` → `store.set + store.save`; no staging
+- `changed=True, verdict=uncertain` → hash NOT committed (retry next poll)
+- `changed=True, verdict=relevant, draft accepted` → `store.set + store.save`; files staged
+- `changed=True, verdict=relevant, draft rejected` → hash NOT committed; rejection_reason set
+- assess/draft exception → hash NOT committed; rejection_reason set with error string
+
+Hash commits happen immediately after each source is processed (not at end-of-run) so a crash
+mid-run doesn't silently skip already-staged sources.
+
+**`core/agent/__main__.py`** — entry point for `python -m patchwork_assurance.core.agent`.
+Loads settings from environment, builds `HashStore` + two `LLMClient`s (classify=Haiku,
+draft=Sonnet via `build_llm`), calls `run_pipeline`, prints JSON summary to stdout, exits 0.
+The workflow reads this output (and the filesystem) to decide whether to open a PR.
+
+**`.github/workflows/monitor.yml`** — cron workflow (daily 06:00 UTC + `workflow_dispatch`):
+1. Checkout + setup Python 3.12 + install
+2. `python -m patchwork_assurance.core.agent` with `LLM_PROVIDER=anthropic` + `ANTHROPIC_API_KEY` secret
+3. If `corpus/_staging/` is non-empty: create a branch, copy staged files to `corpus/`, commit,
+   push, and open a PR with `gh pr create`. The PR body includes the human-gate review checklist.
+4. Re-index on merge = at next Railway boot (`load_corpus` runs when `store.count()==0`, already
+   implemented in Phase 5). No explicit re-index step needed in the workflow.
+
+**The "staged files" signal:** workflow checks `ls corpus/_staging/` directly (no GITHUB_OUTPUT
+variable). Simple, reliable, no Python/shell boundary overhead.
+
+**PR body** includes the mandatory human-gate checklist: statute text verbatim, source_url verified,
+retrieved_on accurate, operative_standard correct, scope_domains/regulated_roles correct,
+effective_dates match. "Never auto-merge" is the closing line.
+
+**Files added:**
+- `src/patchwork_assurance/core/agent/pipeline.py` — `SourceResult`, `PipelineResult`, `run_pipeline`
+- `src/patchwork_assurance/core/agent/__main__.py` — CLI entry point
+- `.github/workflows/monitor.yml` — cron + dispatch workflow
+- `tests/test_pipeline.py` — 19 offline tests
+
+---
+
+### Batch 3 (draft the Seam 1 pair into staging) — as-built (2026-06-25, Sonnet)
+
+**COMPLETE.** 24 new tests; 250 total pass, ruff green.
+
+**`core/agent/draft.py` — `draft_seam1_pair(assess_result, llm, staging_path) → DraftResult`.**
+Takes a `relevant` `AssessResult` (from Batch 2) and runs the Sonnet model on a `run_tools` loop
+with two tools:
+- `submit_statute_text(law_id, text)` — the cleaned `.md` content (verbatim statute, cleaning only)
+- `submit_metadata(metadata_yaml)` — the full `LawMetadata` YAML string
+
+**Gate order (reject-not-stage; no files written on rejection):**
+1. `ValueError` if `assess_result.verdict != 'relevant'` (caller-contract, like assess_change).
+2. `official_text is None` → rejected (PDF path; automated extraction not supported).
+3. Either tool not called → rejected (incomplete draft).
+4. `scan_for_injection(statute_text)` non-empty → rejected; `injection_flags` populated. Security
+   gate runs **before** YAML parsing — poisoned statute text never reaches the staging write.
+5. YAML parse failure (`yaml.safe_load` raises) → rejected.
+6. Metadata is not a dict → rejected.
+7. Missing or empty `source_url` → rejected (integrity rule: draft without provenance is gate-blocked).
+8. `LawMetadata(**meta_dict)` `ValidationError` → rejected.
+9. All gates pass → `staging/<law_id>.md` + `staging/<law_id>.meta.yaml` written; `rejected=False`.
+
+**`DraftResult` dataclass:** `source`, `law_id`, `rejected`, `rejection_reason`,
+`injection_flags`, `statute_md_path`, `metadata_yaml_path`, `law_metadata`.
+
+**`DRAFT_TOOLS`:** two Anthropic-shaped tool defs, same schema discipline as `CLASSIFY_TOOLS`.
+`submit_statute_text` requires `law_id` + `text`; `submit_metadata` requires `metadata_yaml`.
+
+**Staging directory** created (`mkdir -p`) on first successful draft; `law_id` from the validated
+`LawMetadata` (not the tool call's `law_id` arg) determines the filenames — keeps filenames
+authoritative from the validated model.
+
+**StubLLM `tool_script` drives all tests offline** (zero tokens, zero network). Real Sonnet draft
+quality (classification correctness, YAML completeness, statute-text faithfulness) is a `live`-marked
+human-run check deferred to the Illinois live run (Batch 6) — the human PR review is the control.
+
+**Files added:**
+- `src/patchwork_assurance/core/agent/draft.py` — `DRAFT_TOOLS`, `DraftResult`, `draft_seam1_pair`, `_DRAFT_SYSTEM`
+- `tests/test_draft.py` — 24 offline tests
+
+---
+
 ### Batch 2 (assess + fetch, LLM-on-change) — as-built (2026-06-25, Sonnet)
 
 **COMPLETE.** 11 new tests; 226 total pass, ruff green.
