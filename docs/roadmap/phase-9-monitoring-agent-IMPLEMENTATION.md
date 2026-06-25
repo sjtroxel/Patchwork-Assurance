@@ -442,3 +442,72 @@ router, not the live default) hardcodes "Colorado/Connecticut" in its tool descr
 param. IL term-queries will route filtered-semantic instead of hybrid — retrieval is still correct
 (semantic recall), just not lexically boosted. Ideal fix is to derive these cue terms / the tool's
 jurisdiction list from corpus metadata; do it when the agentic router goes live, not as an IL blocker.
+
+---
+
+### Batch 1 (poll + free diff + last-seen store) — as-built (2026-06-25, Sonnet)
+
+**COMPLETE.** 14 new tests; 215 total pass, ruff green.
+
+**Hash store decision:** flat JSON file (`.agent_hashes.json`, default). Simpler than sqlite for a
+handful of sources; reads cleanly. The `HashStore` class in `core/agent/store.py` loads from disk on
+init, exposes `get`/`set`/`save`. The store is **not written by `poll_all`** — the caller commits new
+hashes only after successful downstream work, so a crashed pipeline run doesn't silently skip sources.
+
+**HTML normalization:** stdlib `html.parser` (`_TextExtractor` class in `core/agent/poll.py`). Strips
+`<script>`, `<style>`, `<nav>`, `<header>`, `<footer>` via a depth counter (handles nested skip
+tags correctly). Extracts visible text → SHA-256. Reduces nav-only false positives without deps.
+
+**PDF kind:** `compute_hash(content, "pdf")` hashes raw bytes (no text extraction). Not yet needed
+for the three current sources (all polled via their HTML `source_page`), but the `kind` field and
+branch are there for future PDF-direct sources.
+
+**Source set defaults (config.py):** three `SourceEntry` objects pointing at the `source_page` HTML
+bill-status URLs from existing corpus metadata (CO/CT/IL). The `SOURCE_SET` env var (JSON array)
+overrides. `classify_model`, `draft_model`, `staging_path` also added — used in batches 2–3.
+
+**Files added:**
+- `src/patchwork_assurance/config.py` — `SourceEntry` model + five new Settings fields
+- `src/patchwork_assurance/core/agent/__init__.py`
+- `src/patchwork_assurance/core/agent/store.py` — `HashStore`
+- `src/patchwork_assurance/core/agent/poll.py` — `normalize_html`, `compute_hash`, `PollResult`, `poll_source`, `poll_all`
+- `tests/test_poll.py` — 14 offline tests
+
+---
+
+### Batch 2 (assess + fetch, LLM-on-change) — as-built (2026-06-25, Sonnet)
+
+**COMPLETE.** 11 new tests; 226 total pass, ruff green.
+
+**`SourceEntry` addition:** `official_url: str = ""` — the document to fetch on a relevant
+change. Defaults updated in `source_set` to match each law's `source_url` from corpus metadata
+(CO/CT = PDFs, IL = HTML). An LLM may override the URL at classify-time; the default is a hint.
+
+**Tool-use design:** two Anthropic-shaped tools in `CLASSIFY_TOOLS`:
+- `fetch_official_text(url)` — the dispatcher fetches via httpx, detects HTML vs PDF via
+  `Content-Type`, normalizes HTML text or returns a descriptive note for PDFs. Caps text
+  returned to the model at 8000 chars to keep context manageable.
+- `record_classification(verdict, reason)` — stores the verdict in a closure dict. Verdict is
+  validated against `{"relevant","not_relevant","uncertain"}`; invalid values → `"uncertain"`.
+
+**Safe default:** if `run_tools` exhausts its iteration budget without `record_classification`
+being called, `AssessResult.verdict` is `"uncertain"` (conservative; goes to the human gate).
+
+**Cost discipline:** `assess_change` raises `ValueError` if called with `poll_result.changed
+== False`. This makes it a caller-enforced contract: the diff gate (Batch 1) must short-circuit
+before this function is invoked.
+
+**PDFs:** CO and CT `official_url`s are PDFs. Automated PDF text extraction is not implemented
+(no dep added). `_extract_text` returns a descriptive note for PDFs; the model records
+`"uncertain"` and the human gate handles it. A dedicated PDF step can be added later.
+
+**`live` tier (deferred):** the real Haiku classify quality (does it correctly assess CO/CT/IL
+source pages?) is a paid human-run check, same posture as Phase 6/7/8 live items. All
+structural code is stub-tested and committed before any paid run.
+
+**Files added:**
+- `src/patchwork_assurance/config.py` — `official_url` added to `SourceEntry`; source_set
+  defaults updated with official_url + kind for all three jurisdictions
+- `src/patchwork_assurance/core/agent/assess.py` — `CLASSIFY_TOOLS`, `AssessResult`,
+  `assess_change`, `_extract_text`, `_CLASSIFY_SYSTEM`
+- `tests/test_assess.py` — 11 offline tests

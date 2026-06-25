@@ -1,4 +1,17 @@
+from pydantic import BaseModel
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+
+class SourceEntry(BaseModel):
+    """One source in the polling set. Adding a jurisdiction = adding an entry here (data, not code)."""
+
+    jurisdiction: str
+    url: str  # the status page to poll for changes
+    official_url: str = (
+        ""  # the document to fetch on a relevant change (source_url from corpus meta)
+    )
+    kind: str = "html"  # "html" | "pdf" — kind of the official document
+    cadence_hours: int = 24
 
 
 class Settings(BaseSettings):
@@ -42,6 +55,33 @@ class Settings(BaseSettings):
     # Observability (Phase 7). Structured JSON logs to stdout; metadata only, never user content.
     log_level: str = "INFO"
     enable_tracing: bool = True
+    # Phase 9 monitoring agent. source_set drives the poll loop generically — adding a jurisdiction
+    # is adding an entry here (data, not code). hash_store_path is the flat JSON last-seen store;
+    # staging_path is where the agent drafts file pairs before the human-gate PR.
+    source_set: list[SourceEntry] = [
+        SourceEntry(
+            jurisdiction="co",
+            url="https://leg.colorado.gov/bills/sb26-189",
+            official_url="https://leg.colorado.gov/bill_files/116489/download",
+            kind="pdf",
+        ),
+        SourceEntry(
+            jurisdiction="ct",
+            url="https://www.cga.ct.gov/asp/cgabillstatus/cgabillstatus.asp?selBillType=Bill&bill_num=SB05&which_year=2026",
+            official_url="https://www.cga.ct.gov/2026/act/pa/pdf/2026PA-00015-R00SB-00005-PA.pdf",
+            kind="pdf",
+        ),
+        SourceEntry(
+            jurisdiction="il",
+            url="https://www.ilga.gov/Legislation/publicacts/view/103-0804",
+            official_url="https://www.ilga.gov/documents/legislation/publicacts/103/103-0804.htm",
+            kind="html",
+        ),
+    ]
+    hash_store_path: str = ".agent_hashes.json"
+    staging_path: str = "corpus/_staging"
+    classify_model: str = "claude-haiku-4-5"
+    draft_model: str = "claude-sonnet-4-6"
 
 
 settings = Settings()
