@@ -61,14 +61,15 @@ class _Chunk:
 
 
 class _FakeRetriever:
-    """Returns canned section numbers per jurisdiction filter — no embeddings, no network."""
+    """Returns canned section numbers per filter key — no embeddings, no network. The key is the
+    law_id when set (the memo/scope-recall path) else the jurisdiction (the exact-term query path)."""
 
-    def __init__(self, by_jurisdiction: dict[str, list[str]]):
-        self._by = by_jurisdiction
+    def __init__(self, by_key: dict[str, list[str]]):
+        self._by = by_key
 
     def retrieve(self, query, filters=None, k=5):
-        jurisdiction = filters.jurisdiction if filters else None
-        return [_Chunk(s) for s in self._by.get(jurisdiction, [])[:k]]
+        key = (filters.law_id or filters.jurisdiction) if filters else None
+        return [_Chunk(s) for s in self._by.get(key, [])[:k]]
 
     def query(self, query, filters=None, k=5, mode="filtered"):
         # The metric routes through query() (Phase 8); the fake has no lexical index, so filtered
@@ -83,7 +84,7 @@ def _case(case_id: str):
 def test_retrieval_recall_perfect_when_all_sections_surface():
     core = Core(
         retriever=_FakeRetriever(
-            {"Colorado": ["6-1-1704", "6-1-1705"], "Connecticut": ["Sec. 9", "Sec. 10"]}
+            {"co-sb26-189": ["6-1-1704", "6-1-1705"], "ct-sb5-pa26-15": ["Sec. 9", "Sec. 10"]}
         ),
         laws=LAWS,
     )
@@ -96,7 +97,10 @@ def test_retrieval_recall_perfect_when_all_sections_surface():
 def test_retrieval_recall_partial_when_a_section_is_missing():
     core = Core(
         retriever=_FakeRetriever(
-            {"Colorado": ["6-1-1704", "6-1-1705"], "Connecticut": ["Sec. 9"]}  # Sec. 10 missing
+            {
+                "co-sb26-189": ["6-1-1704", "6-1-1705"],
+                "ct-sb5-pa26-15": ["Sec. 9"],
+            }  # Sec. 10 missing
         ),
         laws=LAWS,
     )

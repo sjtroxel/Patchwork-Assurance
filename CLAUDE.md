@@ -7,7 +7,8 @@ invariants. Depth lives in `docs/ROADMAP.md`. Contracts live in `docs/SPEC_V1.md
 
 An AI-native tool for understanding how the state-by-state patchwork of US AI-regulation law applies to
 a business's situation. The corpus currently covers Colorado SB 26-189, Connecticut SB 5, Illinois
-HB 3773, California's FEHA automated-decision-system employment regulations (2 CCR §§ 11008 et seq.),
+HB 3773, California's two regimes (the FEHA automated-decision-system employment regulations,
+2 CCR §§ 11008 et seq., and the CCPA ADMT consumer-privacy regulations, 11 CCR §§ 7200 et seq.),
 and New York City Local Law 144 (the AEDT bias-audit law — a notable non-state jurisdiction
 large enough to sit beside the states), over one shared
 retrieval core, exposed as two surfaces: a structured compliance memo generator and a chatbot. Full

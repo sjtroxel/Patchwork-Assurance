@@ -1,0 +1,32 @@
+law_id: ca-ccpa-admt
+jurisdiction: California
+short_name: CA CCPA ADMT Regs (11 CCR 7200 et seq.)
+law_name: "California Consumer Privacy Act Regulations — Automated Decisionmaking Technology (CCPA Updates, Cyber, Risk, ADMT, and Insurance Regulations)"
+citation: "Cal. Code Regs. tit. 11, §§ 7001, 7150, 7200, 7220, 7221, 7222 (2025)"
+also_known_as:
+  - "CPPA ADMT regulations"
+  - "California CCPA automated decisionmaking technology rules"
+  - "CCPA risk assessment / ADMT regulations"
+status: effective
+signed_date: 2025-09-22  # OAL approval / filing with the Secretary of State (regulatory analog to a governor's action); CPPA Board adopted 2025-07-24
+effective_dates:
+  - { date: 2026-01-01, applies_to: "Regulations take effect" }
+  - { date: 2027-01-01, applies_to: "Businesses using ADMT to make a significant decision must comply with the ADMT Article (pre-use notice, opt-out, access) by this date (§ 7200(b))" }
+operative_standard: 'A consumer-privacy regime, NOT a discrimination-liability rule (do not harmonize with California''s FEHA ADS regs) and NOT a tech decision-influence trigger (do not harmonize with Colorado "materially influence" or Connecticut "substantial factor"). The Article''s duties attach when a business "uses ADMT to make a significant decision concerning a consumer" (§ 7200(a)). "Automated decisionmaking technology" (ADMT) = any technology that processes personal information and uses computation to "replace human decisionmaking or substantially replace human decisionmaking"; "substantially replace" = using the output to make a decision without meaningful human involvement (the human reviewer must know how to interpret the output, actually review it, and have authority to change the decision) (§ 7001(e)). "Significant decision" = a decision resulting in the provision or denial of financial or lending services, housing, education enrollment or opportunities, employment or independent-contracting opportunities or compensation, or healthcare services (§ 7001(ddd)) — broader than the FEHA ADS regs'' employment-only scope. The obligations are procedural privacy duties (pre-use notice, opt-out, access) plus a risk-assessment-before-use duty (§ 7150(b)(3)), owed regardless of any discriminatory effect.'
+regulated_tech_term: '"Automated Decisionmaking Technology" (ADMT) — any technology that processes personal information and uses computation to replace or substantially replace human decisionmaking; includes profiling that does so; excludes ordinary IT/office tools (web hosting, networking, firewalls, antivirus, spellcheck, calculators, databases, spreadsheets, etc.) that do not replace human decisionmaking (§ 7001(e)).'
+regulated_roles: [deployer]
+scope_domains: [financial_lending, housing, education, employment, health_care]
+enforcement_authority: "California Privacy Protection Agency (CPPA) and the California Attorney General"
+enforcement_mechanism: "California Consumer Privacy Act (Civil Code § 1798.100 et seq.). Administrative enforcement by the CPPA and civil enforcement by the Attorney General under Civil Code § 1798.155: civil penalties up to $2,500 per violation and up to $7,500 per intentional violation or violation involving a consumer under 16. The CPRA removed the prior mandatory 30-day cure period."
+cure_period: null  # CPRA eliminated the prior mandatory 30-day cure right; no cure period of right for these violations
+private_right_of_action: false  # the CCPA private right of action (Civil Code § 1798.150) is limited to data breaches and does not extend to ADMT-regulation violations
+key_obligations:
+  - { section: "11 CCR 7001", label: "Definitions: 'automated decisionmaking technology (ADMT)' and 'significant decision' (financial/lending, housing, education, employment/independent contracting, healthcare)" }
+  - { section: "11 CCR 7150", label: "Risk assessment trigger: using ADMT for a significant decision presents significant privacy risk and requires a risk assessment before initiating the processing (§ 7150(a), (b)(3))" }
+  - { section: "11 CCR 7200", label: "Scope: a business that uses ADMT to make a significant decision must comply with the ADMT Article; compliance required by Jan 1, 2027" }
+  - { section: "11 CCR 7220", label: "Pre-use notice: provide consumers a Pre-use Notice describing the ADMT use and their rights to opt out of and access the ADMT" }
+  - { section: "11 CCR 7221", label: "Opt-out: provide consumers the ability to opt out of ADMT used to make a significant decision, subject to enumerated exceptions" }
+  - { section: "11 CCR 7222", label: "Access: on request, give the consumer plain-language information about the ADMT's purpose, its output, and how the output was used to make the significant decision" }
+source_url: "https://cppa.ca.gov/regulations/pdf/ccpa_updates_cyber_risk_admt_appr_text.pdf"
+source_page: "https://cppa.ca.gov/regulations/ccpa_updates.html"
+retrieved_on: 2026-06-26

@@ -48,6 +48,11 @@ _BRAND_CSS = """
     font-family: 'Work Sans', sans-serif; color: #e9ddc9;
     margin: 0.5rem 0 0; font-size: 0.98rem; max-width: 46rem;
   }
+  /* footnote inside the hero, smaller and quieter than the subtitle (e.g. the NYC asterisk) */
+  .pa-hero .pa-hero-note {
+    font-family: 'Work Sans', sans-serif; color: #c2b39c;
+    margin: 0.55rem 0 0; font-size: 0.72rem; line-height: 1.45; max-width: 46rem;
+  }
   /* the pieced quilt seam, reused as a section divider up and down the page */
   .pa-seam {
     height: 4px; border-radius: 999px; margin: 1.6rem 0;
@@ -81,14 +86,16 @@ def render_seam() -> None:
     st.markdown(_SEAM_HTML, unsafe_allow_html=True)
 
 
-def render_hero(title: str, subtitle: str) -> None:
+def render_hero(title: str, subtitle: str, note: str | None = None) -> None:
     """The app's quilt hero banner - brand continuity with the landing page (M4.2).
 
-    title/subtitle are app-authored constants (no user input), so the inline HTML is safe.
+    title/subtitle/note are app-authored constants (no user input), so the inline HTML is safe.
+    `note` renders as a small footnote inside the hero (e.g. the NYC non-state asterisk).
     """
+    note_html = f'<p class="pa-hero-note">{note}</p>' if note else ""
     st.markdown(
         f'<div class="pa-hero"><p class="pa-eyebrow">Patchwork Assurance</p>'
-        f"<h1>{title}</h1><p>{subtitle}</p></div>",
+        f"<h1>{title}</h1><p>{subtitle}</p>{note_html}</div>",
         unsafe_allow_html=True,
     )
 

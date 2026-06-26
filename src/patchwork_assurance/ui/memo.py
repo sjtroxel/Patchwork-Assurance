@@ -15,10 +15,8 @@ render_hero(
     "Compliance Memo",
     "Describe your situation for a grounded, educational summary of how the state AI laws in our "
     "corpus* may reach your business, even from out of state. Not legal advice.",
-)
-st.caption(
-    "\\* The corpus also includes New York City's Local Law 144 (the AEDT bias-audit law) — "
-    "a city large enough to sit beside the states."
+    note="* The corpus also includes New York City's Local Law 144 (the AEDT bias-audit law) — "
+    "a city large enough to sit beside the states.",
 )
 
 # Business-language labels for the consequential-decision domains (presentation only). The form

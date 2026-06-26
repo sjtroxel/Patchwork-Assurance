@@ -100,14 +100,15 @@ def test_retriever_only_called_for_in_scope_laws():
 
     class _TrackingRetriever:
         def retrieve(self, query, filters=None, k=5):
-            calls.append(filters.jurisdiction if filters else None)
+            calls.append(filters.law_id if filters else None)
             return []
 
     llm = StubLLM(structured=CANNED_MEMO)
     generate_memo(SITUATION, SCOPE, _TrackingRetriever(), llm)
-    # CO is in_scope=yes → called; CT is in_scope=no → not called
-    assert "CO" in calls
-    assert "CT" not in calls
+    # CO is in_scope=yes → called; CT is in_scope=no → not called. Filter is per law_id, not
+    # jurisdiction (a jurisdiction can hold more than one law, e.g. California).
+    assert "co-sb-26-189" in calls
+    assert "ct-sb-5" not in calls
 
 
 def test_memo_out_of_scope_all_no():

@@ -39,7 +39,10 @@ def generate_memo(
         if s.in_scope in _IN_SCOPE:
             chunks += retriever.retrieve(
                 query=_focus(situation),
-                filters=RetrievalFilters(jurisdiction=s.jurisdiction),
+                # Filter by law_id, not jurisdiction: a jurisdiction can hold more than one law
+                # (e.g. California's FEHA ADS + CCPA ADMT regs), and each law's memo section must be
+                # grounded only in its own statute text.
+                filters=RetrievalFilters(law_id=s.law_id),
                 k=MEMO_RETRIEVAL_K,
             )
     user = render_memo_user(situation, scope, chunks, list(laws_by_id.values()))

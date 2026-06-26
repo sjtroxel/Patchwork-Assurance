@@ -58,10 +58,12 @@ The design choices are the point of the project. A few are load-bearing:
   section/subsection) so every chunk carries its own citation. The same embedding model is asserted at
   ingest and query time, because a mismatch silently returns nothing rather than erroring.
 - **Each law's operative term is preserved, not harmonized.** Colorado turns on "materially influence"
-  (ADMT); Connecticut on "substantial factor" (AERDT); Illinois on discriminatory effect; California
-  extends existing FEHA discrimination liability to any "automated-decision system" that discriminates;
-  New York City's AEDT law on a bias-audit-and-notice trigger ("substantially assist or replace
-  discretionary decision making"). The tool reads each statute's own language from metadata rather than
+  (ADMT); Connecticut on "substantial factor" (AERDT); Illinois on discriminatory effect; California's
+  FEHA rules extend existing discrimination liability to any "automated-decision system" that
+  discriminates, while California's CCPA ADMT rules are a separate consumer-privacy regime (notice,
+  opt-out, access) triggered by using ADMT to make a "significant decision"; New York City's AEDT law
+  on a bias-audit-and-notice trigger ("substantially assist or replace discretionary decision making").
+  The tool reads each statute's own language from metadata rather than
   flattening them into a
   single test.
 - **Two-model split.** Chat runs on a fast, inexpensive model; the memo runs on a stronger one. Memo
@@ -106,8 +108,9 @@ docs/          ROADMAP, per-phase design + as-built docs, SPEC (data/API contrac
 
 v1 is deployed and works end to end over the shared retrieval core, exposed as the memo and chat
 surfaces, hosted on Railway. The corpus currently covers Colorado SB 26-189, Connecticut SB 5 (PA 26-15),
-Illinois HB 3773 (PA 103-0804), and California's FEHA automated-decision-system employment regulations
-(2 CCR §§ 11008 et seq.), plus New York City Local Law 144 (the AEDT bias-audit law) — included
+Illinois HB 3773 (PA 103-0804), and California's two regimes — the FEHA automated-decision-system
+employment regulations (2 CCR §§ 11008 et seq.) and the CCPA ADMT consumer-privacy regulations
+(11 CCR §§ 7200 et seq.) — plus New York City Local Law 144 (the AEDT bias-audit law) — included
 as a notable non-state jurisdiction whose population rivals many states and whose AI-employment law sits
 naturally beside them. The corpus is designed to grow as the patchwork grows. Post-v1 work
 (evaluation, observability, hybrid retrieval, a corpus-monitoring agent, MCP) is intentionally gated

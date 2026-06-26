@@ -10,6 +10,7 @@ from patchwork_assurance.core.lexical import LexicalIndex, rrf_fuse
 class RetrievalFilters(BaseModel):
     jurisdiction: str | None = None
     scope_domain: str | None = None  # e.g. "employment" -> matches scope_employment=True
+    law_id: str | None = None  # pin retrieval to one law (a jurisdiction can hold >1, e.g. CA)
 
 
 def _l2sq_to_cosine(distance: float) -> float:
@@ -24,6 +25,8 @@ def _where(filters: RetrievalFilters | None) -> dict | None:
     if not filters:
         return None
     clauses = []
+    if filters.law_id:
+        clauses.append({"law_id": {"$eq": filters.law_id}})
     if filters.jurisdiction:
         clauses.append({"jurisdiction": {"$eq": filters.jurisdiction}})
     if filters.scope_domain:
@@ -105,17 +108,22 @@ class Retriever:
             return self.retrieve(query, None, k)
         if mode == "hybrid" and self._lexical is not None:
             semantic = self.retrieve(query, filters, k)
-            # Lexical isn't jurisdiction-filtered at the index; post-filter it to match the semantic
-            # side's jurisdiction (scope_domain isn't carried on chunks, so it's honored on the
-            # semantic side only — the eval filters by jurisdiction, not domain).
-            pool = _by_jurisdiction(self._lexical.search(query, max(k * 4, 20)), filters)[:k]
+            # Lexical isn't metadata-filtered at the index; post-filter it to match the semantic
+            # side's jurisdiction/law (scope_domain isn't carried on chunks, so it's honored on the
+            # semantic side only — the eval filters by jurisdiction/law_id, not domain).
+            pool = _post_filter(self._lexical.search(query, max(k * 4, 20)), filters)[:k]
             return rrf_fuse(semantic, pool, k=k)
         return self.retrieve(query, filters, k)  # filtered (and hybrid fallback)
 
 
-def _by_jurisdiction(
+def _post_filter(
     chunks: list[RetrievedChunk], filters: RetrievalFilters | None
 ) -> list[RetrievedChunk]:
-    if filters and filters.jurisdiction:
-        return [c for c in chunks if c.jurisdiction == filters.jurisdiction]
+    """Match the lexical pool to the semantic side's metadata filter (jurisdiction and/or law_id)."""
+    if not filters:
+        return chunks
+    if filters.law_id:
+        chunks = [c for c in chunks if c.law_id == filters.law_id]
+    if filters.jurisdiction:
+        chunks = [c for c in chunks if c.jurisdiction == filters.jurisdiction]
     return chunks

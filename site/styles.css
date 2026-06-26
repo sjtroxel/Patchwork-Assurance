@@ -136,6 +136,20 @@ section .lede { font-size: 1.1rem; max-width: 44rem; }
 }
 .card h3 { margin: 0 0 0.6rem; font-size: 1.25rem; color: var(--c-oxblood); }
 
+/* at-a-glance list of the statutes currently in the corpus */
+.corpus-list {
+  margin: 2rem auto 0; max-width: 52rem;
+  padding: 1rem 1.25rem; border: 1px solid rgba(47, 75, 94, 0.25);
+  border-radius: 12px; background: rgba(47, 75, 94, 0.05);
+  font-size: 0.95rem; line-height: 1.75; color: var(--text);
+}
+.corpus-list-label {
+  display: block; font-family: var(--font-display); font-weight: 700;
+  font-size: 0.78rem; letter-spacing: 0.08em; text-transform: uppercase;
+  color: var(--c-teal); margin-bottom: 0.35rem;
+}
+.corpus-list-note { display: block; margin-top: 0.45rem; font-size: 0.78rem; color: #6b6256; }
+
 /* closing CTA — same video background as the hero */
 .closing {
   position: relative; overflow: hidden;
