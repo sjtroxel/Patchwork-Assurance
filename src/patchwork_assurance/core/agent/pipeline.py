@@ -16,6 +16,11 @@ Hash-store commit discipline (see Batch 1 store.py):
   uncertain                 → do NOT update hash       (retry next poll)
   poll / assess / draft err → do NOT update hash       (retry next poll)
 
+Poll-only sources (SourceEntry.auto_draft=False — e.g. CO/CT image-scan PDFs the agent can't
+auto-extract): detected for free, never spend an LLM, never auto-draft.
+  first sight (no prior hash) → store.set + store.save, verdict="baseline"  (quiet baseline)
+  real change vs baseline     → do NOT commit, verdict="manual_review"       (surfaced until acted)
+
 Public API:
     SourceResult   - per-source outcome from one pipeline run
     PipelineResult - aggregated outcome (total_changed, total_staged, all_staged_files)
@@ -82,6 +87,7 @@ def run_pipeline(
     hash_store: HashStore,
     *,
     http_client: httpx.Client | None = None,
+    allowed_source_domains: list[str] | None = None,
 ) -> PipelineResult:
     """Orchestrate stages 1–4 for every source in source_set.
 
@@ -105,9 +111,43 @@ def run_pipeline(
             )
             continue
 
+        # Poll-only source (auto_draft=False): never spend an LLM, never auto-draft. Used for
+        # sources the agent can't faithfully auto-ingest (image-scan PDFs like CO/CT). The HTML
+        # status page is still monitored for free; a real change is surfaced for a human.
+        if not pr.source.auto_draft:
+            if hash_store.get(pr.source.url) is None:
+                # First sight: record the baseline quietly so steady state is silent.
+                hash_store.set(pr.source.url, pr.new_hash)
+                hash_store.save()
+                source_results.append(
+                    SourceResult(source=pr.source, changed=True, verdict="baseline", staged=False)
+                )
+            else:
+                # Real change vs the stored baseline: flag for manual review. Hash is NOT committed
+                # so it keeps surfacing in the run summary until a human acts (no LLM spend either
+                # way — the flag is free).
+                source_results.append(
+                    SourceResult(
+                        source=pr.source,
+                        changed=True,
+                        verdict="manual_review",
+                        staged=False,
+                        rejection_reason=(
+                            "Poll-only source changed; manual review required "
+                            "(no auto-draft — official text is an unextractable PDF)."
+                        ),
+                    )
+                )
+            continue
+
         # Stage 3: assess
         try:
-            ar = assess_change(pr, llm_classify, http_client=http_client)
+            ar = assess_change(
+                pr,
+                llm_classify,
+                http_client=http_client,
+                allowed_source_domains=allowed_source_domains,
+            )
         except Exception as exc:
             log.error("assess_change failed for %s: %s", pr.source.url, exc)
             source_results.append(
@@ -140,7 +180,7 @@ def run_pipeline(
 
         # verdict == "relevant" — Stage 4: draft
         try:
-            dr = draft_seam1_pair(ar, llm_draft, staging)
+            dr = draft_seam1_pair(ar, llm_draft, staging, allowed_source_domains)
         except Exception as exc:
             log.error("draft_seam1_pair failed for %s: %s", pr.source.url, exc)
             source_results.append(

@@ -420,3 +420,87 @@ def test_pipeline_source_result_is_dataclass(tmp_path):
     )
     assert isinstance(result, PipelineResult)
     assert all(isinstance(sr, SourceResult) for sr in result.source_results)
+
+
+# ---------------------------------------------------------------------------
+# Poll-only sources (auto_draft=False): detect for free, never spend an LLM
+# ---------------------------------------------------------------------------
+
+_POLL_ONLY_SOURCE = SourceEntry(
+    jurisdiction="co",
+    url="https://leg.colorado.gov/bills/sb26-189",
+    official_url="https://leg.colorado.gov/bill_files/116489/download",
+    kind="html",  # poll hashes the HTML status page; kind here keeps the test hash == _HTML_HASH
+    auto_draft=False,
+)
+
+
+class _RaisingLLM:
+    """Any LLM method call is a test failure — proves the poll-only path spends nothing."""
+
+    def run_tools(self, *a, **k):
+        raise AssertionError("poll-only source must not invoke the LLM")
+
+    def complete(self, *a, **k):
+        raise AssertionError("poll-only source must not invoke the LLM")
+
+    def complete_structured(self, *a, **k):
+        raise AssertionError("poll-only source must not invoke the LLM")
+
+    def stream(self, *a, **k):
+        raise AssertionError("poll-only source must not invoke the LLM")
+
+
+def test_pipeline_poll_only_first_sight_commits_baseline(tmp_path):
+    store = _empty_store(tmp_path)
+    result = run_pipeline(
+        source_set=[_POLL_ONLY_SOURCE],
+        llm_classify=_RaisingLLM(),
+        llm_draft=_RaisingLLM(),
+        staging_path=tmp_path / "staging",
+        hash_store=store,
+        http_client=_FakeHTTP(),
+    )
+    sr = result.source_results[0]
+    assert sr.verdict == "baseline"
+    assert sr.staged is False
+    # Baseline is committed so steady state is silent on the next poll.
+    assert store.get(_POLL_ONLY_SOURCE.url) == _HTML_HASH
+
+
+def test_pipeline_poll_only_real_change_flags_manual_review(tmp_path):
+    store = HashStore(tmp_path / ".hashes.json")
+    store.set(_POLL_ONLY_SOURCE.url, "an-older-different-hash")
+    store.save()
+    result = run_pipeline(
+        source_set=[_POLL_ONLY_SOURCE],
+        llm_classify=_RaisingLLM(),
+        llm_draft=_RaisingLLM(),
+        staging_path=tmp_path / "staging",
+        hash_store=store,
+        http_client=_FakeHTTP(),
+    )
+    sr = result.source_results[0]
+    assert sr.changed is True
+    assert sr.verdict == "manual_review"
+    assert sr.staged is False
+    assert sr.rejection_reason is not None
+    # Hash is NOT committed — the change keeps surfacing until a human acts.
+    assert store.get(_POLL_ONLY_SOURCE.url) == "an-older-different-hash"
+
+
+def test_pipeline_poll_only_no_change_is_silent(tmp_path):
+    store = HashStore(tmp_path / ".hashes.json")
+    store.set(_POLL_ONLY_SOURCE.url, _HTML_HASH)
+    store.save()
+    result = run_pipeline(
+        source_set=[_POLL_ONLY_SOURCE],
+        llm_classify=_RaisingLLM(),
+        llm_draft=_RaisingLLM(),
+        staging_path=tmp_path / "staging",
+        hash_store=store,
+        http_client=_FakeHTTP(),
+    )
+    sr = result.source_results[0]
+    assert sr.changed is False
+    assert sr.verdict is None  # handled by the no-change gate, no flag

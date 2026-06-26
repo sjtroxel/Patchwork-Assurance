@@ -24,7 +24,9 @@ from typing import Literal
 import httpx
 
 from patchwork_assurance.config import SourceEntry
+from patchwork_assurance.config import settings as _default_settings
 from patchwork_assurance.core.agent.poll import PollResult, normalize_html
+from patchwork_assurance.core.agent.provenance import is_allowed
 from patchwork_assurance.core.contracts import Msg
 from patchwork_assurance.core.llm import LLMClient
 
@@ -116,12 +118,18 @@ def assess_change(
     llm: LLMClient,
     *,
     http_client: httpx.Client | None = None,
+    allowed_source_domains: list[str] | None = None,
 ) -> AssessResult:
     """Classify relevance and optionally fetch the official text for one changed source.
 
     The LLM (Haiku) is invoked via run_tools: it calls fetch_official_text then
     record_classification. If the loop ends without record_classification, verdict
     defaults to "uncertain" (the safe, human-gated fallback).
+
+    Provenance: fetch_official_text only fetches URLs on the provenance allowlist. A page
+    altered to redirect the agent at a non-official source (indirect injection) is refused
+    before any network call — the agent ingests official text only (plan §8). Defaults to
+    settings.allowed_source_domains.
 
     Raises:
         ValueError: if poll_result.changed is False (caller bug; the diff gate prevents this).
@@ -132,12 +140,23 @@ def assess_change(
             "The diff gate (poll_source / poll_all) should prevent this call."
         )
 
+    allowed = (
+        allowed_source_domains
+        if allowed_source_domains is not None
+        else _default_settings.allowed_source_domains
+    )
     source = poll_result.source
     state: dict = {"verdict": "uncertain", "reason": "", "text": None, "url": None}
 
     def dispatch(name: str, args: dict) -> str:
         if name == "fetch_official_text":
             url = args.get("url") or source.official_url or source.url
+            if not is_allowed(url, allowed):
+                # Provenance gate: refuse to fetch a non-official source (no network call).
+                return (
+                    f"Refused: {url} is not on the official-source allowlist. "
+                    "Fetch only from allowlisted official legislative/court sources."
+                )
             fetch = http_client.get if http_client else httpx.get
             resp = fetch(url, follow_redirects=True, timeout=30.0)
             resp.raise_for_status()

@@ -40,6 +40,20 @@ jobs:
       - name: Install
         run: pip install -e ".[dev]"
 
+      # Persist the last-seen-hash store across scheduled runs. The runner is ephemeral and
+      # .agent_hashes.json is gitignored, so WITHOUT this the diff gate is defeated: every run
+      # would see every source as "changed" and spend an LLM call on all sources every day
+      # (plus open a duplicate PR). The rolling key (run_id) writes a fresh cache each run and
+      # restore-keys recovers the most recent prior store. A daily cron keeps the cache warm
+      # (caches evict after ~7 days idle); a cold miss costs one harmless all-changed run.
+      - name: Restore last-seen hash store
+        uses: actions/cache@v4
+        with:
+          path: .agent_hashes.json
+          key: agent-hashes-${{ github.run_id }}
+          restore-keys: |
+            agent-hashes-
+
       - name: Run monitoring pipeline (stages 1–4)
         id: pipeline
         run: python -m patchwork_assurance.core.agent | tee pipeline_summary.json

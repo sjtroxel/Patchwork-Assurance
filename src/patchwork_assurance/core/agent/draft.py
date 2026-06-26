@@ -33,7 +33,9 @@ import yaml
 from pydantic import ValidationError
 
 from patchwork_assurance.config import SourceEntry
+from patchwork_assurance.config import settings as _default_settings
 from patchwork_assurance.core.agent.assess import AssessResult
+from patchwork_assurance.core.agent.provenance import check_provenance
 from patchwork_assurance.core.contracts import Msg
 from patchwork_assurance.core.corpus.metadata import LawMetadata
 from patchwork_assurance.core.corpus.sanitize import scan_for_injection
@@ -120,6 +122,7 @@ def draft_seam1_pair(
     assess_result: AssessResult,
     llm: LLMClient,
     staging_path: Path | str,
+    allowed_source_domains: list[str] | None = None,
 ) -> DraftResult:
     """Draft the Seam 1 file pair (.md + .meta.yaml) into staging from a relevant AssessResult.
 
@@ -223,6 +226,21 @@ def draft_seam1_pair(
             law_id=law_id,
             rejected=True,
             rejection_reason="Metadata missing or empty source_url — draft rejected at gate.",
+        )
+
+    # Gate: provenance allowlist — source_url domain must be an official source
+    _allowed = (
+        allowed_source_domains
+        if allowed_source_domains is not None
+        else _default_settings.allowed_source_domains
+    )
+    provenance_error = check_provenance(str(meta_dict.get("source_url") or ""), _allowed)
+    if provenance_error:
+        return DraftResult(
+            source=source,
+            law_id=law_id,
+            rejected=True,
+            rejection_reason=provenance_error,
         )
 
     # Gate: LawMetadata Pydantic validation

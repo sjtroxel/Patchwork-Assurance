@@ -12,6 +12,12 @@ class SourceEntry(BaseModel):
     )
     kind: str = "html"  # "html" | "pdf" — kind of the official document
     cadence_hours: int = 24
+    # auto_draft=True: a detected change runs the full LLM assess + draft pipeline.
+    # auto_draft=False: poll-only — detect change for FREE (HTML hash), never spend an LLM, never
+    # auto-draft; a real change is flagged "manual_review" for a human. Use for sources the agent
+    # can't faithfully auto-ingest (e.g. image-scan PDFs like CO/CT) — keeps them monitored cheaply
+    # without the daily re-spend that "uncertain→retry" would cause on an unextractable PDF.
+    auto_draft: bool = True
 
 
 class Settings(BaseSettings):
@@ -59,17 +65,22 @@ class Settings(BaseSettings):
     # is adding an entry here (data, not code). hash_store_path is the flat JSON last-seen store;
     # staging_path is where the agent drafts file pairs before the human-gate PR.
     source_set: list[SourceEntry] = [
+        # CO/CT official text is image-scan PDF — the agent can't faithfully auto-extract it, so
+        # these are poll-only: their HTML status pages are monitored for free, and a real change is
+        # flagged for manual review rather than auto-drafted (and never re-spends an LLM call).
         SourceEntry(
             jurisdiction="co",
             url="https://leg.colorado.gov/bills/sb26-189",
             official_url="https://leg.colorado.gov/bill_files/116489/download",
             kind="pdf",
+            auto_draft=False,
         ),
         SourceEntry(
             jurisdiction="ct",
             url="https://www.cga.ct.gov/asp/cgabillstatus/cgabillstatus.asp?selBillType=Bill&bill_num=SB05&which_year=2026",
             official_url="https://www.cga.ct.gov/2026/act/pa/pdf/2026PA-00015-R00SB-00005-PA.pdf",
             kind="pdf",
+            auto_draft=False,
         ),
         SourceEntry(
             jurisdiction="il",
@@ -82,6 +93,14 @@ class Settings(BaseSettings):
     staging_path: str = "corpus/_staging"
     classify_model: str = "claude-haiku-4-5"
     draft_model: str = "claude-sonnet-4-6"
+    # Provenance allowlist (Phase 9 Batch 5). The agent rejects any draft whose source_url
+    # domain is not in this list. Adding a jurisdiction = adding its official domain here.
+    # Env override: ALLOWED_SOURCE_DOMAINS as a JSON array of domain strings.
+    allowed_source_domains: list[str] = [
+        "leg.colorado.gov",
+        "cga.ct.gov",
+        "ilga.gov",
+    ]
 
 
 settings = Settings()

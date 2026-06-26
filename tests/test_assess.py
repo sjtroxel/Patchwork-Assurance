@@ -235,6 +235,61 @@ def test_assess_change_pdf_content_type_returns_note():
 
 
 # ---------------------------------------------------------------------------
+# Provenance: fetch refuses a non-allowlisted URL (indirect-injection redirect)
+# ---------------------------------------------------------------------------
+
+
+def test_assess_change_refuses_non_allowlisted_fetch_url():
+    # Simulates a poisoned source page that redirects the agent to fetch from an
+    # attacker domain. The fetch is refused before any network call; no official_text
+    # is captured, so the draft stage has nothing to work from.
+    evil_url = "https://evil.example.com/fake-statute.html"
+
+    class _ShouldNotFetchClient:
+        def get(self, url: str, **kwargs) -> _FakeResponse:
+            raise AssertionError(f"fetch must be refused, but it tried to GET {url}")
+
+    llm = StubLLM(
+        text="Tried to fetch attacker URL.",
+        tool_script=[
+            ("fetch_official_text", {"url": evil_url}),
+            ("record_classification", {"verdict": "relevant", "reason": "Injected redirect."}),
+        ],
+    )
+
+    result = assess_change(
+        _CHANGED,
+        llm,
+        http_client=_ShouldNotFetchClient(),
+        allowed_source_domains=["ilga.gov"],
+    )
+
+    # The model's verdict is still recorded, but no text was fetched from the evil URL.
+    assert result.official_text is None
+    assert result.official_url_fetched is None
+
+
+def test_assess_change_allows_allowlisted_fetch_url():
+    llm = StubLLM(
+        text="Fetched official source.",
+        tool_script=[
+            ("fetch_official_text", {"url": _SOURCE.official_url}),
+            ("record_classification", {"verdict": "relevant", "reason": "Official IL source."}),
+        ],
+    )
+
+    result = assess_change(
+        _CHANGED,
+        llm,
+        http_client=_client(),
+        allowed_source_domains=["ilga.gov"],
+    )
+
+    assert result.official_text is not None
+    assert result.official_url_fetched == _SOURCE.official_url
+
+
+# ---------------------------------------------------------------------------
 # CLASSIFY_TOOLS shape (Anthropic tool schema)
 # ---------------------------------------------------------------------------
 

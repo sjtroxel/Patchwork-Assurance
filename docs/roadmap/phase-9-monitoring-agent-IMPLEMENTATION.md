@@ -210,11 +210,12 @@ small re-index step). Test the workflow logic with a fixture diff; the real cron
 end-to-end manual check.
 
 **Batch 5 — wire Phase 7 provenance/sanitization into the ingestion path explicitly + the security
-fixture.** Allowlist official source domains (provenance); a draft without a valid allowlisted
-`source_url` is rejected at the gate; the poisoned-source fixture is caught before the gate. (Much of this
-is reused from Phase 7; this batch makes it explicit on the agent path and locks it with a test.)
+fixture. COMPLETE** (2026-06-25, Sonnet). Allowlist official source domains (provenance); a draft without
+a valid allowlisted `source_url` is rejected at the gate; the poisoned-source fixture is caught before
+the gate. (Much of this is reused from Phase 7; this batch makes it explicit on the agent path and locks
+it with a test.) See §13 for as-built notes.
 
-**Batch 6 — California + NYC LL144, automatically (the agent's demo payloads) + writeup.** *(Target: this
+**Batch 6 — California + NYC LL144, automatically (the agent's demo payloads) + writeup (Opus).** *(Target: this
 coming weekend, if Illinois landed cleanly.)* With the pipeline built and Illinois hand-verified as the
 reference, run the **real** pipeline against the California and NYC LL144 sources: it drafts each file
 pair, opens a PR, **sjtroxel reviews the PR diff against the primary statute and merges**. Then add their
@@ -601,3 +602,145 @@ structural code is stub-tested and committed before any paid run.
 - `src/patchwork_assurance/core/agent/assess.py` — `CLASSIFY_TOOLS`, `AssessResult`,
   `assess_change`, `_extract_text`, `_CLASSIFY_SYSTEM`
 - `tests/test_assess.py` — 11 offline tests
+
+---
+
+### Batch 5 (provenance allowlist + security fixture) — as-built (2026-06-25, Sonnet)
+
+**COMPLETE.** 19 new tests; 288 total pass, ruff green.
+
+**`core/agent/provenance.py`** — new module. `extract_domain(url) → str` (stdlib `urlparse`; empty on
+malformed). `is_allowed(url, allowed_domains) → bool` (exact-hostname match OR subdomain of any entry —
+so `www.ilga.gov` matches `ilga.gov`). `check_provenance(url, allowed_domains) → str | None` (None =
+clean; string = rejection reason). Covers both the "empty url" case (integrity rule) and the
+"non-allowlisted domain" case (provenance rule).
+
+**`config.py`** — `allowed_source_domains: list[str]` added to `Settings`. Default = the three known
+official domains (`leg.colorado.gov`, `cga.ct.gov`, `ilga.gov`). Env-overridable JSON array;
+adding a jurisdiction = adding its domain here (data, not code). Kept separate from `source_set` — an
+explicit allowlist is more conservative (a new source_set entry does not auto-allowlist itself).
+
+**`draft_seam1_pair` gate addition** — `allowed_source_domains: list[str] | None = None` parameter
+added; `None` falls back to `settings.allowed_source_domains`. Provenance gate fires immediately
+after the source_url presence check and before `LawMetadata` Pydantic validation:
+
+```
+gate order in draft_seam1_pair:
+  1. verdict != 'relevant' → ValueError
+  2. official_text is None → rejected
+  3. run_tools → LLM draft
+  4. both tools called?
+  5. scan_for_injection → rejected (injection pattern detected)
+  6. YAML parse → rejected
+  7. source_url present and non-empty → rejected (integrity)
+  8. check_provenance (NEW) → rejected (domain not in allowlist)
+  9. LawMetadata validation → rejected
+ 10. write to staging
+```
+
+**`run_pipeline`** — `allowed_source_domains` parameter added; passed through to `draft_seam1_pair`.
+
+**Security fixture:** `test_poisoned_source_fixture_no_files_staged` — a stub that submits
+`source_url: https://evil.example.com/fake-statute.html` is rejected before any files are written
+to staging. Proves that the provenance gate fires before the staging write.
+
+**Partial-domain safety:** `is_allowed("https://evil-ilga.gov/...", ["ilga.gov"])` is False. The
+endswith check is `".ilga.gov"` (with leading dot), so `evil-ilga.gov` is not a match.
+
+**Files added / modified:**
+- `src/patchwork_assurance/core/agent/provenance.py` — new module
+- `src/patchwork_assurance/config.py` — `allowed_source_domains` setting added
+- `src/patchwork_assurance/core/agent/draft.py` — gate + parameter added
+- `src/patchwork_assurance/core/agent/pipeline.py` — parameter pass-through added
+- `tests/test_provenance.py` — 19 offline tests
+
+---
+
+### Batch 5 review + hardening — Opus pass (2026-06-25, pre-Batch-6)
+
+sjtroxel asked Opus to review the full Sonnet-built front half (Batches 0–5) before Batch 6. Three
+real issues found and the two clear ones fixed; the third is surfaced as a go-live decision. 290 tests
+pass, ruff green.
+
+**FIX 1 (security — HIGH): provenance now gates the actual fetch URL, not just the self-reported
+`source_url`.** Batch 5's `check_provenance` validated the `source_url` the *model wrote into the
+metadata YAML* — but the agent fetched the statute text in `assess.py:fetch_official_text` from
+**whatever URL the model chose**, with no allowlist check. A poisoned source page could redirect the
+agent to fetch attacker-controlled text (indirect injection / SSRF-shaped), then have it write a
+legit-looking `source_url` into the metadata and sail through the draft-stage check. Plan §8 requires
+"the agent must **fetch** from allowlisted official sources" — that half was unenforced.
+`assess_change` now takes `allowed_source_domains` (defaults to settings) and refuses any
+`fetch_official_text` URL not on the allowlist **before the network call**; `run_pipeline` threads it
+through. Tests: `test_assess_change_refuses_non_allowlisted_fetch_url` (no GET attempted, no text
+captured) + an allowlisted-passes companion. This is the more important half of provenance — the gate
+on the model's self-reported `source_url` can't catch text that was already poisoned at fetch time.
+
+**FIX 2 (cost keystone — CRITICAL): the hash store now persists across GitHub Actions runs.**
+`.agent_hashes.json` is gitignored ("re-built by poll") and the runner is ephemeral, so the deployed
+workflow started each run with **no prior hashes** → every source read as "changed" → the diff gate
+(the entire cost-control keystone) was **defeated in production**: an LLM call on every source every
+day, plus a duplicate PR every day. The gitignore comment encodes the wrong mental model — poll does
+not *rebuild* prior state, it *compares against* it. Fixed with an `actions/cache@v4` step (rolling
+`run_id` key + `agent-hashes-` restore-keys) that saves a fresh store each run and restores the most
+recent prior one; a daily cron keeps it warm. A cold miss (first run / >7-day idle) costs one harmless
+all-changed run, not a permanent leak.
+
+**FINDING 3 (go-live decision — NOT code-fixed): the live agent path has no spend chokepoint, and
+CO/CT (PDF sources) re-spend daily under the retry policy.** Two related points to settle before
+flipping the workflow on:
+- `core/agent/__main__.py` builds Anthropic clients and runs with **no `confirm_spend` and no
+  per-run cap** — contrary to this doc's earlier §2/§4 claim that the live run "rides the existing
+  spend chokepoint." `confirm_spend` (refuse-if-unattended + typed confirm) **cannot** be used in an
+  unattended CI cron by definition, so the claim was never achievable as written. Mitigating reality:
+  the workflow is **dormant until the `ANTHROPIC_API_KEY` secret is set** (no key → the LLM call
+  fails per-source → nothing staged → no PR), so spend only begins when sjtroxel deliberately enables
+  it. With Fix 2 in place, steady-state spend ≈ $0 (only real legal change triggers an LLM call).
+- **PDF interaction:** CO/CT poll fine, but their `official_url` is a PDF; `_extract_text` returns a
+  "[PDF…]" note (no extraction dep), so the model records **`uncertain`**, and the pipeline policy is
+  "`uncertain` → do NOT commit the hash → retry next poll." For a PDF that's a **permanent** condition,
+  so CO/CT will re-trigger a Haiku classify **every day forever** (pennies/month, but it violates the
+  "$0 steady state" claim and is sloppy). Decide before go-live: (a) accept the few cents; (b) commit
+  the hash on `uncertain` for unsupported-PDF sources; or (c) drop CO/CT from the *monitor* source_set
+  — they're enacted and stable, so monitoring their bill pages buys little until PDF extraction exists.
+  Recommend (c) for now, revisit when a PDF-extraction step is added.
+
+  **RESOLVED (2026-06-25, sjtroxel approved) — implemented as poll-only mode, not a flat drop.**
+  sjtroxel wanted CO/CT kept under observation rather than removed. Added `SourceEntry.auto_draft:
+  bool = True`; CO/CT are set `auto_draft=False`. A poll-only source is still polled (its HTML status
+  page hashed for free), but a detected change **never invokes an LLM and never auto-drafts** — first
+  sight records a quiet `baseline`; a real change vs baseline is flagged `manual_review` (hash NOT
+  committed, so it persists in the run summary until a human acts). This kills the daily-re-spend leak,
+  keeps CO/CT monitored cheaply, and generalizes to any future PDF/hard source. Tested in
+  `test_pipeline.py` (first-sight baseline, real-change flag with no LLM via `_RaisingLLM`, silent
+  no-change). Limitation noted: a `manual_review` flag surfaces only in the Actions run summary (no
+  push notification) — fine for stable enacted PDFs that rarely change; sjtroxel also raised
+  *news/secondary-source monitoring* for CO/CT as a future idea (would be a new source `kind`, not in
+  scope now).
+
+  **Also found while implementing (LOW, not fixed): `kind` conflation in the poll hash.**
+  `poll_source` hashes the polled status page with `compute_hash(content, source.kind)`, but `kind`
+  describes the *official_url document*, not the *poll url*. For CO/CT (`kind="pdf"`, but the poll url
+  is an HTML status page) the status page is raw-byte hashed instead of HTML-normalized, so trivial
+  nav/byte churn can trip a (free) `manual_review` flag more often than needed. Harmless for poll-only
+  sources (no spend; human reviews), but the cleaner fix is to normalize by the *poll response's* own
+  content type. Left as a watch-item; revisit if CO/CT flag noisily in practice.
+
+**Also noted, low priority (not changed):** `normalize_html` strips script/style/nav/header/footer but
+not dynamic in-body content (timestamps, view counters) — if a real source page embeds those in the
+body, its hash could flap and re-spend; watch the first few live runs. `LawMetadata` does not set
+`extra="forbid"`, so a hallucinated/misspelled *optional* field in an agent draft is silently dropped
+rather than flagged (required-field typos still fail loudly); the human PR review is the backstop.
+
+**Verdict:** the Sonnet-built mechanics (poll/diff/store, assess, draft, gate ordering, PR workflow,
+stub-test discipline) are sound and the gate logic is correct. The two fixes close a real security seam
+and a real cost-keystone defeat; Finding 3 is a deliberate go-live decision for sjtroxel, not a code
+defect. Machine is primed for Batch 6 once Finding 3 is settled.
+
+**Files modified in this pass:**
+- `src/patchwork_assurance/core/agent/assess.py` — fetch-URL provenance gate + `allowed_source_domains`
+- `src/patchwork_assurance/core/agent/pipeline.py` — thread `allowed_source_domains` into `assess_change`;
+  poll-only (`auto_draft=False`) branch (baseline / manual_review, no LLM)
+- `src/patchwork_assurance/config.py` — `SourceEntry.auto_draft` field; CO/CT set `auto_draft=False`
+- `.github/workflows/monitor.yml` — `actions/cache` step persisting `.agent_hashes.json`
+- `tests/test_assess.py` — 2 new provenance-fetch tests
+- `tests/test_pipeline.py` — 3 new poll-only tests (293 total, ruff green)
