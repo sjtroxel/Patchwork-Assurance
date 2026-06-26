@@ -2,7 +2,7 @@ import re
 from dataclasses import dataclass
 
 _HEADING = re.compile(r"^##\s+(.*\S)\s*$")
-_SECTION_NUM = re.compile(r"^(\d+-\d+-\d+\w*|Sec\.\s*\d+\w*|\d+ ILCS \d+/\d+-\d+)")
+_SECTION_NUM = re.compile(r"^(\d+-\d+-\d+\w*|Sec\.\s*\d+\w*|\d+ ILCS \d+/\d+-\d+|\d+-\d+\w*)")
 
 # Char-based size bound (~4 chars/token avoids a tokenizer dependency).
 _MAX_CHARS = 2800  # ~700 tokens

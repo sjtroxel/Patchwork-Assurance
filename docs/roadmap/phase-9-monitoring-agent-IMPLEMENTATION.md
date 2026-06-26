@@ -234,6 +234,68 @@ boundary, plan §7). That is the credibility/security feature, and one of the st
 about. "CA/NYC can be automated; automating them *well* required the Illinois hand-rep first, to learn the
 source reality and set the quality bar the agent must clear."
 
+### Batch 6a (NYC LL144 by hand) — as-built (2026-06-25, Opus)
+
+**COMPLETE — NYC added by hand; 293 tests pass, ruff green, NYC indexed (60 chunks) and retrievable.**
+California (the two-regime complex one) is deferred to the next session per sjtroxel; NYC first banks a
+clean non-state jurisdiction end-to-end.
+
+**Source format:** clean, machine-readable. Official primary source = the **NYC Council Legistar**
+enacted-law text for Int. No. 1894-A / Local Law 144 of 2021 (`legistar.council.nyc.gov`,
+`LegislationDetail.aspx?ID=4344524`). The codified amlegal version (`codelibrary.amlegal.com`,
+N.Y.C. Admin. Code §§ 20-870 to 20-874) is the canonical code cite but **blocks automated fetch**
+(403 to WebFetch; JS-shell to curl) — relevant for a future agent-monitoring of NYC. The Legistar
+`ViewReport.ashx ... Extra=WithText` endpoint returns a **PDF**; I extracted it deterministically with
+pypdf (faithful extraction, not LLM paraphrase) and authored `corpus/nyc-ll144.md` from that verbatim
+text.
+
+**One cleaning call flagged for human verify:** the PDF extraction rendered one phrase as "any component
+**1** category required to be reported" in § 20-870 (Bias audit). The stray "1" appears to be a
+footnote-superscript artifact, and authoritative secondary sources quote "any component category"; I
+cleaned it to "component category." **sjtroxel should spot-check this one phrase against the codified
+amlegal § 20-870 at PR/review time** — it's the single place automated extraction introduced ambiguity.
+
+**Operative mechanism (NOT harmonized):** LL144 is a **procedural bias-audit-and-notice regime**, not an
+outcome-liability or decision-influence standard. Trigger = an AEDT "used to substantially assist or
+replace discretionary decision making" for an employment decision (screening candidates / promoting
+employees) within NYC. Recorded in metadata `operative_standard` in the law's own terms.
+
+**Modeling decisions (no schema change — same as IL):**
+- `jurisdiction: "New York City"` — the matchable nexus token. It appears as a selectable jurisdiction in
+  the corpus-driven memo form; it is **not** in `US_STATES` (the home-state field), so a NY-State-but-not-NYC
+  business does not falsely match LL144 (correct — LL144 is NYC-specific). Verified in scope tests.
+- `regulated_roles: [deployer]` — LL144 binds the **employer / employment agency that uses** the AEDT, not
+  the vendor that builds it. A developer-only business is correctly out of scope (gold case
+  `nyc-developer-only`).
+- `private_right_of_action: false` — enforced by DCWP / corporation counsel via OATH; § 20-874 preserves
+  but does not create private civil-action rights.
+
+**Infrastructure additions for NYC:**
+- `core/corpus/chunk.py:_SECTION_NUM` — added `\d+-\d+\w*` so `20-870`-style headings extract as short
+  section numbers (CO's `\d+-\d+-\d+` matches first; no conflict).
+- `core/grounding.py:_CITATION_PATTERNS` — added `20-\d{3}` so memo prose citations like `20-871` resolve.
+
+**§7-B presentation hand-updates done (with the "notable non-state jurisdiction" framing sjtroxel asked
+for — NYC's population rivals many states, its AEDT law sits beside them):** `ui/memo.py` hero +
+`_FALLBACK_META`; `README.md` (operative-terms bullet + Status); `CLAUDE.md` (corpus line); `site/index.html`
+(lede). `ui/chat.py` and `prompts.py` were already generic (IL batch) — no change needed.
+
+**Gold cases:** all 18 existing cases annotated with their `nyc-ll144` verdict (all "no" except
+`location-unknown` = "uncertain" via blank jurisdiction); 4 new NYC cases added (`nyc-employment-deployer`,
+`nyc-multistate-employment` (NYC+IL), `nyc-developer-only`, `nyc-domain-mismatch`). 22 cases total;
+`test_scope_accuracy_is_perfect_on_gold` green (which confirms every asserted verdict).
+
+**Index note (operational):** `api/main.py` only auto-loads the corpus when `store.count()==0`, so an
+existing local `.chroma` will NOT pick up NYC on boot. Ran `python -m patchwork_assurance.core.corpus.build`
+(idempotent upsert, local FastEmbed, $0) to index it — store now 60 chunks, NYC top-ranked on an AEDT
+query. On Railway a fresh deploy boots an empty store and full-indexes automatically; an existing
+persistent store would need the same `build` reindex step.
+
+**Remaining (optional, noted not done):** `eval/gold/retrieval_cases.yaml` has no NYC retrieval case (the
+scope gold set covers NYC; this is recall-hardening, not correctness). If the agent ever *monitors* NYC,
+add `legistar.council.nyc.gov` / `nyc.gov` to `allowed_source_domains` and a `source_set` entry (likely
+`auto_draft=False`, since amlegal blocks bots and Legistar serves PDFs).
+
 ---
 
 ## 7. Adding a jurisdiction touches more than the corpus (the honest boundary)

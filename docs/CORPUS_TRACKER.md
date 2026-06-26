@@ -53,8 +53,8 @@ recorded as-is. CO "materially influence" ≠ CT/TX "substantial factor" ≠ IL 
 | California | (a) CPPA/CCPA **ADMT regulations**; (b) **FEHA** ADS regulations | (a) "significant decisions" = finances, housing, education, employment, health; (b) employment discrimination | n/a — broad "ADMT"/"ADS" definitions incl. profiling | (a) regs effective **Jan 1 2026**, phased: ADMT consumer-rights compliance from **Jan 1 2027**, risk assessments by **Dec 31 2027**, reporting from **Apr 1 2028**; (b) **Oct 2025** | **CANDIDATE** (strong fit, complex) | — | TWO regimes, not one statute: CPPA privacy regs (pre-use notice, opt-out, access, risk assessments) + FEHA civil-rights regs (no discriminatory ADS in employment). Real obligations — good app fit — but the phased dates + two-regime structure need careful honest modeling. |
 | Texas | TRAIGA (HB 149) | Mostly **government use** + categorical prohibited practices | (intent-based) | **Jan 1 2026** | **SLATED — but RECONSIDER (see §5 flag)** | `tx-traiga-hb149` (planned) | **The enacted law is NOT the CO-style broad law the brainstorm assumed (that was the draft).** Enacted TRAIGA eliminates most private-sector obligations: prohibits only **intentional** AI discrimination (no disparate impact), **no audit or notice obligations**, focus on gov use + categorical bans (behavioral manipulation, deepfake CSAM, etc.). AG-exclusive enforcement, 60-day cure. **Low "business obligation" content → weak demonstration of the app's value.** |
 | New York (state) | RAISE Act (signed Dec 19 2025) | Frontier-model *safety* (catastrophic-harm; >$500M-rev devs, >10^26 FLOPs) | — | 2026 (chapter amendments) | **OUT OF SCOPE** | — | Different subject matter (frontier-model safety, not business obligations in consequential decisions). Do not ingest for this app. NY also enacted an **AI Transparency Law** (Jan 2026) — verify scope, but likely transparency/chatbot, not our subject. |
-| New York **City** | Local Law 144 (AEDT) | Employment (automated employment decision tools) | — (bias-audit + notice mechanism) | In force since **Jul 2023** | **CANDIDATE (strong)** | `nyc-ll144` (planned) | Squarely our subject matter: independent bias-audit mandate + candidate notice + penalties; real business obligations over one of the largest labor markets in the US. **Scope decision (sjtroxel, 2026-06-25): the app admits a strong major-municipality rule like this — "NYC is practically its own state."** Honest asterisk: it's a *bias-audit ordinance*, a different obligation structure than the CO/CT consequential-decisions statutes — which adds useful variety to the corpus (first municipal + first audit-style entry). |
-| New Jersey | (bill) | Employment | — | — | **NOT ENACTED** | — | A comparable bill **died in committee**. Nothing to ingest; re-check next pass. |
+| New York **City** | Local Law 144 (AEDT); N.Y.C. Admin. Code §§ 20-870 to 20-874 | Employment (automated employment decision tools) | — (bias-audit + notice mechanism; "substantially assist or replace discretionary decision making") | In force since **Jul 2023** (enacted Dec 11 2021; eff. Jan 1 2023; DCWP enforcement Jul 5 2023) | **IN CORPUS** | `nyc-ll144` | Added 2026-06-25 (Phase 9 Batch 6a, by hand). Source = NYC Council Legistar enacted text (Int. 1894-A); codified amlegal version blocks bots. Squarely our subject matter: independent bias-audit mandate + candidate notice + penalties; real business obligations over one of the largest labor markets in the US. **Scope decision (sjtroxel, 2026-06-25): the app admits a strong major-municipality rule like this — "NYC is practically its own state."** Honest asterisk: it's a *bias-audit ordinance*, a different obligation structure than the CO/CT consequential-decisions statutes — useful variety (first municipal + first audit-style entry). |
+| New Jersey | **(a)** AEDT *bill* (legislative); **(b) N.J.A.C. 13:16** — DCR "Rules Pertaining to Disparate Impact Discrimination" | Employment (also housing, lending, public accommodations, contracting) | effect-based — disparate impact (three-step burden-shifting framework) | (a) n/a; **(b) adopted, effective Dec 15 2025** | **(a) NOT ENACTED · (b) CANDIDATE (after CA)** | — | **Two different NJ items — do not conflate.** (a) The *legislative bill* died in committee (nothing to ingest). (b) **N.J.A.C. 13:16** is a *separately adopted DCR regulation*, effective Dec 15 2025, that codifies disparate-impact liability and **expressly covers automated employment decision tools** (defines AEDT; employer can't blame the vendor; tools must be tested for adverse impact before use). In scope — effect-based, employment + more; a cousin to IL HB 3773. Surfaced by sjtroxel 2026-06-25; our earlier "skip NJ" applied **only to the dead bill, not to 13:16**. Broader/mushier than CO/CT/NYC (a burden-shifting *framework*, not crisp procedural duties) — needs an honest `operative_standard` model at ingest. |
 | Utah / Virginia / Montana / others | — | — | — | — | **TO RESEARCH / none found** | — | No in-scope *consequential-decisions/employment* law surfaced this pass. (Utah has an AI *disclosure* law — different subject matter.) A full 50-state scan against this exact filter is still open (§4). |
 
 ---
@@ -78,13 +78,16 @@ recorded as-is. CO "materially influence" ≠ CT/TX "substantial factor" ≠ IL 
 
 ## 4. Open research questions (remaining after the 2026-06-25 pass)
 
-Resolved this pass: NY (RAISE = out of scope; NYC LL144 = the city in-scope item), NJ (bill died),
-federal posture (preemption fight, no enacted in-scope statute), CA detail (two regimes), TX scope (the
-big flag — §5). Still open:
+Resolved this pass: NY (RAISE = out of scope; NYC LL144 = the city in-scope item), federal posture
+(preemption fight, no enacted in-scope statute), CA detail (two regimes), TX scope (the big flag — §5).
+**NJ correction (2026-06-25 eve):** the only NJ item resolved here was a *legislative bill that died* —
+that did **not** clear **N.J.A.C. 13:16**, the DCR disparate-impact rules (adopted, eff. Dec 15 2025,
+expressly covering AEDTs), which is a live CANDIDATE slated after California (§2, §5). Still open:
 
 1. **Full 50-state scan against the exact filter** (business obligations in consequential/employment
-   decisions — NOT disclosure/deepfake/frontier laws). This pass confirmed CO/CT/IL/CA + NYC LL144 and
-   ruled out NJ; it did not exhaustively clear the other ~44 states.
+   decisions — NOT disclosure/deepfake/frontier laws). This pass confirmed CO/CT/IL/CA + NYC LL144,
+   surfaced NJ N.J.A.C. 13:16 (candidate), and ruled out only the dead NJ bill; it did not exhaustively
+   clear the other ~44 states.
 2. ~~**Verify the IL date** (Jan 1 vs Feb 2026 provisions) and whether to ingest HB 3773 alone or also
    the AI Video Interview Act (AIVII).~~ **RESOLVED 2026-06-25:** Jan 1 2026, all provisions (no
    phase-in). HB 3773 only — AIVII deferred (different mechanism).
@@ -104,21 +107,22 @@ human gates every corpus change.
 
 ## 5. Implementation roadmap (slated → in corpus)
 
-> **ORDER DECIDED (sjtroxel, 2026-06-25):** next add = **Illinois**; if that goes well, **this coming
-> weekend** add the **California** statute (complex) + **NYC Local Law 144**. **Texas is dropped from the
-> headline slot** — the enacted TRAIGA imposes almost no private-sector obligations (intentional
-> discrimination only, no audits/notices, gov-use focus), so it would mostly make the app say *"you're
-> largely not regulated here"* — a weak showcase. Texas is parked as an optional later completeness add,
-> not the next build.
+> **ORDER (updated 2026-06-25 eve):** CO/CT/IL and **NYC Local Law 144 are now IN CORPUS**. Next add =
+> **California** (the complex two-regime one), then **New Jersey N.J.A.C. 13:16** (DCR disparate-impact
+> rules — surfaced by sjtroxel 2026-06-25; the earlier "NJ dead" note was the *bill*, not these adopted
+> rules). **Texas stays parked** — the enacted TRAIGA imposes almost no private-sector obligations
+> (intentional discrimination only, no audits/notices, gov-use focus), so it would mostly make the app
+> say *"you're largely not regulated here"* — a weak showcase, an optional later completeness add.
 
 | What | Fit | Order | Status |
 |---|---|---|---|
 | CO + CT | strong | done | In corpus (v1). |
-| **Illinois (HB 3773)** | strong | **NEXT** | The next add (by hand — the calibration rep + a real-obligations law). |
-| California (CPPA ADMT + FEHA) | strong but complex | **this weekend** (after IL) | The complex one — two regimes, phased dates; needs an honest scope model. |
-| NYC Local Law 144 | strong | **this weekend** (after IL) | Bias-audit + notice; municipal + audit-style variety. |
+| Illinois (HB 3773) | strong | done | In corpus (Batch 0, by hand). |
+| NYC Local Law 144 | strong | done | In corpus (Batch 6a, by hand). Bias-audit + notice; first municipal + audit-style entry. |
+| **California (CPPA ADMT + FEHA)** | strong but complex | **NEXT** | The complex one — two regimes, phased dates; needs an honest scope model. |
+| **New Jersey N.J.A.C. 13:16** | strong (effect-based, employment+) | **after California** | DCR "disparate impact" rules, adopted eff. Dec 15 2025; expressly covers AEDTs. Cousin to IL HB 3773 but a broader burden-shifting *framework* — model `operative_standard` honestly. |
 | Texas (TRAIGA) | **weak** | parked | Optional later completeness add; NOT the headline. Weak value demo (see note above). |
-| NJ / other states / federal | n/a / context | — | NJ bill dead; federal = preemption fight (not ingestible); 50-state scan still open (§4). |
+| Other states / federal | n/a / context | — | Federal = preemption fight (not ingestible); 50-state scan still open (§4). |
 
 > Reminder (ROADMAP §6): adding a jurisdiction is the **whole job**, not just the corpus drop — landing
 > page, README, and Phase 6 eval gold cases also update. See `phase-9-monitoring-agent-IMPLEMENTATION.md
@@ -140,5 +144,7 @@ from primary statutory text** (corpus discipline).
 - HR Dive / DISA / ailawsbystate, AI hiring laws by state (NYC LL144, IL AIVII, etc.)
 - Latham & Watkins / White & Case / Ropes & Gray / King & Spalding, federal EO 14365 + preemption posture
 - Morgan Lewis, "AI Enforcement Accelerates as Federal Policy Stalls and States Step In"
+- NJ OAG / Morgan Lewis / Consumer Financial Services Law Monitor / Ogletree, **N.J.A.C. 13:16** DCR
+  disparate-impact rules (adopted, eff. Dec 15 2025; AEDT coverage) — added 2026-06-25 eve
 
 *(Full URLs captured in the session research log; re-fetch live before relying on any specific date.)*

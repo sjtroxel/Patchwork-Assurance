@@ -15,7 +15,8 @@
 # Scope verdict values are the real InScope literals: "yes" | "no" | "uncertain".
 # They are QUOTED on purpose: unquoted yes/no are YAML booleans (True/False), but the
 # scope screen returns the strings "yes"/"no" — quoting keeps the comparison string-vs-string.
-# Law ids: co-sb26-189 (Colorado), ct-sb5-pa26-15 (Connecticut), il-hb3773 (Illinois).
+# Law ids: co-sb26-189 (Colorado), ct-sb5-pa26-15 (Connecticut), il-hb3773 (Illinois),
+#          nyc-ll144 (New York City — non-state jurisdiction, AEDT bias-audit law).
 #
 # Coverage matrix (each case exercises a distinct branch of scope.py / grounding path):
 #    1 co-employment-deployer       CO yes / CT no  / IL no   baseline; CT/IL excluded by no nexus
@@ -38,6 +39,13 @@
 #   16 il-tristate-employment       CO yes / CT no  / IL yes  IL + CO multistate: two laws simultaneously
 #   17 il-home-state                CO no  / CT no  / IL yes  home_state=Illinois auto-nexus branch
 #   18 il-domain-mismatch           CO no  / CT no  / IL no   IL employment-only: housing domain = no (mirror of #5)
+#   19 nyc-employment-deployer      CO no / CT no / IL no / NYC yes   baseline NYC AEDT in-scope case
+#   20 nyc-multistate-employment    CO no / CT no / IL yes / NYC yes  NYC + Illinois: two laws at once (non-state + state)
+#   21 nyc-developer-only           CO no / CT no / IL no / NYC no    AEDT vendor (developer) not regulated by LL144
+#   22 nyc-domain-mismatch          CO no / CT no / IL no / NYC no    LL144 employment-only: housing domain = no
+#
+# NYC note: cases 1-18 also assert nyc-ll144: "no" (none has a New York City nexus), EXCEPT case 11
+# (location-unknown), where a blank jurisdiction makes every law "uncertain", nyc-ll144 included.
 #
 # Verdict-vs-grounding note: developer/deployer and ai_use yes/unsure do NOT change the scope VERDICT
 # (the role gate only tests membership; "unsure" only annotates). They earn their place because they
@@ -61,6 +69,7 @@
       co-sb26-189: "yes"
       ct-sb5-pa26-15: "no"
       il-hb3773: "no"
+      nyc-ll144: "no"
     grounding_sections:
       - "6-1-1704"   # point-of-interaction notice
       - "6-1-1705"   # human review / reconsideration
@@ -83,6 +92,7 @@
       co-sb26-189: "no"
       ct-sb5-pa26-15: "yes"
       il-hb3773: "no"
+      nyc-ll144: "no"
     grounding_sections:
       - "Sec. 9"    # interaction disclosure to employee/applicant
       - "Sec. 10"   # pre-decision written notice
@@ -106,6 +116,7 @@
       co-sb26-189: "yes"
       ct-sb5-pa26-15: "yes"
       il-hb3773: "no"
+      nyc-ll144: "no"
     grounding_sections:
       # Union of both laws' employment-deployer sections. The harness retrieves PER in-scope
       # jurisdiction (mirroring the memo path's per-law filtered retrieve), so each law is
@@ -135,6 +146,7 @@
       co-sb26-189: "yes"
       ct-sb5-pa26-15: "no"
       il-hb3773: "no"
+      nyc-ll144: "no"
     grounding_sections:
       - "6-1-1704"
       - "6-1-1705"
@@ -158,6 +170,7 @@
       co-sb26-189: "no"       # no Colorado nexus
       ct-sb5-pa26-15: "no"    # Connecticut's AI law does not cover housing
       il-hb3773: "no"
+      nyc-ll144: "no"
     grounding_sections: []  # out of scope for both — nothing to ground
     obligations: []
 
@@ -177,6 +190,7 @@
       co-sb26-189: "uncertain"
       ct-sb5-pa26-15: "no"
       il-hb3773: "no"
+      nyc-ll144: "no"
     grounding_sections:
       # An uncertain law is still retrieved and explained by the memo (in_scope in {yes, uncertain}).
       - "6-1-1704"
@@ -199,6 +213,7 @@
       co-sb26-189: "no"
       ct-sb5-pa26-15: "no"
       il-hb3773: "no"
+      nyc-ll144: "no"
     grounding_sections: []
     obligations: []
 
@@ -219,6 +234,7 @@
       co-sb26-189: "no"
       ct-sb5-pa26-15: "no"
       il-hb3773: "no"
+      nyc-ll144: "no"
     grounding_sections: []
     obligations: []
 
@@ -240,6 +256,7 @@
       co-sb26-189: "yes"
       ct-sb5-pa26-15: "yes"
       il-hb3773: "no"
+      nyc-ll144: "no"
     grounding_sections:
       - "6-1-1702"   # CO developer documentation duty
       - "Sec. 8"     # CT developer info-to-deployer duty
@@ -263,6 +280,7 @@
       co-sb26-189: "yes"
       ct-sb5-pa26-15: "no"
       il-hb3773: "no"
+      nyc-ll144: "no"
     grounding_sections:
       - "6-1-1704"
       - "6-1-1705"
@@ -285,6 +303,7 @@
       co-sb26-189: "uncertain"
       ct-sb5-pa26-15: "uncertain"
       il-hb3773: "uncertain"
+      nyc-ll144: "uncertain"
     grounding_sections:
       # Both laws are uncertain, so both are retrieved/explained (in_scope in {yes, uncertain}).
       # Scored per in-scope jurisdiction, as in case multistate-employment.
@@ -313,6 +332,7 @@
       co-sb26-189: "no"        # ai_companion is not a Colorado covered domain
       ct-sb5-pa26-15: "yes"
       il-hb3773: "no"
+      nyc-ll144: "no"
     grounding_sections:
       - "Sec. 5"   # AI companion operator: safety protocol + human-disclosure duties
     obligations:
@@ -334,6 +354,7 @@
       co-sb26-189: "uncertain"
       ct-sb5-pa26-15: "no"
       il-hb3773: "no"
+      nyc-ll144: "no"
     grounding_sections:
       - "6-1-1704"
       - "6-1-1705"
@@ -359,6 +380,7 @@
       co-sb26-189: "no"        # no Colorado nexus
       ct-sb5-pa26-15: "yes"    # in scope via employment; housing is not CT-covered but doesn't defeat scope
       il-hb3773: "no"
+      nyc-ll144: "no"
     grounding_sections:
       # Only the employment sections — the part of this business CT actually reaches.
       - "Sec. 9"
@@ -383,6 +405,7 @@
       co-sb26-189: "no"
       ct-sb5-pa26-15: "no"
       il-hb3773: "yes"
+      nyc-ll144: "no"
     grounding_sections:
       - "775 ILCS 5/2-102"   # civil rights violation — prohibition + notice
     obligations:
@@ -406,6 +429,7 @@
       co-sb26-189: "yes"
       ct-sb5-pa26-15: "no"
       il-hb3773: "yes"
+      nyc-ll144: "no"
     grounding_sections:
       - "6-1-1704"           # CO point-of-interaction notice
       - "6-1-1705"           # CO human review / reconsideration
@@ -431,6 +455,7 @@
       co-sb26-189: "no"
       ct-sb5-pa26-15: "no"
       il-hb3773: "yes"
+      nyc-ll144: "no"
     grounding_sections:
       - "775 ILCS 5/2-102"
     obligations:
@@ -454,5 +479,98 @@
       co-sb26-189: "no"       # no Colorado nexus
       ct-sb5-pa26-15: "no"    # no Connecticut nexus
       il-hb3773: "no"         # Illinois HB 3773 covers employment, not housing
+      nyc-ll144: "no"         # no New York City nexus
+    grounding_sections: []
+    obligations: []
+
+- id: nyc-employment-deployer
+  rationale: >
+    The baseline New York City case. A business that uses an automated employment decision tool
+    (AEDT) to screen New York City candidates or employees, acting as the employer (a deployer in
+    this corpus taxonomy). NYC Local Law 144 reaches employers and employment agencies that use
+    AEDTs for covered employment decisions, so it is facially in scope. No Colorado, Connecticut, or
+    Illinois nexus, so none of those laws reach this business. NYC is a non-state jurisdiction
+    included for its scale — its AEDT bias-audit law sits naturally beside the state laws.
+  situation:
+    jurisdictions: [New York City]
+    decision_domains: [employment]
+    roles: [deployer]
+    ai_use: "yes"
+  expect:
+    scope:
+      co-sb26-189: "no"
+      ct-sb5-pa26-15: "no"
+      il-hb3773: "no"
+      nyc-ll144: "yes"
+    grounding_sections:
+      - "20-871"   # bias-audit, publication, and notice requirements
+    obligations:
+      - "Bias audit: ensure the AEDT has had an independent bias audit within the prior year before using it to screen NYC candidates or employees (NYC 20-871(a)(1))."
+      - "Publication and notice: publish a summary of the most recent bias-audit results on the employer/agency website, and notify each NYC candidate/employee at least ten business days before use, including the job qualifications and characteristics the tool assesses and the chance to request an alternative selection process (NYC 20-871(a)(2), (b))."
+
+- id: nyc-multistate-employment
+  rationale: >
+    An out-of-state company (home state Ohio) making AEDT-assisted employment decisions about
+    workers in both New York City and Illinois. Both laws reach this company because each has
+    people it screens with AI. Tests the NYC + state combination, handled independently — the
+    headline "non-state jurisdiction alongside a state law" case. Colorado and Connecticut are out
+    (no nexus).
+  situation:
+    home_state: Ohio
+    jurisdictions: [New York City, Illinois]
+    decision_domains: [employment]
+    roles: [deployer]
+    ai_use: "yes"
+  expect:
+    scope:
+      co-sb26-189: "no"
+      ct-sb5-pa26-15: "no"
+      il-hb3773: "yes"
+      nyc-ll144: "yes"
+    grounding_sections:
+      - "20-871"             # NYC bias-audit + notice
+      - "775 ILCS 5/2-102"   # IL civil rights violation — prohibition + notice
+    obligations:
+      - "New York City: bias audit within the prior year, publish the audit summary, and give candidates/employees at least ten business days' notice before using the AEDT (NYC 20-871)."
+      - "Illinois: do not use AI with discriminatory effect in covered employment decisions and notify employees of AI use (775 ILCS 5/2-102(L))."
+
+- id: nyc-developer-only
+  rationale: >
+    A vendor that builds and sells an AEDT but does not itself use it to screen candidates or
+    employees. NYC Local Law 144 places its obligations on the employer or employment agency that
+    USES the tool (the deployer), not on the vendor that builds it, so LL144 does not reach a
+    developer-only business. Mirror of the Illinois and Colorado developer-exclusion logic
+    (here both IL and NYC exclude the developer-only role).
+  situation:
+    jurisdictions: [New York City]
+    decision_domains: [employment]
+    roles: [developer]
+    ai_use: "yes"
+  expect:
+    scope:
+      co-sb26-189: "no"
+      ct-sb5-pa26-15: "no"
+      il-hb3773: "no"
+      nyc-ll144: "no"
+    grounding_sections: []
+    obligations: []
+
+- id: nyc-domain-mismatch
+  rationale: >
+    A business making AI-assisted HOUSING decisions about New York City residents. NYC Local Law
+    144 is an employment-only law (it governs AEDTs used to screen candidates for employment or
+    employees for promotion), so a housing use falls outside its scope. A false "yes" here would
+    assert obligations the law does not impose. Mirror of the CT and IL domain-mismatch cases.
+  situation:
+    jurisdictions: [New York City]
+    decision_domains: [housing]
+    roles: [deployer]
+    ai_use: "yes"
+  expect:
+    scope:
+      co-sb26-189: "no"
+      ct-sb5-pa26-15: "no"
+      il-hb3773: "no"
+      nyc-ll144: "no"         # LL144 covers employment, not housing
     grounding_sections: []
     obligations: []

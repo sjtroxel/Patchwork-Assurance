@@ -56,8 +56,10 @@ The design choices are the point of the project. A few are load-bearing:
   section/subsection) so every chunk carries its own citation. The same embedding model is asserted at
   ingest and query time, because a mismatch silently returns nothing rather than erroring.
 - **Each law's operative term is preserved, not harmonized.** Colorado turns on "materially influence"
-  (ADMT); Connecticut on "substantial factor" (AERDT); Illinois on discriminatory effect. The tool reads
-  each statute's own language from metadata rather than flattening them into a single test.
+  (ADMT); Connecticut on "substantial factor" (AERDT); Illinois on discriminatory effect; New York City's
+  AEDT law on a bias-audit-and-notice trigger ("substantially assist or replace discretionary decision
+  making"). The tool reads each statute's own language from metadata rather than flattening them into a
+  single test.
 - **Two-model split.** Chat runs on a fast, inexpensive model; the memo runs on a stronger one. Memo
   generation is rate-limited per user as a cost cap; chat is unlimited.
 
@@ -100,7 +102,9 @@ docs/          ROADMAP, per-phase design + as-built docs, SPEC (data/API contrac
 
 v1 is deployed and works end to end over the shared retrieval core, exposed as the memo and chat
 surfaces, hosted on Railway. The corpus currently covers Colorado SB 26-189, Connecticut SB 5 (PA 26-15),
-and Illinois HB 3773 (PA 103-0804); it is designed to grow as the patchwork grows. Post-v1 work
+and Illinois HB 3773 (PA 103-0804), plus New York City Local Law 144 (the AEDT bias-audit law) — included
+as a notable non-state jurisdiction whose population rivals many states and whose AI-employment law sits
+naturally beside them. The corpus is designed to grow as the patchwork grows. Post-v1 work
 (evaluation, observability, hybrid retrieval, a corpus-monitoring agent, MCP) is intentionally gated
 behind a working v1 rather than built up front.
 

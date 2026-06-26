@@ -14,7 +14,8 @@ render_chrome()
 render_hero(
     "Compliance Memo",
     "Describe your situation for a grounded, educational summary of how the state AI laws in our "
-    "corpus may reach your business, even from out of state. Not legal advice.",
+    "corpus — plus New York City's AEDT law, a city large enough to sit beside the states — may "
+    "reach your business, even from out of state. Not legal advice.",
 )
 
 # Business-language labels for the consequential-decision domains (presentation only). The form
@@ -98,7 +99,7 @@ US_STATES = [
 
 # Used only if /meta is unreachable, so the form still renders.
 _FALLBACK_META = {
-    "jurisdictions": ["Colorado", "Connecticut", "Illinois"],
+    "jurisdictions": ["Colorado", "Connecticut", "Illinois", "New York City"],
     "decision_domains": list(DOMAIN_LABELS),
     "roles": ["deployer", "developer"],
 }

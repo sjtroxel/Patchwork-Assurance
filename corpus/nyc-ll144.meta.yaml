@@ -1,0 +1,33 @@
+law_id: nyc-ll144
+jurisdiction: New York City
+short_name: NYC LL144 (AEDT Law)
+law_name: "A Local Law to amend the administrative code of the city of New York, in relation to automated employment decision tools (Local Law 144 of 2021, Int. No. 1894-A)"
+citation: "N.Y.C. Admin. Code §§ 20-870 to 20-874 (Local Law 144 of 2021)"
+also_known_as:
+  - "NYC AEDT Law"
+  - "Local Law 144"
+  - "NYC bias audit law"
+status: effective
+signed_date: 2021-12-11
+effective_dates:
+  - { date: 2023-01-01, applies_to: "Law takes effect (Int. No. 1894-A, § 2)" }
+  - { date: 2023-07-05, applies_to: "DCWP begins enforcement of the law and the final rule (6 RCNY §§ 5-300 to 5-304)" }
+operative_standard: 'Procedural bias-audit-and-notice regime (NOT an outcome-liability or decision-influence standard — do not harmonize with Colorado "materially influence", Connecticut "substantial factor", or Illinois effect-based discrimination). The obligation triggers when an automated employment decision tool (AEDT) is "used to substantially assist or replace discretionary decision making" for an employment decision (screening candidates for employment, or employees for promotion, within New York City). On trigger, the employer/employment agency must (1) have a bias audit done within the prior year, (2) publish a summary of the audit results, and (3) give candidates/employees advance notice. It does not itself impose liability for a discriminatory outcome; it mandates audit + disclosure + notice, enforced by civil penalty.'
+regulated_tech_term: '"Automated employment decision tool" (AEDT) — any computational process, derived from machine learning, statistical modeling, data analytics, or artificial intelligence, that issues simplified output (a score, classification, or recommendation) used to substantially assist or replace discretionary decision making for employment decisions affecting natural persons. Excludes tools that do not automate/substantially assist/replace discretionary decision-making and do not materially impact persons (junk email filters, firewalls, antivirus, calculators, spreadsheets, databases).'
+regulated_roles: [deployer]
+scope_domains: [employment]
+enforcement_authority: "New York City Department of Consumer and Worker Protection (DCWP); NYC corporation counsel (court actions); the Office of Administrative Trials and Hearings (OATH) hears penalty proceedings"
+enforcement_mechanism: "Civil penalties via DCWP / OATH: not more than $500 for a first violation (and each additional violation on the same day), and $500 to $1,500 for each subsequent violation. Each day an AEDT is used in violation is a separate violation; each failure to provide a required notice is a separate violation. The corporation counsel may bring court actions to correct violations and mandate compliance."
+cure_period: null
+private_right_of_action: false
+key_obligations:
+  - { section: "20-871(a)(1)", label: "Bias audit: the AEDT must have been the subject of a bias audit conducted no more than one year before its use" }
+  - { section: "20-871(a)(2)", label: "Publication: a summary of the most recent bias audit results and the tool's distribution date must be made publicly available on the employer/agency website before use" }
+  - { section: "20-871(b)(1)", label: "Candidate notice: notify each NYC-resident candidate/employee that an AEDT will be used, at least ten business days before use, and allow a request for an alternative selection process or accommodation" }
+  - { section: "20-871(b)(2)", label: "Job-criteria notice: disclose the job qualifications and characteristics the AEDT will use, at least 10 business days before use" }
+  - { section: "20-871(b)(3)", label: "Data disclosure on request: if not on the website, provide information about the data type, source, and retention policy within 30 days of a written request" }
+  - { section: "20-872", label: "Penalties: civil penalties per violation; each day of use and each missed notice is a separate violation" }
+  - { section: "20-874", label: "Construction: does not limit a candidate/employee's right to bring a civil action, nor the NYC Commission on Human Rights' authority to enforce Title 8" }
+source_url: "https://legistar.council.nyc.gov/LegislationDetail.aspx?ID=4344524&GUID=B051915D-A9AC-451E-81F8-6596032FA3F9"
+source_page: "https://www.nyc.gov/site/dca/about/automated-employment-decision-tools.page"
+retrieved_on: 2026-06-25

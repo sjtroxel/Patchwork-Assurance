@@ -57,6 +57,7 @@ _CITATION_PATTERNS = (
     r"\d+-\d+-\d{4}",  # Colorado, e.g. 6-1-1704
     r"Sec\.\s*\d+",  # Connecticut, e.g. Sec. 9
     r"\d+ ILCS \d+/\d+-\d+",  # Illinois, e.g. 775 ILCS 5/2-102
+    r"20-\d{3}",  # NYC, e.g. 20-871 (Admin. Code Title 20, Subchapter 25)
 )
 
 
