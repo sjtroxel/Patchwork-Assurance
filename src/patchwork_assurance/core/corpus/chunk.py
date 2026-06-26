@@ -2,7 +2,13 @@ import re
 from dataclasses import dataclass
 
 _HEADING = re.compile(r"^##\s+(.*\S)\s*$")
-_SECTION_NUM = re.compile(r"^(\d+-\d+-\d+\w*|Sec\.\s*\d+\w*|\d+ ILCS \d+/\d+-\d+|\d+-\d+\w*)")
+# Normalize a section heading to its bare citation token. The optional leading "§ " lets a California
+# heading ("§ 11008.1. Automated-Decision Systems.") yield "11008.1"; the five-digit alternative
+# covers the 2 CCR tit. 2 section range (11008-11013). Non-§ headings are unaffected (the prefix is
+# optional and a state's own format still matches first by alternation order).
+_SECTION_NUM = re.compile(
+    r"^(?:§\s*)?(\d+-\d+-\d+\w*|Sec\.\s*\d+\w*|\d+ ILCS \d+/\d+-\d+|\d{4,5}(?:\.\d+)?|\d+-\d+\w*)"
+)
 
 # Char-based size bound (~4 chars/token avoids a tokenizer dependency).
 _MAX_CHARS = 2800  # ~700 tokens

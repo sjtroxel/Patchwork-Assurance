@@ -16,7 +16,8 @@
 # They are QUOTED on purpose: unquoted yes/no are YAML booleans (True/False), but the
 # scope screen returns the strings "yes"/"no" — quoting keeps the comparison string-vs-string.
 # Law ids: co-sb26-189 (Colorado), ct-sb5-pa26-15 (Connecticut), il-hb3773 (Illinois),
-#          nyc-ll144 (New York City — non-state jurisdiction, AEDT bias-audit law).
+#          nyc-ll144 (New York City — non-state jurisdiction, AEDT bias-audit law),
+#          ca-feha-ads (California — FEHA automated-decision-system employment regs, 2 CCR 11008 et seq.).
 #
 # Coverage matrix (each case exercises a distinct branch of scope.py / grounding path):
 #    1 co-employment-deployer       CO yes / CT no  / IL no   baseline; CT/IL excluded by no nexus
@@ -43,9 +44,15 @@
 #   20 nyc-multistate-employment    CO no / CT no / IL yes / NYC yes  NYC + Illinois: two laws at once (non-state + state)
 #   21 nyc-developer-only           CO no / CT no / IL no / NYC no    AEDT vendor (developer) not regulated by LL144
 #   22 nyc-domain-mismatch          CO no / CT no / IL no / NYC no    LL144 employment-only: housing domain = no
+#   23 ca-employment-deployer       CA yes / others no               baseline CA ADS in-scope case
+#   24 ca-multistate-employment     CA yes / IL yes / others no       CA + Illinois: two laws at once
+#   25 ca-home-state                CA yes / others no               home_state=California auto-nexus branch
+#   26 ca-developer-only            CA no  / others no               build-only ADS vendor not regulated (not an agent)
+#   27 ca-domain-mismatch           CA no  / others no               CA ADS regs employment-only: housing domain = no
 #
-# NYC note: cases 1-18 also assert nyc-ll144: "no" (none has a New York City nexus), EXCEPT case 11
-# (location-unknown), where a blank jurisdiction makes every law "uncertain", nyc-ll144 included.
+# NYC/CA note: cases 1-18 also assert nyc-ll144: "no" (none has a New York City nexus); every case
+# (1-22) likewise asserts ca-feha-ads: "no" (none has a California nexus). The one exception for both
+# is case 11 (location-unknown), where a blank jurisdiction makes every law "uncertain".
 #
 # Verdict-vs-grounding note: developer/deployer and ai_use yes/unsure do NOT change the scope VERDICT
 # (the role gate only tests membership; "unsure" only annotates). They earn their place because they
@@ -70,6 +77,7 @@
       ct-sb5-pa26-15: "no"
       il-hb3773: "no"
       nyc-ll144: "no"
+      ca-feha-ads: "no"
     grounding_sections:
       - "6-1-1704"   # point-of-interaction notice
       - "6-1-1705"   # human review / reconsideration
@@ -93,6 +101,7 @@
       ct-sb5-pa26-15: "yes"
       il-hb3773: "no"
       nyc-ll144: "no"
+      ca-feha-ads: "no"
     grounding_sections:
       - "Sec. 9"    # interaction disclosure to employee/applicant
       - "Sec. 10"   # pre-decision written notice
@@ -117,6 +126,7 @@
       ct-sb5-pa26-15: "yes"
       il-hb3773: "no"
       nyc-ll144: "no"
+      ca-feha-ads: "no"
     grounding_sections:
       # Union of both laws' employment-deployer sections. The harness retrieves PER in-scope
       # jurisdiction (mirroring the memo path's per-law filtered retrieve), so each law is
@@ -147,6 +157,7 @@
       ct-sb5-pa26-15: "no"
       il-hb3773: "no"
       nyc-ll144: "no"
+      ca-feha-ads: "no"
     grounding_sections:
       - "6-1-1704"
       - "6-1-1705"
@@ -171,6 +182,7 @@
       ct-sb5-pa26-15: "no"    # Connecticut's AI law does not cover housing
       il-hb3773: "no"
       nyc-ll144: "no"
+      ca-feha-ads: "no"
     grounding_sections: []  # out of scope for both — nothing to ground
     obligations: []
 
@@ -191,6 +203,7 @@
       ct-sb5-pa26-15: "no"
       il-hb3773: "no"
       nyc-ll144: "no"
+      ca-feha-ads: "no"
     grounding_sections:
       # An uncertain law is still retrieved and explained by the memo (in_scope in {yes, uncertain}).
       - "6-1-1704"
@@ -214,6 +227,7 @@
       ct-sb5-pa26-15: "no"
       il-hb3773: "no"
       nyc-ll144: "no"
+      ca-feha-ads: "no"
     grounding_sections: []
     obligations: []
 
@@ -235,6 +249,7 @@
       ct-sb5-pa26-15: "no"
       il-hb3773: "no"
       nyc-ll144: "no"
+      ca-feha-ads: "no"
     grounding_sections: []
     obligations: []
 
@@ -257,6 +272,7 @@
       ct-sb5-pa26-15: "yes"
       il-hb3773: "no"
       nyc-ll144: "no"
+      ca-feha-ads: "no"
     grounding_sections:
       - "6-1-1702"   # CO developer documentation duty
       - "Sec. 8"     # CT developer info-to-deployer duty
@@ -281,6 +297,7 @@
       ct-sb5-pa26-15: "no"
       il-hb3773: "no"
       nyc-ll144: "no"
+      ca-feha-ads: "no"
     grounding_sections:
       - "6-1-1704"
       - "6-1-1705"
@@ -304,6 +321,7 @@
       ct-sb5-pa26-15: "uncertain"
       il-hb3773: "uncertain"
       nyc-ll144: "uncertain"
+      ca-feha-ads: "uncertain"
     grounding_sections:
       # Both laws are uncertain, so both are retrieved/explained (in_scope in {yes, uncertain}).
       # Scored per in-scope jurisdiction, as in case multistate-employment.
@@ -333,6 +351,7 @@
       ct-sb5-pa26-15: "yes"
       il-hb3773: "no"
       nyc-ll144: "no"
+      ca-feha-ads: "no"
     grounding_sections:
       - "Sec. 5"   # AI companion operator: safety protocol + human-disclosure duties
     obligations:
@@ -355,6 +374,7 @@
       ct-sb5-pa26-15: "no"
       il-hb3773: "no"
       nyc-ll144: "no"
+      ca-feha-ads: "no"
     grounding_sections:
       - "6-1-1704"
       - "6-1-1705"
@@ -381,6 +401,7 @@
       ct-sb5-pa26-15: "yes"    # in scope via employment; housing is not CT-covered but doesn't defeat scope
       il-hb3773: "no"
       nyc-ll144: "no"
+      ca-feha-ads: "no"
     grounding_sections:
       # Only the employment sections — the part of this business CT actually reaches.
       - "Sec. 9"
@@ -406,6 +427,7 @@
       ct-sb5-pa26-15: "no"
       il-hb3773: "yes"
       nyc-ll144: "no"
+      ca-feha-ads: "no"
     grounding_sections:
       - "775 ILCS 5/2-102"   # civil rights violation — prohibition + notice
     obligations:
@@ -430,6 +452,7 @@
       ct-sb5-pa26-15: "no"
       il-hb3773: "yes"
       nyc-ll144: "no"
+      ca-feha-ads: "no"
     grounding_sections:
       - "6-1-1704"           # CO point-of-interaction notice
       - "6-1-1705"           # CO human review / reconsideration
@@ -456,6 +479,7 @@
       ct-sb5-pa26-15: "no"
       il-hb3773: "yes"
       nyc-ll144: "no"
+      ca-feha-ads: "no"
     grounding_sections:
       - "775 ILCS 5/2-102"
     obligations:
@@ -480,6 +504,7 @@
       ct-sb5-pa26-15: "no"    # no Connecticut nexus
       il-hb3773: "no"         # Illinois HB 3773 covers employment, not housing
       nyc-ll144: "no"         # no New York City nexus
+      ca-feha-ads: "no"
     grounding_sections: []
     obligations: []
 
@@ -502,6 +527,7 @@
       ct-sb5-pa26-15: "no"
       il-hb3773: "no"
       nyc-ll144: "yes"
+      ca-feha-ads: "no"
     grounding_sections:
       - "20-871"   # bias-audit, publication, and notice requirements
     obligations:
@@ -527,6 +553,7 @@
       ct-sb5-pa26-15: "no"
       il-hb3773: "yes"
       nyc-ll144: "yes"
+      ca-feha-ads: "no"
     grounding_sections:
       - "20-871"             # NYC bias-audit + notice
       - "775 ILCS 5/2-102"   # IL civil rights violation — prohibition + notice
@@ -552,6 +579,7 @@
       ct-sb5-pa26-15: "no"
       il-hb3773: "no"
       nyc-ll144: "no"
+      ca-feha-ads: "no"
     grounding_sections: []
     obligations: []
 
@@ -572,5 +600,130 @@
       ct-sb5-pa26-15: "no"
       il-hb3773: "no"
       nyc-ll144: "no"         # LL144 covers employment, not housing
+      ca-feha-ads: "no"
+    grounding_sections: []
+    obligations: []
+
+- id: ca-employment-deployer
+  rationale: >
+    The baseline California case. A business with California employees or applicants that uses an
+    automated-decision system (ADS) to make or assist employment decisions, acting as the employer
+    (a deployer in this corpus taxonomy). California's Civil Rights Council ADS regulations (2 CCR
+    §§ 11008 et seq.) extend FEHA discrimination liability to ADS use in employment, so the business
+    is facially in scope. No Colorado, Connecticut, Illinois, or New York City nexus, so none of those
+    laws reach it.
+  situation:
+    jurisdictions: [California]
+    decision_domains: [employment]
+    roles: [deployer]
+    ai_use: "yes"
+  expect:
+    scope:
+      co-sb26-189: "no"
+      ct-sb5-pa26-15: "no"
+      il-hb3773: "no"
+      nyc-ll144: "no"
+      ca-feha-ads: "yes"
+    grounding_sections:
+      - "11009"   # unlawful to use an ADS / selection criteria that discriminates
+      - "11013"   # four-year recordkeeping of automated-decision-system data
+    obligations:
+      - "Prohibition: do not use an automated-decision system or selection criteria (including a qualification standard, employment test, or proxy) that discriminates against applicants or employees on a basis protected by the FEHA; evidence, or the absence, of anti-bias testing is relevant to any available defense (California 2 CCR 11009(f))."
+      - "Recordkeeping: preserve automated-decision-system data, selection criteria, and related employment records for four years (California 2 CCR 11013(c))."
+
+- id: ca-multistate-employment
+  rationale: >
+    An out-of-state company (home state Ohio) making AI-assisted employment decisions about workers in
+    both California and Illinois. Both laws reach it because each state has people it screens with AI.
+    Tests the California + state combination, handled independently. Colorado, Connecticut, and New York
+    City are out (no nexus).
+  situation:
+    home_state: Ohio
+    jurisdictions: [California, Illinois]
+    decision_domains: [employment]
+    roles: [deployer]
+    ai_use: "yes"
+  expect:
+    scope:
+      co-sb26-189: "no"
+      ct-sb5-pa26-15: "no"
+      il-hb3773: "yes"
+      nyc-ll144: "no"
+      ca-feha-ads: "yes"
+    grounding_sections:
+      - "11009"              # CA unlawful ADS use
+      - "11013"              # CA recordkeeping
+      - "775 ILCS 5/2-102"   # IL civil rights violation — prohibition + notice
+    obligations:
+      - "California: do not use an ADS that discriminates on a protected basis (2 CCR 11009(f)); retain ADS data and selection criteria for four years (2 CCR 11013(c))."
+      - "Illinois: do not use AI with discriminatory effect in covered employment decisions and notify employees of AI use (775 ILCS 5/2-102(L))."
+
+- id: ca-home-state
+  rationale: >
+    A California-headquartered employer that did not separately list California as a nexus state. The
+    scope engine auto-adds the home state when it is a regulating jurisdiction (a California employer
+    obviously has California employees). Tests the home_state auto-nexus branch for California, mirroring
+    case colorado-based-employer and il-home-state. No CO, CT, IL, or NYC nexus.
+  situation:
+    home_state: California
+    jurisdictions: []
+    decision_domains: [employment]
+    roles: [deployer]
+    ai_use: "yes"
+  expect:
+    scope:
+      co-sb26-189: "no"
+      ct-sb5-pa26-15: "no"
+      il-hb3773: "no"
+      nyc-ll144: "no"
+      ca-feha-ads: "yes"
+    grounding_sections:
+      - "11009"
+      - "11013"
+    obligations:
+      - "Same California deployer duties as case ca-employment-deployer (ADS non-discrimination 2 CCR 11009(f); four-year ADS recordkeeping 2 CCR 11013(c))."
+
+- id: ca-developer-only
+  rationale: >
+    A vendor that builds and sells an automated-decision system but does not itself use it to make
+    employment decisions. California's ADS regulations place their duties on the employer or other
+    covered entity that USES the tool (the deployer); a developer is reached only when it acts as an
+    "agent" performing covered employer functions (§ 11008(b)), which a build-and-sell-only vendor does
+    not. So the regulations do not reach a developer-only business. Mirror of the Illinois and NYC
+    developer-exclusion logic; note California, unlike Colorado and Connecticut, imposes no standalone
+    developer duty.
+  situation:
+    jurisdictions: [California]
+    decision_domains: [employment]
+    roles: [developer]
+    ai_use: "yes"
+  expect:
+    scope:
+      co-sb26-189: "no"
+      ct-sb5-pa26-15: "no"
+      il-hb3773: "no"
+      nyc-ll144: "no"
+      ca-feha-ads: "no"
+    grounding_sections: []
+    obligations: []
+
+- id: ca-domain-mismatch
+  rationale: >
+    A business making AI-assisted HOUSING decisions about California residents. California's Civil
+    Rights Council ADS regulations amend the FEHA EMPLOYMENT regulations and cover employment only;
+    a housing use falls outside their scope. A false "yes" here would assert obligations the
+    regulations do not impose. Mirror of the CT, IL, and NYC domain-mismatch cases.
+  situation:
+    jurisdictions: [California]
+    decision_domains: [housing]
+    roles: [deployer]
+    ai_use: "yes"
+  expect:
+    scope:
+      co-sb26-189: "no"
+      ct-sb5-pa26-15: "no"
+      il-hb3773: "no"
+      nyc-ll144: "no"
+      ca-feha-ads: "no"         # ADS regs cover employment, not housing
     grounding_sections: []
     obligations: []

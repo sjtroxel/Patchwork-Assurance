@@ -1,0 +1,31 @@
+law_id: ca-feha-ads
+jurisdiction: California
+short_name: CA FEHA ADS Regs (2 CCR 11008 et seq.)
+law_name: "Employment Regulations Regarding Automated-Decision Systems (Fair Employment & Housing Council, amending the FEHA employment regulations)"
+citation: "Cal. Code Regs. tit. 2, §§ 11008, 11008.1, 11009, 11013 (as amended, 2025)"
+also_known_as:
+  - "California ADS employment regulations"
+  - "California AI employment discrimination regulations"
+  - "Civil Rights Council automated-decision system regulations"
+status: effective
+signed_date: 2025-06-27  # OAL approval date (regulatory analog to a governor's action); Council announced final approval 2025-06-30
+effective_dates:
+  - { date: 2025-10-01, applies_to: "Regulations take effect (all provisions)" }
+operative_standard: 'No new technology-specific decision-influence trigger (unlike Colorado "materially influence" / "non-de minimis factor", Connecticut "substantial factor", or NYC "substantially assist or replace discretionary decision making"). Instead the Civil Rights Council regulations extend existing FEHA employment-discrimination liability to automated-decision systems: 2 CCR § 11009(f) makes it unlawful for an employer or other covered entity "to use an automated-decision system or selection criteria (including a qualification standard, employment test, or proxy) that discriminates against an applicant or employee or a class of applicants or employees on a basis protected by the Act, subject to any available defense," with the presence or absence of anti-bias testing relevant to the claim/defense. This sits on FEHA''s pre-existing disparate-treatment and disparate-impact framework. The general intentional-discrimination causation rule is "substantial motivating factor" (§ 11009(c), from Harris v. City of Santa Monica) — this is the pre-existing FEHA causation standard, NOT a new ADS-specific influence trigger; do NOT conflate it with Connecticut''s "substantial factor" AERDT trigger. Coverage runs with FEHA employer coverage (generally 5+ employees), and the new "agent" definition (§ 11008(b)) sweeps in third parties that perform covered employer functions through an automated-decision system, making the ADS vendor itself an "employer" under the Act.'
+regulated_tech_term: '"Automated-Decision System" (ADS) — a computational process that makes a decision or facilitates human decision making regarding an employment benefit; may be derived from or use artificial intelligence, machine-learning, algorithms, statistics, and/or other data processing techniques (§ 11008.1(a)). Excludes ordinary office/IT software (word processing, spreadsheets, navigation, hosting, firewalls, antivirus, calculators, databases, etc.) that does not make a decision regarding an employment benefit (§ 11008.1(a)(2)).'
+regulated_roles: [deployer]
+scope_domains: [employment]
+enforcement_authority: "California Civil Rights Department (CRD) and Civil Rights Council (CRC); enforced through FEHA (Government Code § 12900 et seq.) administrative complaints, with a private right of action after exhaustion / right-to-sue notice"
+enforcement_mechanism: "Fair Employment and Housing Act (Government Code § 12900 et seq.). An aggrieved applicant/employee files a complaint with the CRD; after investigation the CRD may prosecute, or issue a right-to-sue notice permitting a civil action. Remedies are FEHA's existing discrimination remedies (injunctive relief, back pay, damages); the regulations add four-year recordkeeping of automated-decision-system data."
+cure_period: null
+private_right_of_action: true
+key_obligations:
+  - { section: "2 CCR 11008.1", label: "Definitions: introduces 'automated-decision system', 'algorithm', 'artificial intelligence', 'automated-decision system data', and 'machine learning' for the employment regulations" }
+  - { section: "2 CCR 11008(b)", label: "Agent liability: a person who performs covered employer functions (recruitment, screening, hiring, promotion, pay/benefits/leave decisions) on an employer's behalf through an ADS is itself an 'employer' under the Act" }
+  - { section: "2 CCR 11008(m)", label: "Proxy: defines 'proxy' as a characteristic or category closely correlated with a basis protected by the Act (a facially-neutral ADS input can be a proxy)" }
+  - { section: "2 CCR 11009(f)", label: "Unlawful use: prohibits using an ADS or selection criteria (qualification standard, employment test, or proxy) that discriminates against applicants/employees on a protected basis; anti-bias testing evidence (or its absence) is relevant to the claim/defense" }
+  - { section: "2 CCR 11013(c)", label: "Recordkeeping: extends required record retention to four years and expressly includes selection criteria and automated-decision-system data" }
+  - { section: "2 CCR 11016 / 11017", label: "Medical inquiry: an ADS assessment (test, question, or puzzle/game) that elicits information about a disability may constitute an unlawful medical or disability-related inquiry" }
+source_url: "https://calcivilrights.ca.gov/wp-content/uploads/sites/32/2025/03/Attachment-B-Final-Unmodified-Text-of-Proposed-Employment-Regulations-Regarding-Automated-Decision-Systems.pdf"
+source_page: "https://calcivilrights.ca.gov/2025/06/30/civil-rights-council-secures-approval-for-regulations-to-protect-against-employment-discrimination-related-to-artificial-intelligence/"
+retrieved_on: 2026-06-26
