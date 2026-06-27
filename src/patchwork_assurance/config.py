@@ -100,6 +100,7 @@ class Settings(BaseSettings):
         "leg.colorado.gov",
         "cga.ct.gov",
         "ilga.gov",
+        "njoag.gov",
     ]
 
 

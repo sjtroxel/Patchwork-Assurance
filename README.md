@@ -18,8 +18,9 @@ certainty. Consult a licensed attorney for any actual compliance decision.
 ## The problem
 
 AI regulation in the US is arriving state by state, not from Washington. Colorado (SB 26-189),
-Connecticut (SB 5 / PA 26-15), Illinois (HB 3773), and California (the Civil Rights Council's
-automated-decision-system employment regulations) have already passed laws or rules, each with its own
+Connecticut (SB 5 / PA 26-15), Illinois (HB 3773), California (the Civil Rights Council's
+automated-decision-system employment regulations), and New Jersey (the Division on Civil Rights'
+disparate-impact rules, N.J.A.C. 13:16) have already passed laws or rules, each with its own
 operative test and its own staggered effective dates, and more states are drafting their own. There is
 no single rulebook, just a
 growing patchwork. The hard part is knowing which pieces touch a given situation, and what the text
@@ -62,7 +63,9 @@ The design choices are the point of the project. A few are load-bearing:
   FEHA rules extend existing discrimination liability to any "automated-decision system" that
   discriminates, while California's CCPA ADMT rules are a separate consumer-privacy regime (notice,
   opt-out, access) triggered by using ADMT to make a "significant decision"; New York City's AEDT law
-  on a bias-audit-and-notice trigger ("substantially assist or replace discretionary decision making").
+  on a bias-audit-and-notice trigger ("substantially assist or replace discretionary decision making");
+  and New Jersey on an effect-based disparate-impact framework (a three-step burden-shifting test
+  expressly reaching automated employment decision tools).
   The tool reads each statute's own language from metadata rather than
   flattening them into a
   single test.
@@ -110,9 +113,10 @@ v1 is deployed and works end to end over the shared retrieval core, exposed as t
 surfaces, hosted on Railway. The corpus currently covers Colorado SB 26-189, Connecticut SB 5 (PA 26-15),
 Illinois HB 3773 (PA 103-0804), and California's two regimes — the FEHA automated-decision-system
 employment regulations (2 CCR §§ 11008 et seq.) and the CCPA ADMT consumer-privacy regulations
-(11 CCR §§ 7200 et seq.) — plus New York City Local Law 144 (the AEDT bias-audit law) — included
+(11 CCR §§ 7200 et seq.) — New York City Local Law 144 (the AEDT bias-audit law), included
 as a notable non-state jurisdiction whose population rivals many states and whose AI-employment law sits
-naturally beside them. The corpus is designed to grow as the patchwork grows. Post-v1 work
+naturally beside them, and New Jersey's Division on Civil Rights disparate-impact rules
+(N.J.A.C. §§ 13:16-1.1 to 13:16-6.2). The corpus is designed to grow as the patchwork grows. Post-v1 work
 (evaluation, observability, hybrid retrieval, a corpus-monitoring agent, MCP) is intentionally gated
 behind a working v1 rather than built up front.
 

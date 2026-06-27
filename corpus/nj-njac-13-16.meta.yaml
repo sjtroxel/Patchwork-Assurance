@@ -1,0 +1,31 @@
+law_id: nj-njac-13-16
+jurisdiction: New Jersey
+short_name: NJ N.J.A.C. 13:16 (DCR Disparate Impact Rules)
+law_name: "New Jersey Division on Civil Rights — Rules Pertaining to Disparate Impact Discrimination"
+citation: "N.J. Admin. Code §§ 13:16-1.1 to 13:16-6.2 (2025)"
+also_known_as:
+  - "NJ DCR disparate impact rules"
+  - "N.J.A.C. 13:16"
+  - "New Jersey disparate impact discrimination regulations"
+status: effective
+signed_date: 2025-12-15  # No executive signing for a regulation; this is the adoption (R.2025 d.150) and effective date. Adoption notice: 57 N.J.R. 2840(b); proposal: 56 N.J.R. 969(a).
+effective_dates:
+  - { date: 2025-12-15, applies_to: "Rules adopted (R.2025 d.150) and effective; all provisions in force (no phase-in)" }
+operative_standard: 'Effect-based disparate-impact discrimination under the New Jersey Law Against Discrimination (N.J.S.A. 10:5-1 et seq.) — NOT a tech decision-influence trigger (do not harmonize with Colorado "materially influence" or Connecticut "substantial factor") and NOT a consumer-privacy regime (do not harmonize with California''s ADMT/ADS regs). A facially neutral practice or policy that "actually or predictably results in a disproportionately negative effect on members of a protected class" is unlawful regardless of discriminatory intent, unless it is necessary to achieve a substantial, legitimate, nondiscriminatory interest and there is no less discriminatory alternative (§ 13:16-2.1). Three-step burden-shifting framework (§ 13:16-2.2): (1) complainant shows disparate impact; (2) respondent shows the practice is necessary to a substantial, legitimate, nondiscriminatory interest (in employment, that the practice is job related and consistent with business necessity); (3) complainant shows a less discriminatory alternative. The rules expressly reach "automated employment decision tools": their use may cause a disparate impact, an AEDT not adequately tested before use to ensure it does not adversely affect a protected class may itself create liability (§ 13:16-3.2(c)), and a covered entity relying on an outside vendor''s tools/systems must take reasonable steps to ensure the vendor''s conduct complies — it cannot delegate the obligation to the vendor (§ 13:16-2.4(e)). Broad framework spanning employment, housing/real estate and housing financial assistance, public accommodations (including educational and correctional contexts), and contracting — broader and mushier than the crisp procedural duties of the CO/CT statutes.'
+regulated_tech_term: '"Automated employment decision tools" — any software, system, or process that aims to automate, aid, or replace human decision-making relevant to employment; includes tools that analyze datasets to generate scores, rankings, predictions, classifications, or recommended action(s) used by employers to make decisions regarding employees, contractors, and job candidates, including advertising, recruiting, screening, interviewing, hiring, placement, promotion, and compensation, or any other term, condition, or privilege of employment (§ 13:16-1.3).'
+regulated_roles: [deployer]
+scope_domains: [employment, housing, financial_lending, education]
+enforcement_authority: "New Jersey Division on Civil Rights (DCR), Department of Law and Public Safety; New Jersey Attorney General"
+enforcement_mechanism: "Enforced under the New Jersey Law Against Discrimination (N.J.S.A. 10:5-1 et seq.). Any person claiming to be aggrieved, the Attorney General, the Director of the Division, the Commissioner of Labor and Workforce Development, the Commissioner of Education, or other authorized persons may bring a disparate-impact complaint to the Division (administrative process under the Division's Rules of Practice and Procedure, N.J.A.C. 13:4) or initiate suit in Superior Court (§ 13:16-2.1(c)). LAD remedies apply; no exclusive-AG enforcement and no statutory cure period in these rules."
+cure_period: null
+private_right_of_action: true  # § 13:16-2.1(c): an aggrieved person may file with the Division or initiate suit in Superior Court
+key_obligations:
+  - { section: "N.J.A.C. 13:16-1.3", label: "Definitions: 'automated employment decision tools', 'covered entity' (employer, labor organization, employment agency, housing provider, real estate broker/agent, lending institution, place of public accommodation), 'protected characteristics', 'disparate impact'" }
+  - { section: "N.J.A.C. 13:16-2.1", label: "Disparate impact liability: a facially neutral, non-intentional practice that actually or predictably has a disproportionately negative effect on a protected class is unlawful unless necessary to a substantial, legitimate, nondiscriminatory interest with no less discriminatory alternative" }
+  - { section: "N.J.A.C. 13:16-2.2", label: "Three-step burden-shifting proof framework for employment, public accommodations, and contracting (impact -> business necessity / job-relatedness -> less discriminatory alternative); empirical evidence required" }
+  - { section: "N.J.A.C. 13:16-2.4(e)", label: "Vendor non-delegation: a covered entity relying on an outside person's or vendor's standards, products, procedures, or systems must take reasonable steps to ensure they comply with the Act and this chapter" }
+  - { section: "N.J.A.C. 13:16-3.2(c)", label: "Automated employment decision tools: their use may cause a disparate impact; an AEDT not adequately tested before use to ensure it does not adversely affect a protected class may create liability; schedule/screening tools must allow reasonable-accommodation requests" }
+  - { section: "N.J.A.C. 13:16-3.3", label: "Employee selection procedures: the federal Uniform Guidelines on Employee Selection Procedures (29 CFR 1607) are incorporated by reference and applied to all protected characteristics; this chapter controls on conflict" }
+source_url: "https://www.njoag.gov/wp-content/uploads/2025/12/N.J.A.C.-13-16-Disparate-Impact-Discrimination.pdf"
+source_page: "https://www.njoag.gov/ag-platkin-announces-division-on-civil-rights-adopts-landmark-rules-on-disparate-impact-discrimination-under-new-jersey-law/"
+retrieved_on: 2026-06-27

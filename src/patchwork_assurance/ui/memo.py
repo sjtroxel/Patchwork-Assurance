@@ -100,7 +100,14 @@ US_STATES = [
 
 # Used only if /meta is unreachable, so the form still renders.
 _FALLBACK_META = {
-    "jurisdictions": ["California", "Colorado", "Connecticut", "Illinois", "New York City"],
+    "jurisdictions": [
+        "California",
+        "Colorado",
+        "Connecticut",
+        "Illinois",
+        "New Jersey",
+        "New York City",
+    ],
     "decision_domains": list(DOMAIN_LABELS),
     "roles": ["deployer", "developer"],
 }

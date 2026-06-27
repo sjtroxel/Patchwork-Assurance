@@ -18,7 +18,8 @@
 # Law ids: co-sb26-189 (Colorado), ct-sb5-pa26-15 (Connecticut), il-hb3773 (Illinois),
 #          nyc-ll144 (New York City — non-state jurisdiction, AEDT bias-audit law),
 #          ca-feha-ads (California — FEHA automated-decision-system employment regs, 2 CCR 11008 et seq.),
-#          ca-ccpa-admt (California — CPPA automated-decisionmaking-technology privacy regs, 11 CCR 7200 et seq.).
+#          ca-ccpa-admt (California — CPPA automated-decisionmaking-technology privacy regs, 11 CCR 7200 et seq.),
+#          nj-njac-13-16 (New Jersey — DCR disparate-impact rules, N.J.A.C. 13:16; effect-based, multi-domain).
 #
 # Coverage matrix (each case exercises a distinct branch of scope.py / grounding path):
 #    1 co-employment-deployer       CO yes / CT no  / IL no   baseline; CT/IL excluded by no nexus
@@ -52,10 +53,16 @@
 #   27 ca-domain-mismatch           CA-FEHA no / CA-CPPA no          gov-services: neither CA regime covers it
 #   28 ca-ccpa-housing-deployer     CA-FEHA no / CA-CPPA yes          intra-CA split: CPPA reaches housing, FEHA doesn't
 #   29 ca-ccpa-lending-deployer     CA-FEHA no / CA-CPPA yes          standalone CPPA (lending = significant decision)
+#   30 nj-employment-deployer       NJ yes / others no                baseline NJ AEDT-in-employment in-scope case
+#   31 nj-housing-deployer          NJ yes / others no                NJ's distinctive multi-domain reach (housing; IL/NYC are employment-only)
+#   32 nj-multistate-employment     NJ yes / IL yes / others no       NJ + Illinois: two effect-based employment laws at once
+#   33 nj-developer-only            NJ no  / others no                build-only AEDT vendor not regulated (13:16 binds the deployer)
+#   34 nj-home-state                NJ yes / others no                home_state=New Jersey auto-nexus branch
 #
-# NYC/CA note: cases 1-18 also assert nyc-ll144: "no" (none has a New York City nexus); every case
-# (1-22) likewise asserts ca-feha-ads: "no" AND ca-ccpa-admt: "no" (none has a California nexus). The one
-# exception for all three is case 11 (location-unknown), where a blank jurisdiction makes every law
+# NYC/CA/NJ note: cases 1-18 also assert nyc-ll144: "no" (none has a New York City nexus); cases
+# 1-22 likewise assert ca-feha-ads: "no" AND ca-ccpa-admt: "no" (none has a California nexus); and
+# every non-NJ case (1-29) asserts nj-njac-13-16: "no" (none has a New Jersey nexus). The one
+# exception for all of them is case 11 (location-unknown), where a blank jurisdiction makes every law
 # "uncertain". The two CA regimes have DIFFERENT domain reach: FEHA ADS = employment only; CPPA ADMT =
 # any "significant decision" (financial/lending, housing, education, employment, healthcare) — so a CA
 # case can be CPPA-yes / FEHA-no (cases 28, 29).
@@ -85,6 +92,7 @@
       nyc-ll144: "no"
       ca-feha-ads: "no"
       ca-ccpa-admt: "no"
+      nj-njac-13-16: "no"
     grounding_sections:
       - "6-1-1704"   # point-of-interaction notice
       - "6-1-1705"   # human review / reconsideration
@@ -110,6 +118,7 @@
       nyc-ll144: "no"
       ca-feha-ads: "no"
       ca-ccpa-admt: "no"
+      nj-njac-13-16: "no"
     grounding_sections:
       - "Sec. 9"    # interaction disclosure to employee/applicant
       - "Sec. 10"   # pre-decision written notice
@@ -136,6 +145,7 @@
       nyc-ll144: "no"
       ca-feha-ads: "no"
       ca-ccpa-admt: "no"
+      nj-njac-13-16: "no"
     grounding_sections:
       # Union of both laws' employment-deployer sections. The harness retrieves PER in-scope
       # jurisdiction (mirroring the memo path's per-law filtered retrieve), so each law is
@@ -168,6 +178,7 @@
       nyc-ll144: "no"
       ca-feha-ads: "no"
       ca-ccpa-admt: "no"
+      nj-njac-13-16: "no"
     grounding_sections:
       - "6-1-1704"
       - "6-1-1705"
@@ -194,6 +205,7 @@
       nyc-ll144: "no"
       ca-feha-ads: "no"
       ca-ccpa-admt: "no"
+      nj-njac-13-16: "no"
     grounding_sections: []  # out of scope for both — nothing to ground
     obligations: []
 
@@ -216,6 +228,7 @@
       nyc-ll144: "no"
       ca-feha-ads: "no"
       ca-ccpa-admt: "no"
+      nj-njac-13-16: "no"
     grounding_sections:
       # An uncertain law is still retrieved and explained by the memo (in_scope in {yes, uncertain}).
       - "6-1-1704"
@@ -241,6 +254,7 @@
       nyc-ll144: "no"
       ca-feha-ads: "no"
       ca-ccpa-admt: "no"
+      nj-njac-13-16: "no"
     grounding_sections: []
     obligations: []
 
@@ -264,6 +278,7 @@
       nyc-ll144: "no"
       ca-feha-ads: "no"
       ca-ccpa-admt: "no"
+      nj-njac-13-16: "no"
     grounding_sections: []
     obligations: []
 
@@ -288,6 +303,7 @@
       nyc-ll144: "no"
       ca-feha-ads: "no"
       ca-ccpa-admt: "no"
+      nj-njac-13-16: "no"
     grounding_sections:
       - "6-1-1702"   # CO developer documentation duty
       - "Sec. 8"     # CT developer info-to-deployer duty
@@ -314,6 +330,7 @@
       nyc-ll144: "no"
       ca-feha-ads: "no"
       ca-ccpa-admt: "no"
+      nj-njac-13-16: "no"
     grounding_sections:
       - "6-1-1704"
       - "6-1-1705"
@@ -339,6 +356,7 @@
       nyc-ll144: "uncertain"
       ca-feha-ads: "uncertain"
       ca-ccpa-admt: "uncertain"
+      nj-njac-13-16: "uncertain"
     grounding_sections:
       # Both laws are uncertain, so both are retrieved/explained (in_scope in {yes, uncertain}).
       # Scored per in-scope jurisdiction, as in case multistate-employment.
@@ -370,6 +388,7 @@
       nyc-ll144: "no"
       ca-feha-ads: "no"
       ca-ccpa-admt: "no"
+      nj-njac-13-16: "no"
     grounding_sections:
       - "Sec. 5"   # AI companion operator: safety protocol + human-disclosure duties
     obligations:
@@ -394,6 +413,7 @@
       nyc-ll144: "no"
       ca-feha-ads: "no"
       ca-ccpa-admt: "no"
+      nj-njac-13-16: "no"
     grounding_sections:
       - "6-1-1704"
       - "6-1-1705"
@@ -422,6 +442,7 @@
       nyc-ll144: "no"
       ca-feha-ads: "no"
       ca-ccpa-admt: "no"
+      nj-njac-13-16: "no"
     grounding_sections:
       # Only the employment sections — the part of this business CT actually reaches.
       - "Sec. 9"
@@ -449,6 +470,7 @@
       nyc-ll144: "no"
       ca-feha-ads: "no"
       ca-ccpa-admt: "no"
+      nj-njac-13-16: "no"
     grounding_sections:
       - "775 ILCS 5/2-102"   # civil rights violation — prohibition + notice
     obligations:
@@ -475,6 +497,7 @@
       nyc-ll144: "no"
       ca-feha-ads: "no"
       ca-ccpa-admt: "no"
+      nj-njac-13-16: "no"
     grounding_sections:
       - "6-1-1704"           # CO point-of-interaction notice
       - "6-1-1705"           # CO human review / reconsideration
@@ -503,6 +526,7 @@
       nyc-ll144: "no"
       ca-feha-ads: "no"
       ca-ccpa-admt: "no"
+      nj-njac-13-16: "no"
     grounding_sections:
       - "775 ILCS 5/2-102"
     obligations:
@@ -529,6 +553,7 @@
       nyc-ll144: "no"         # no New York City nexus
       ca-feha-ads: "no"
       ca-ccpa-admt: "no"
+      nj-njac-13-16: "no"
     grounding_sections: []
     obligations: []
 
@@ -553,6 +578,7 @@
       nyc-ll144: "yes"
       ca-feha-ads: "no"
       ca-ccpa-admt: "no"
+      nj-njac-13-16: "no"
     grounding_sections:
       - "20-871"   # bias-audit, publication, and notice requirements
     obligations:
@@ -580,6 +606,7 @@
       nyc-ll144: "yes"
       ca-feha-ads: "no"
       ca-ccpa-admt: "no"
+      nj-njac-13-16: "no"
     grounding_sections:
       - "20-871"             # NYC bias-audit + notice
       - "775 ILCS 5/2-102"   # IL civil rights violation — prohibition + notice
@@ -607,6 +634,7 @@
       nyc-ll144: "no"
       ca-feha-ads: "no"
       ca-ccpa-admt: "no"
+      nj-njac-13-16: "no"
     grounding_sections: []
     obligations: []
 
@@ -629,6 +657,7 @@
       nyc-ll144: "no"         # LL144 covers employment, not housing
       ca-feha-ads: "no"
       ca-ccpa-admt: "no"
+      nj-njac-13-16: "no"
     grounding_sections: []
     obligations: []
 
@@ -653,6 +682,7 @@
       nyc-ll144: "no"
       ca-feha-ads: "yes"
       ca-ccpa-admt: "yes"
+      nj-njac-13-16: "no"
     grounding_sections:
       - "11009"   # unlawful to use an ADS / selection criteria that discriminates
       - "11013"   # four-year recordkeeping of automated-decision-system data
@@ -680,6 +710,7 @@
       nyc-ll144: "no"
       ca-feha-ads: "yes"
       ca-ccpa-admt: "yes"
+      nj-njac-13-16: "no"
     grounding_sections:
       - "11009"              # CA unlawful ADS use
       - "11013"              # CA recordkeeping
@@ -708,6 +739,7 @@
       nyc-ll144: "no"
       ca-feha-ads: "yes"
       ca-ccpa-admt: "yes"
+      nj-njac-13-16: "no"
     grounding_sections:
       - "11009"
       - "11013"
@@ -736,6 +768,7 @@
       nyc-ll144: "no"
       ca-feha-ads: "no"
       ca-ccpa-admt: "no"
+      nj-njac-13-16: "no"
     grounding_sections: []
     obligations: []
 
@@ -760,6 +793,7 @@
       nyc-ll144: "no"
       ca-feha-ads: "no"         # FEHA ADS regs cover employment, not government services
       ca-ccpa-admt: "no"        # government services is not a CCPA "significant decision"
+      nj-njac-13-16: "no"
     grounding_sections: []
     obligations: []
 
@@ -784,6 +818,7 @@
       nyc-ll144: "no"
       ca-feha-ads: "no"         # FEHA ADS regs cover employment, not housing
       ca-ccpa-admt: "yes"       # CPPA: housing is a "significant decision"
+      nj-njac-13-16: "no"
     grounding_sections:
       - "7200"   # using ADMT to make a significant decision triggers the Article
       - "7221"   # right to opt out of ADMT for a significant decision
@@ -810,8 +845,132 @@
       nyc-ll144: "no"
       ca-feha-ads: "no"         # FEHA ADS regs cover employment, not lending
       ca-ccpa-admt: "yes"       # CPPA: financial/lending is a "significant decision"
+      nj-njac-13-16: "no"
     grounding_sections:
       - "7200"   # ADMT-for-significant-decision scope trigger
       - "7220"   # pre-use notice
     obligations:
       - "A business using ADMT to make a significant lending decision must give a Pre-use Notice (11 CCR 7220), honor opt-out (11 CCR 7221) and access (11 CCR 7222) requests, and conduct a risk assessment before use (11 CCR 7150(b)(3)); compliance required by Jan 1, 2027 (11 CCR 7200(b))."
+
+- id: nj-employment-deployer
+  rationale: >
+    A business with New Jersey employees/applicants that uses AI to help make employment
+    decisions, acting as the deployer (covered entity). N.J.A.C. 13:16 extends the NJ Law
+    Against Discrimination's disparate-impact framework to automated employment decision tools,
+    so it is facially in scope. No nexus to the other jurisdictions.
+  situation:
+    jurisdictions: [New Jersey]
+    decision_domains: [employment]
+    roles: [deployer]
+    ai_use: "yes"
+  expect:
+    scope:
+      co-sb26-189: "no"
+      ct-sb5-pa26-15: "no"
+      il-hb3773: "no"
+      nyc-ll144: "no"
+      ca-feha-ads: "no"
+      ca-ccpa-admt: "no"
+      nj-njac-13-16: "yes"
+    grounding_sections:
+      - "13:16-3.2"   # pre-employment practices incl. automated employment decision tools (the on-point operative section)
+    obligations:
+      - "New Jersey: an automated employment decision tool causing a disparate impact is unlawful unless job related and consistent with business necessity, with no less discriminatory alternative; an AEDT not adequately tested before use to ensure it does not adversely affect a protected class may itself create liability (N.J.A.C. 13:16-3.2(c))."
+
+- id: nj-housing-deployer
+  rationale: >
+    A New Jersey housing provider that uses AI-assisted tenant screening. N.J.A.C. 13:16
+    reaches housing and real estate (Subchapter 4), unlike the employment-only IL/NYC laws —
+    so this exercises NJ's distinctive multi-domain breadth. No California nexus, so the CPPA
+    (which also reaches housing) does not apply.
+  situation:
+    jurisdictions: [New Jersey]
+    decision_domains: [housing]
+    roles: [deployer]
+    ai_use: "yes"
+  expect:
+    scope:
+      co-sb26-189: "no"
+      ct-sb5-pa26-15: "no"        # CT law is employment-only
+      il-hb3773: "no"            # IL law is employment-only
+      nyc-ll144: "no"            # LL144 is employment-only
+      ca-feha-ads: "no"
+      ca-ccpa-admt: "no"          # CPPA reaches housing but there is no California nexus
+      nj-njac-13-16: "yes"
+    grounding_sections:
+      - "13:16-4.3"   # sale or rental practices: AI/credit-score/criminal-history tenant screening (the on-point operative section)
+    obligations:
+      - "New Jersey: a tenant-screening practice (e.g., credit-score or criminal-history screening) with a disparate impact on a protected class is prohibited unless necessary to a substantial, legitimate, nondiscriminatory interest with no less discriminatory alternative (N.J.A.C. 13:16-4.3)."
+
+- id: nj-multistate-employment
+  rationale: >
+    An out-of-state (Ohio-based) employer with both New Jersey and Illinois workers, using AI in
+    hiring as the deployer. Two effect-based employment laws apply at once — NJ N.J.A.C. 13:16 and
+    Illinois HB 3773 — while the others have no nexus.
+  situation:
+    home_state: Ohio
+    jurisdictions: [New Jersey, Illinois]
+    decision_domains: [employment]
+    roles: [deployer]
+    ai_use: "yes"
+  expect:
+    scope:
+      co-sb26-189: "no"
+      ct-sb5-pa26-15: "no"
+      il-hb3773: "yes"
+      nyc-ll144: "no"
+      ca-feha-ads: "no"
+      ca-ccpa-admt: "no"
+      nj-njac-13-16: "yes"
+    grounding_sections:
+      - "13:16-3.2"          # NJ automated employment decision tools
+      - "775 ILCS 5/2-102"   # IL civil rights violation — prohibition + notice
+    obligations:
+      - "New Jersey: an automated employment decision tool causing a disparate impact is unlawful unless job related and consistent with business necessity, with no less discriminatory alternative (N.J.A.C. 13:16-3.2)."
+      - "Illinois: do not use AI with a discriminatory effect in covered employment decisions and notify employees of AI use (775 ILCS 5/2-102(L))."
+
+- id: nj-developer-only
+  rationale: >
+    A vendor that only builds an automated employment decision tool sold to New Jersey employers,
+    with no New Jersey workforce of its own. N.J.A.C. 13:16 places the obligation on the covered
+    entity that USES the tool (the deployer), not the developer — the rules even bar a covered
+    entity from delegating compliance to the vendor (13:16-2.4(e)). So the build-only vendor is
+    not itself in scope.
+  situation:
+    jurisdictions: [New Jersey]
+    decision_domains: [employment]
+    roles: [developer]
+    ai_use: "yes"
+  expect:
+    scope:
+      co-sb26-189: "no"
+      ct-sb5-pa26-15: "no"
+      il-hb3773: "no"
+      nyc-ll144: "no"
+      ca-feha-ads: "no"
+      ca-ccpa-admt: "no"
+      nj-njac-13-16: "no"        # 13:16 regulates the deployer/covered entity, not the tool vendor
+
+- id: nj-home-state
+  rationale: >
+    A New Jersey-based employer that did not separately list a nexus state. The home-state
+    auto-nexus branch supplies the New Jersey connection, so N.J.A.C. 13:16 applies.
+  situation:
+    home_state: New Jersey
+    jurisdictions: []
+    decision_domains: [employment]
+    roles: [deployer]
+    ai_use: "yes"
+  expect:
+    scope:
+      co-sb26-189: "no"
+      ct-sb5-pa26-15: "no"
+      il-hb3773: "no"
+      nyc-ll144: "no"
+      ca-feha-ads: "no"
+      ca-ccpa-admt: "no"
+      nj-njac-13-16: "yes"
+    grounding_sections:
+      - "13:16-3.2"   # pre-employment practices incl. automated employment decision tools (the on-point operative section)
+    obligations:
+      - "New Jersey: an AI-assisted employment practice with a disparate impact on a protected class is prohibited unless job related and consistent with business necessity, with no less discriminatory alternative (N.J.A.C. 13:16-3.2)."
