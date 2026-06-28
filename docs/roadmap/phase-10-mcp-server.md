@@ -9,6 +9,115 @@ companion `phase-10-mcp-server-IMPLEMENTATION.md` is written when the phase begi
 
 ---
 
+## 0. Catch-up before MCP — close the deferred `[-]` items + launch the public domain
+
+*Added 2026-06-28. The Anthropic API key is now funded (~$20, up from $0.31 — the dollar that blocked
+every paid run; the OpenRouter free-model detour didn't produce trustworthy memos). Before MCP we spend a
+few of those dollars **once** to convert the willfully-deferred `[-]` measurement items into `[x]`, and we
+put the public app under a real domain. The point isn't bookkeeping: when strangers generate compliance
+memos next week, **the groundedness number is the evidence that those memos are trustworthy.** This
+section is the plan; the as-built steps land in `phase-10-mcp-server-IMPLEMENTATION.md` tomorrow on fresh
+quota. Standing rule: **token-spending commands are sjtroxel's to run**, like git.*
+
+**Do these roughly in order — safety and the free win first, then the paid runs, then the domain.**
+
+### 0.1 Pre-flight: spending safety (do this FIRST, before any paid command)
+The $0.32 accidental-spend incident (`docs/SPENDING_SAFETY.md`, [[project-spending-incident-and-guardrail-2026-06-23]])
+is exactly the failure mode a funded key makes more expensive. Before any `--judge`/`-m live` run:
+- [ ] Set a **provider-side spend limit** on the Anthropic key (console hard cap), so neither an eval run
+      nor a public-user surge can drain the whole balance.
+- [ ] Re-confirm `eval/safety.py:confirm_spend` still gates every paid path (hard cap + typed confirm +
+      refuse-if-unattended). It is the in-code chokepoint; the provider cap is the backstop.
+- [ ] Note the **shared-wallet** reality: this one $20 funds both the one-time eval runs **and** every
+      production memo real users generate (§0.9). Budget the eval runs against that.
+
+### 0.2 Re-verify model IDs + pricing (standing rule, costs nothing)
+- [ ] Re-verify the current model IDs + per-token pricing via the `claude-api` skill before spending
+      (they churn): chat = Haiku, memo = Sonnet, judge = a *different/stronger* model (Opus) so the judge
+      ≠ the judged. Pin them in the IMPLEMENTATION doc.
+
+### 0.3 Phase 6 — the one judged run (closes the two `[-]` items + the model decision)
+The single bounded ticket from `phase-6-evals.md` §2. **The confidence metric for the whole product.**
+- [ ] Run `make eval-judge` (= `python -m eval.run --judge`, `LLM_PROVIDER=anthropic`) on the **full**
+      gold set, behind the spend gate. Estimated **$1–3** one-time (Sonnet memo + Opus judge ≈ $1.65;
+      Haiku+Sonnet ≈ $0.80 — confirm against §0.2 pricing).
+- [ ] Produce the two owed numbers, aggregated over the gold set: **groundedness** (% of memo obligations
+      fully supported by their cited statute text) and **coverage** (% of expected obligations surfaced).
+      Citation-exists scores from the same run.
+- [ ] **Resolve the Haiku-vs-Sonnet memo-model decision** from the measured groundedness gap (plan §8).
+- [ ] **Read a handful of the generated memos by hand** — the number is necessary but not sufficient for
+      "I'd let a stranger rely on this." This is the not-legal-advice boundary in practice.
+- [ ] Record the numbers + measured cost back into `phase-6-evals-IMPLEMENTATION.md`, write the short
+      results write-up, and flip both `[-]` → `[x]` in `phase-6-evals.md` (and the ROADMAP §6 row).
+
+### 0.4 Phase 7 — live observability + injection (rides the same funded window)
+From `phase-7-observability-security-IMPLEMENTATION.md` "deferred to a live run":
+- [ ] First real **per-request cost numbers** — the "pennies per memo" claim, measured (not estimated),
+      from `core/obs.py`/`core/pricing.py` capture on a live Anthropic call.
+- [ ] **Live injection-resistance tests**: `pytest -m live` (deselected by default; spends tokens).
+- [ ] The **ContextVar → threadpool `request_id` propagation** check on the live box (unit tests are
+      same-thread, so this can only be confirmed live).
+- [ ] Flip the Phase 7 deferred notes accordingly.
+
+### 0.5 Phase 8 — judged retrieval numbers AND the free N=7 re-sweep (a real new finding may hide here)
+Two parts — one paid, one free and arguably more important now:
+- [ ] **Paid:** the text→SQL + agentic-`routed` *eval numbers* and the `live`-marked "does the model route
+      well / write valid SQL" checks (`LLM_PROVIDER=anthropic`).
+- [ ] **Free, do this regardless of budget:** re-run the deterministic sweep (`make eval --sweep`,
+      `make sweep-knobs`) **now that the corpus is 7 laws, not 2.** The Phase 8 verdict ("semantic +
+      metadata filter is enough; hybrid/routed/text→SQL tie or lose") was *explicitly an N=2 artifact*.
+      At N=7 the fancier rungs may finally earn their keep — and if they do, the **default retrieval mode
+      should change** (one config line). This costs nothing and could be the most interesting result of
+      the whole catch-up. Re-confirm `bge-small`, `k=8`, chunk size at the new scale too.
+
+### 0.6 Phase 4.6 — running-app QA that never closed
+The spine still reads "**BUILT 2026-06-20 (96 tests; pending running-app QA)**." Tests pass; the app-level
+walkthrough was never recorded.
+- [ ] Exercise the **headline case in the running app** (not just tests): an out-of-state business with
+      CO/CT employees/consumers/residents → correct nexus, roles, shadow-AI discovery, verdict-first memo
+      with real deadlines. Confirm and close the QA note.
+
+### 0.7 End-to-end production smoke test (the funded key, the deployed path)
+- [ ] One real memo + one real chat through the **deployed Railway** path on the funded key — the first
+      genuine paid generation in production. Confirm streaming, the rate limit, and the chrome all behave.
+
+### 0.8 Custom domain + the one-umbrella wiring
+The Phase 5 "custom-domain umbrella" was deferred to the post-v1 backlog; do it now (see
+[[feedback-deploy-hosting-preferences]]: landing → free static host, UI + API → Railway always-on, no
+cold-start).
+- [ ] Register the domain (patchworkassurance.com or chosen name).
+- [ ] Point the **landing page**, the **Streamlit UI**, and the **FastAPI API** under one domain (e.g.
+      apex/`www` → landing, `app.` → Streamlit, `api.` → FastAPI) via Railway custom-domain + DNS.
+- [ ] Update every **hardcoded URL**: landing-page links, README, the `ui/` chrome/footer, OpenGraph/meta
+      tags, any `API_BASE`/CORS origin config. **Re-check CORS** — Phase 5 found it unneeded because the UI
+      calls the API server-side; confirm that still holds across the new subdomains.
+- [ ] Verify HTTPS/cert on every host before announcing.
+
+### 0.9 Production cost-control before the public launch (new — the funded key changes the threat model)
+Public users generating Sonnet memos spend real money against the same $20. Before announcing:
+- [ ] Confirm the **memo rate limit** (~2 Sonnet memos / IP / day) is actually wired and enforced, and
+      that **chat = Haiku** (cheap) as designed.
+- [ ] Add a **global daily ceiling** or alert so a burst/abuse can't silently drain the balance (the
+      provider cap from §0.1 is the hard backstop; this is the early-warning).
+
+### 0.10 Surface-accuracy pass — 7 laws, everywhere (cheap, do before announcing)
+Per [[feedback-proactive-jurisdiction-presentation-updates]] the §7-B hand-updates must be consistent.
+- [ ] Verify the **README, landing page, UI copy, and the corpus list** all say **seven** jurisdictions
+      (CO, CT, IL, CA×2, NYC, NJ) — no stale "CO/CT only" or "five laws" copy survives.
+
+### 0.11 Phase 9 — the agent's first live PR (optional; can trail the launch)
+- [ ] *Optional, lower priority for launch:* register an NJ-style `SourceEntry` and let the monitoring
+      agent draft its **first live end-to-end PR**, converting Phase 9's one remaining deferred item to a
+      demonstrated live run. Reasonable to defer until after MCP — it doesn't gate the public launch.
+
+### Exit criteria for §0 (what "caught up" means)
+Phases 6, 7, 8 have **zero `[-]` items left** (numbers measured, decisions resolved, write-ups recorded);
+the app is live under its own domain with HTTPS and cost-control; the memo quality is backed by a real
+groundedness number **and** a human read. Only then start the MCP build (§1+). MCP is intentionally last:
+it exposes a `core/` that is now measured, trustworthy, and properly hosted.
+
+---
+
 ## 1. What Phase 10 is
 
 Making the engine reusable beyond its own UI.

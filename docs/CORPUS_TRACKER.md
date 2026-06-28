@@ -55,7 +55,8 @@ recorded as-is. CO "materially influence" ≠ CT/TX "substantial factor" ≠ IL 
 | New York (state) | RAISE Act (signed Dec 19 2025) | Frontier-model *safety* (catastrophic-harm; >$500M-rev devs, >10^26 FLOPs) | — | 2026 (chapter amendments) | **OUT OF SCOPE** | — | Different subject matter (frontier-model safety, not business obligations in consequential decisions). Do not ingest for this app. NY also enacted an **AI Transparency Law** (Jan 2026) — verify scope, but likely transparency/chatbot, not our subject. |
 | New York **City** | Local Law 144 (AEDT); N.Y.C. Admin. Code §§ 20-870 to 20-874 | Employment (automated employment decision tools) | — (bias-audit + notice mechanism; "substantially assist or replace discretionary decision making") | In force since **Jul 2023** (enacted Dec 11 2021; eff. Jan 1 2023; DCWP enforcement Jul 5 2023) | **IN CORPUS** | `nyc-ll144` | Added 2026-06-25 (Phase 9 Batch 6a, by hand). Source = NYC Council Legistar enacted text (Int. 1894-A); codified amlegal version blocks bots. Squarely our subject matter: independent bias-audit mandate + candidate notice + penalties; real business obligations over one of the largest labor markets in the US. **Scope decision (sjtroxel, 2026-06-25): the app admits a strong major-municipality rule like this — "NYC is practically its own state."** Honest asterisk: it's a *bias-audit ordinance*, a different obligation structure than the CO/CT consequential-decisions statutes — useful variety (first municipal + first audit-style entry). |
 | New Jersey | **(a)** AEDT *bill* (legislative); **(b) N.J.A.C. 13:16** — DCR "Rules Pertaining to Disparate Impact Discrimination" | Employment (also housing, lending, public accommodations, contracting) | effect-based — disparate impact (three-step burden-shifting framework) | (a) n/a; **(b) adopted, effective Dec 15 2025** | **(a) NOT ENACTED · (b) IN CORPUS** | `nj-njac-13-16` (b) | Added 2026-06-27 (by hand, clean text-layer PDF courtesy copy from njoag.gov; the agent's PDF-ingestion was built as a separate batch the same day). **Two different NJ items — do not conflate.** (a) The *legislative bill* died in committee (nothing to ingest). (b) **N.J.A.C. 13:16** is a *separately adopted DCR regulation*, effective Dec 15 2025, that codifies disparate-impact liability and **expressly covers automated employment decision tools** (defines AEDT; employer can't blame the vendor; tools must be tested for adverse impact before use). In scope — effect-based, employment + more; a cousin to IL HB 3773. Surfaced by sjtroxel 2026-06-25; our earlier "skip NJ" applied **only to the dead bill, not to 13:16**. Broader/mushier than CO/CT/NYC (a burden-shifting *framework*, not crisp procedural duties) — needs an honest `operative_standard` model at ingest. |
-| Utah / Virginia / Montana / others | — | — | — | — | **TO RESEARCH / none found** | — | No in-scope *consequential-decisions/employment* law surfaced this pass. (Utah has an AI *disclosure* law — different subject matter.) A full 50-state scan against this exact filter is still open (§4). |
+| Virginia | HB 2094 — High-Risk AI Developer & Deployer Act | Consequential decisions, multi-domain (employment, lending, housing, insurance, health, education, etc.) | "substantial factor" in a consequential decision | — (**vetoed**) | **VETOED 2025 — WATCH 2026** | — | A CO-style developer/deployer framework (reasonable care vs. algorithmic bias, impact assessments, consumer AI-use disclosure, adverse-decision notice + appeal). Passed both chambers Feb 2025; **Gov. Youngkin vetoed it Mar 24 2025** → not enacted. A narrower 2026 reintroduction was anticipated (reportedly healthcare-focused) under the new administration; **the 2026-06-28 sweep found no enacted broad VA AI law — re-verify the 2026 session outcome before any action.** If ever enacted broad, squarely in scope (a Virginia twin of CO SB 26-189). |
+| Utah / Montana / others (privacy-law profiling cluster) | state comprehensive **privacy** acts w/ a profiling/ADMT opt-out | "decisions producing legal or similarly significant effects" | opt-out of automated profiling (not an AI-governance framework) | various 2024–2027 | **OUT FOR NOW (decided 2026-06-28; see §4)** | — | The 2026-06-28 sweep surfaced ~10 states whose **comprehensive privacy laws** carry a profiling/ADMT opt-out for significant decisions (AL, CO-priv, CT-priv, DE, FL, IN, KY, MD, MN, MT). They impose a real obligation triggered by AI in consequential decisions, but are the *privacy-law* flavor — a thin consumer opt-out, not a bias/audit/impact framework. **DECIDED (sjtroxel, 2026-06-28): leave the cluster OUT for now.** Revisit only if a credible third party advises adding it after the public LinkedIn launch. **If revisited, add CO/CT FIRST** (we already hold their *employment* laws, so their privacy-cluster opt-out *completes a covered state* rather than opening a new jurisdiction — deepen before broaden) before any genuinely new jurisdiction. (Utah's standalone AI *disclosure* law remains out of scope — different subject matter.) |
 
 ---
 
@@ -84,10 +85,29 @@ Resolved this pass: NY (RAISE = out of scope; NYC LL144 = the city in-scope item
 that did **not** clear **N.J.A.C. 13:16**, the DCR disparate-impact rules (adopted, eff. Dec 15 2025,
 expressly covering AEDTs), which is a live CANDIDATE slated after California (§2, §5). Still open:
 
-1. **Full 50-state scan against the exact filter** (business obligations in consequential/employment
-   decisions — NOT disclosure/deepfake/frontier laws). This pass confirmed CO/CT/IL/CA + NYC LL144,
-   surfaced NJ N.J.A.C. 13:16 (candidate), and ruled out only the dead NJ bill; it did not exhaustively
-   clear the other ~44 states.
+1. ~~**Full 50-state scan against the exact filter**~~ **DONE 2026-06-28 (web sweep; verify any add at
+   ingest against primary text).** Swept against the exact filter (AI-specific business obligations in
+   consequential/employment decisions — NOT disclosure/deepfake/frontier). **Headline result: the enacted
+   AI-specific cluster is already fully captured by the corpus (CO/CT/IL/CA×2/NYC/NJ) — no NJ-like enacted
+   AI-specific statute was missed.** Two findings (both in §2):
+   - **Virginia HB 2094** — a CO-style consequential-decisions deployer law, **vetoed Mar 2025**; a
+     narrower 2026 reintroduction was anticipated but no enacted broad VA law was found this sweep. WATCH;
+     not ingestible unless/until enacted.
+   - **New scope-boundary category — the privacy-law profiling-opt-out cluster.** ~10 states' *comprehensive
+     privacy laws* carry a profiling/ADMT opt-out for "decisions producing legal or similarly significant
+     effects" (AL, CO-priv, CT-priv, DE, FL, IN, KY, MD, MN, MT). They impose a real, AI-triggered
+     obligation (honor the opt-out) but are the **privacy-law flavor** — a thin consumer opt-out, not an
+     AI bias/audit/impact framework. The **CA CCPA ADMT regs already in corpus are the detailed-rulemaking
+     version of exactly this category**; the other ~10 are the lighter statutory opt-out. **DECIDED
+     (sjtroxel, 2026-06-28): leave the cluster OUT for now** — it dilutes the AI-specific thesis and the
+     call isn't forced. The CA CCPA ADMT add stands (it's the heaviest cluster law, already done, and gives
+     CA users the fuller state picture). **Revisit trigger:** a credible third party advising the add after
+     the public LinkedIn launch. **If revisited, sequence CO/CT FIRST** — we already hold their employment
+     laws, so their privacy-cluster opt-out completes a covered state rather than opening a new jurisdiction
+     (deepen before broaden); only then consider genuinely new states. If ever added, keep it a distinct
+     sub-category, not an equivalent of the AI-governance laws. Sources for this sweep: Orrick US State AI
+     Law Tracker; Cooley "State AI Laws — Where Are They Now?" (2026-04-24); Perkins Coie, Akin, DISA
+     state-AI-employment trackers.
 2. ~~**Verify the IL date** (Jan 1 vs Feb 2026 provisions) and whether to ingest HB 3773 alone or also
    the AI Video Interview Act (AIVII).~~ **RESOLVED 2026-06-25:** Jan 1 2026, all provisions (no
    phase-in). HB 3773 only — AIVII deferred (different mechanism).
