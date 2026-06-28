@@ -18,6 +18,14 @@ dependencies = [
     "chromadb",
     "fastembed",
     "pyyaml",
+    "pypdf",  # ingestion-agent PDF text-layer extraction (assess stage); pure-Python
+    # OCR fallback for scanned-image statute PDFs (assess stage). Lazy-imported so only the
+    # agent path pays for them. Needs the `tesseract` system binary where the agent runs
+    # (monitor.yml installs it; the Railway app surfaces never OCR). PyMuPDF is AGPL-3.0 —
+    # swap to pypdfium2 (Apache/BSD) if copyleft is a concern.
+    "pymupdf",
+    "pytesseract",
+    "pillow",
     "anthropic",
     "openai",  # OpenRouter provider (OpenAI-compatible API); Seam 4 — only core/llm.py imports it
     "sse-starlette",

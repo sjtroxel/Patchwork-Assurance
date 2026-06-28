@@ -18,14 +18,16 @@ Public API:
 
 from __future__ import annotations
 
+import io
 from dataclasses import dataclass
 from typing import Literal
 
 import httpx
+import pypdf
 
 from patchwork_assurance.config import SourceEntry
 from patchwork_assurance.config import settings as _default_settings
-from patchwork_assurance.core.agent.poll import PollResult, normalize_html
+from patchwork_assurance.core.agent.poll import REQUEST_HEADERS, PollResult, normalize_html
 from patchwork_assurance.core.agent.provenance import is_allowed
 from patchwork_assurance.core.contracts import Msg
 from patchwork_assurance.core.llm import LLMClient
@@ -91,16 +93,95 @@ CLASSIFY_TOOLS = [
 _VALID_VERDICTS = frozenset({"relevant", "not_relevant", "uncertain"})
 _TEXT_CAP = 8000  # chars fed back to the model per fetch (keeps context manageable)
 
+# Below this many extracted chars a PDF page set has no real text layer (a scanned image):
+# pypdf returns ~nothing, so we fall through to OCR.
+_PDF_MIN_TEXT_CHARS = 40
+_OCR_DPI = 300  # render resolution for scanned-page OCR; statute scans read cleanly at 300
+_OCR_MAX_PAGES = 60  # guard against a pathological multi-hundred-page scan blowing the cron budget
+
+
+def _extract_pdf_textlayer(content: bytes) -> str:
+    """Extract the embedded text layer via pypdf. Returns '' when there is none (scanned image)."""
+    reader = pypdf.PdfReader(io.BytesIO(content))
+    pages = [page.extract_text() or "" for page in reader.pages]
+    return "\n".join(p.strip() for p in pages if p.strip()).strip()
+
+
+def _ocr_pdf(content: bytes, url: str) -> str:
+    """OCR a scanned (no-text-layer) PDF: render each page to an image, run tesseract.
+
+    Imports are lazy so the app surfaces (memo/chat) never pay for them and so a runner
+    missing the tesseract binary degrades to an honest note instead of crashing the cron.
+    The OCR text is a *draft* — a human gates every agent PR before corpus entry, so OCR
+    slips get caught at review (the human-in-the-loop boundary), not published blind.
+    """
+    try:
+        import fitz  # PyMuPDF — renders pages without poppler (AGPL; swap to pypdfium2 to de-copyleft)
+        import pytesseract
+        from PIL import Image
+    except Exception as exc:  # noqa: BLE001 — OCR deps absent: degrade, don't crash
+        return (
+            f"[PDF document at {url} appears to be a scanned image and OCR is unavailable "
+            f"in this environment ({type(exc).__name__}). Manual review is required.]"
+        )
+
+    try:
+        doc = fitz.open(stream=content, filetype="pdf")
+        out: list[str] = []
+        for page in doc[:_OCR_MAX_PAGES]:
+            pix = page.get_pixmap(dpi=_OCR_DPI)
+            img = Image.open(io.BytesIO(pix.tobytes("png")))
+            out.append(pytesseract.image_to_string(img).strip())
+        truncated = doc.page_count > _OCR_MAX_PAGES
+        doc.close()
+    except Exception as exc:  # noqa: BLE001 — render/OCR failure degrades to a note
+        return (
+            f"[PDF document at {url} could not be OCR'd ({type(exc).__name__}). "
+            "Manual review is required.]"
+        )
+
+    text = "\n".join(p for p in out if p).strip()
+    if len(text) < _PDF_MIN_TEXT_CHARS:
+        return (
+            f"[PDF document at {url} is a scanned image and OCR produced no readable text. "
+            "Manual review is required.]"
+        )
+    if truncated:
+        text += (
+            f"\n\n[Truncated: only the first {_OCR_MAX_PAGES} pages were OCR'd; "
+            "review the full source.]"
+        )
+    return text
+
+
+def _extract_pdf_text(content: bytes, url: str) -> str:
+    """Extract a PDF's text: embedded text layer first, OCR fallback for scanned images.
+
+    Statute sources are bimodal — clean text-layer PDFs (extract instantly, no OCR cost) or
+    scanned-image PDFs with no text layer (need OCR). Trying the text layer first means we
+    only pay the OCR cost when there is genuinely no text to read.
+    """
+    try:
+        textlayer = _extract_pdf_textlayer(content)
+    except Exception as exc:  # noqa: BLE001 — malformed PDF: try OCR before giving up
+        textlayer = ""
+        if not content.startswith(b"%PDF"):
+            return (
+                f"[PDF document at {url} could not be parsed ({type(exc).__name__}). "
+                "Manual review is required.]"
+            )
+
+    if len(textlayer) >= _PDF_MIN_TEXT_CHARS:
+        return textlayer
+    return _ocr_pdf(content, url)
+
 
 def _extract_text(content: bytes, url: str, content_type: str) -> str:
-    """Return human-readable text from an HTTP response. HTML is normalized; PDFs are noted."""
+    """Return human-readable text from an HTTP response. HTML is normalized; PDFs are extracted."""
     if "html" in content_type or url.endswith((".html", ".htm")):
         return normalize_html(content)
     if "pdf" in content_type or url.endswith(".pdf"):
-        return (
-            f"[PDF document at {url}. Automated text extraction is not supported; "
-            "manual review or a dedicated PDF step is required.]"
-        )
+        return _extract_pdf_text(content, url)
     return content.decode("utf-8", errors="replace")
 
 
@@ -158,7 +239,7 @@ def assess_change(
                     "Fetch only from allowlisted official legislative/court sources."
                 )
             fetch = http_client.get if http_client else httpx.get
-            resp = fetch(url, follow_redirects=True, timeout=30.0)
+            resp = fetch(url, follow_redirects=True, timeout=30.0, headers=REQUEST_HEADERS)
             resp.raise_for_status()
             content_type = getattr(resp, "headers", {}).get("content-type", "")
             text = _extract_text(resp.content, url, content_type)

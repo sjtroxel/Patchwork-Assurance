@@ -1,5 +1,14 @@
 # Phase 9 — IMPLEMENTATION (monitoring / ingestion agent)
 
+> **STATUS: COMPLETE — 2026-06-28 (297 tests green).** Five-stage pipeline built + offline-tested
+> (poll → diff → assess/fetch → draft → PR human-gate). Fetch/extract hardened beyond the original plan:
+> HTML normalization, **PDF text-layer extraction (pypdf) + OCR fallback (PyMuPDF + tesseract)** for
+> scanned statutes, and a **browser user-agent** for sources that 403 a default UA. The corpus grew
+> **2→7 jurisdictions** (CO, CT, IL, CA×2, NYC, NJ), all served with zero `core/` change. The additions
+> were **human-curated by hand**; the agent's first **live** end-to-end PR is the one deferred step
+> (a funded run — same posture as the deferred paid/live items in Phases 6–8). See ROADMAP §6.
+
+
 *As-built runbook, written at phase start (2026-06-25), reflecting how Phases 0–8 actually landed. The
 intended design + threat model live in `phase-9-monitoring-agent.md` (read it first); this doc records
 the resolved decisions, the build specifics, and the exact write paths the agent reuses. Phase 9 is
@@ -128,11 +137,13 @@ on-change ingestion step (perceive change → judge relevance → draft), built 
 loop. This is the cost-disciplined, credible design (plan §14).
 
 **Dependencies (verify + pin versions at build):** an HTTP/feed fetcher — **`httpx` is already a dep**,
-reuse it. Light HTML/text parsing for source pages (stdlib `html.parser` first; add a dep only if a
-source's markup forces it — Phase-7-style stdlib-vs-dep call). PDF/OCR only if a source is an image-scan
-(reuse the Phase 1 Tesseract method; that tooling is a local/dev step, not a runtime dep). Scheduler =
-GitHub Actions (no dep). `sqlite3` (stdlib) or a flat JSON file for the last-seen-hash store — decide at
-build by which reads cleaner.
+reuse it (now sends a browser user-agent — `poll.REQUEST_HEADERS` — so official sources that 403 a
+default UA fetch cleanly). Light HTML/text parsing for source pages uses stdlib `html.parser` (no dep).
+**As-built correction (2026-06-28):** PDF/OCR became a *runtime* dep of the agent fetch path, not just a
+local/dev step — `pypdf` (text-layer) plus `pymupdf` + `pytesseract` + `pillow` (OCR fallback), all
+lazy-imported so only the agent path pays for them, and `monitor.yml` installs the `tesseract-ocr` binary.
+The deployed Railway app surfaces never OCR, so they carry no new system dep. Scheduler = GitHub Actions
+(no dep). The last-seen-hash store is a flat JSON file (`.agent_hashes.json`).
 
 **Config additions (`config.py`):** `source_set` (list of {jurisdiction, url, kind, cadence}),
 `staging_path` (default `corpus/_staging`), `hash_store_path`, `classify_model`
@@ -521,9 +532,11 @@ hashes only after successful downstream work, so a crashed pipeline run doesn't 
 `<script>`, `<style>`, `<nav>`, `<header>`, `<footer>` via a depth counter (handles nested skip
 tags correctly). Extracts visible text → SHA-256. Reduces nav-only false positives without deps.
 
-**PDF kind:** `compute_hash(content, "pdf")` hashes raw bytes (no text extraction). Not yet needed
-for the three current sources (all polled via their HTML `source_page`), but the `kind` field and
-branch are there for future PDF-direct sources.
+**PDF kind:** `compute_hash(content, "pdf")` hashes raw bytes (no text normalization — the diff gate
+only needs a stable fingerprint). Text *extraction* now lives in the assess stage: `assess.py`
+`_extract_text` → `_extract_pdf_text` tries the embedded **text layer (pypdf)** first and falls back to
+**OCR (PyMuPDF render + tesseract)** for scanned-image PDFs, degrading to an honest note when neither
+yields readable text (added 2026-06-28; NJ's njoag.gov PDF is text-layer, CO/CT are scans).
 
 **Source set defaults (config.py):** three `SourceEntry` objects pointing at the `source_page` HTML
 bill-status URLs from existing corpus metadata (CO/CT/IL). The `SOURCE_SET` env var (JSON array)

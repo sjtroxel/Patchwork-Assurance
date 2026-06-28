@@ -27,6 +27,17 @@ from patchwork_assurance.core.agent.store import HashStore
 
 _SKIP_TAGS = frozenset({"script", "style", "nav", "header", "footer"})
 
+# Some official sources (e.g. nj.gov) 403 a default httpx/python user-agent. A browser-like
+# UA is the bounded fix for that whole class of source; genuinely hostile sites (JS/Cloudflare
+# challenges) are left to fall back to the agent's manual-review path, not chased here.
+# Shared by both fetch sites (poll here, assess stage) so detection and fetch stay consistent.
+REQUEST_HEADERS = {
+    "User-Agent": (
+        "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 "
+        "(KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36"
+    )
+}
+
 
 class _TextExtractor(HTMLParser):
     def __init__(self) -> None:
@@ -85,7 +96,7 @@ def poll_source(
     no stored hash exists). The store is not updated here.
     """
     fetch = http_client.get if http_client else httpx.get
-    response = fetch(source.url, follow_redirects=True, timeout=30.0)
+    response = fetch(source.url, follow_redirects=True, timeout=30.0, headers=REQUEST_HEADERS)
     response.raise_for_status()
 
     new_hash = compute_hash(response.content, source.kind)

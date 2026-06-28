@@ -8,6 +8,8 @@ Key assertions:
 - CLASSIFY_TOOLS has the correct Anthropic tool shape
 """
 
+import io
+
 import pytest
 
 from patchwork_assurance.config import SourceEntry
@@ -199,39 +201,155 @@ def test_assess_change_invalid_verdict_normalised_to_uncertain():
 
 
 # ---------------------------------------------------------------------------
-# PDF official text falls back to descriptive note
+# PDF extraction: real text layer, scanned-image fallback, malformed fallback
 # ---------------------------------------------------------------------------
 
 
-def test_assess_change_pdf_content_type_returns_note():
-    pdf_source = SourceEntry(
-        jurisdiction="co",
-        url="https://leg.colorado.gov/bills/sb26-189",
-        official_url="https://leg.colorado.gov/bill_files/116489/download",
-        kind="pdf",
+def _make_pdf(text: str) -> bytes:
+    """Build a minimal single-page text-layer PDF showing `text` (no external deps)."""
+    objs = [
+        b"<< /Type /Catalog /Pages 2 0 R >>",
+        b"<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
+        b"<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Contents 4 0 R "
+        b"/Resources << /Font << /F1 5 0 R >> >> >>",
+    ]
+    stream = b"BT /F1 24 Tf 72 700 Td (" + text.encode() + b") Tj ET"
+    objs.append(
+        b"<< /Length " + str(len(stream)).encode() + b" >>\nstream\n" + stream + b"\nendstream"
     )
-    pdf_changed = PollResult(source=pdf_source, changed=True, new_hash="x")
+    objs.append(b"<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>")
+
+    out = io.BytesIO()
+    out.write(b"%PDF-1.4\n")
+    offsets = []
+    for i, body in enumerate(objs, start=1):
+        offsets.append(out.tell())
+        out.write(str(i).encode() + b" 0 obj\n" + body + b"\nendobj\n")
+    xref_pos = out.tell()
+    out.write(b"xref\n0 " + str(len(objs) + 1).encode() + b"\n")
+    out.write(b"0000000000 65535 f \n")
+    for off in offsets:
+        out.write(f"{off:010d} 00000 n \n".encode())
+    out.write(
+        b"trailer\n<< /Size " + str(len(objs) + 1).encode() + b" /Root 1 0 R >>\n"
+        b"startxref\n" + str(xref_pos).encode() + b"\n%%EOF"
+    )
+    return out.getvalue()
+
+
+_PDF_SOURCE = SourceEntry(
+    jurisdiction="co",
+    url="https://leg.colorado.gov/bills/sb26-189",
+    official_url="https://leg.colorado.gov/bill_files/116489/download",
+    kind="pdf",
+)
+
+
+def _pdf_assess(content: bytes) -> AssessResult:
+    pdf_changed = PollResult(source=_PDF_SOURCE, changed=True, new_hash="x")
 
     class _PdfClient:
         def get(self, url: str, **kwargs) -> _FakeResponse:
-            return _FakeResponse(b"%PDF-1.4 binary content", content_type="application/pdf")
+            return _FakeResponse(content, content_type="application/pdf")
 
     llm = StubLLM(
-        text="Noted PDF.",
+        text="Reviewed PDF.",
         tool_script=[
-            ("fetch_official_text", {"url": pdf_source.official_url}),
-            (
-                "record_classification",
-                {"verdict": "uncertain", "reason": "PDF; needs manual review."},
-            ),
+            ("fetch_official_text", {"url": _PDF_SOURCE.official_url}),
+            ("record_classification", {"verdict": "relevant", "reason": "AI statute amendment."}),
         ],
     )
+    return assess_change(pdf_changed, llm, http_client=_PdfClient())
 
-    result = assess_change(pdf_changed, llm, http_client=_PdfClient())
+
+def _ocr_available() -> bool:
+    """True only when the full OCR stack (renderer + tesseract binary) is usable."""
+    try:
+        import fitz  # noqa: F401
+        import pytesseract
+        from PIL import Image  # noqa: F401
+
+        pytesseract.get_tesseract_version()
+        return True
+    except Exception:
+        return False
+
+
+def _make_scanned_pdf(text: str) -> bytes:
+    """Build a PDF with NO text layer — text rasterized into a full-page image (the scan case)."""
+    import fitz
+    from PIL import Image, ImageDraw, ImageFont
+
+    img = Image.new("RGB", (1400, 300), "white")
+    draw = ImageDraw.Draw(img)
+    try:
+        font = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf", 36)
+    except OSError:
+        font = ImageFont.load_default()
+    draw.text((30, 120), text, fill="black", font=font)
+    buf = io.BytesIO()
+    img.save(buf, format="PNG")
+
+    doc = fitz.open()
+    page = doc.new_page(width=1400, height=300)
+    page.insert_image(fitz.Rect(0, 0, 1400, 300), stream=buf.getvalue())
+    pdf_bytes = doc.tobytes()
+    doc.close()
+    return pdf_bytes
+
+
+def test_assess_change_pdf_extracts_text_layer():
+    # Text-layer PDFs extract directly — the fast path, no OCR cost.
+    result = _pdf_assess(_make_pdf("Colorado SB 26-189 amendment effective 2026"))
 
     assert result.official_text is not None
-    assert "PDF" in result.official_text
-    assert result.verdict == "uncertain"
+    assert "Colorado SB 26-189 amendment effective 2026" in result.official_text
+    assert result.verdict == "relevant"
+
+
+@pytest.mark.skipif(not _ocr_available(), reason="tesseract OCR stack not installed")
+def test_assess_change_pdf_scanned_image_is_ocred():
+    # The worst case: a scanned-image PDF with no text layer. pypdf yields nothing, so the
+    # OCR fallback renders the page and reads the text back. (String >40 chars to clear the
+    # min-real-text floor, as a genuine statute page always would.)
+    statute = "Connecticut Senate Bill 5 governs automated employment decision tools."
+    result = _pdf_assess(_make_scanned_pdf(statute))
+
+    assert result.official_text is not None
+    assert "Connecticut" in result.official_text
+    assert "automated" in result.official_text
+
+
+def test_assess_change_pdf_malformed_returns_note():
+    # Bytes that are not a PDF at all (a fetch that returned the wrong content) degrade to a
+    # clear note rather than crashing the pipeline.
+    result = _pdf_assess(b"this is not a pdf at all")
+
+    assert result.official_text is not None
+    assert "could not be parsed" in result.official_text
+
+
+def test_assess_fetch_sends_browser_user_agent():
+    # The assess-stage fetch must carry the same browser UA as poll, or sources that 403 a
+    # default python UA (e.g. nj.gov) detect-as-changed but then fail to fetch the text.
+    captured: dict = {}
+
+    class _CapturingClient:
+        def get(self, url: str, **kwargs) -> _FakeResponse:
+            captured.update(kwargs)
+            return _FakeResponse(_HTML)
+
+    llm = StubLLM(
+        text="Reviewed.",
+        tool_script=[
+            ("fetch_official_text", {"url": _SOURCE.official_url}),
+            ("record_classification", {"verdict": "relevant", "reason": "ok"}),
+        ],
+    )
+    assess_change(_CHANGED, llm, http_client=_CapturingClient())
+
+    assert "User-Agent" in captured["headers"]
+    assert "Mozilla" in captured["headers"]["User-Agent"]
 
 
 # ---------------------------------------------------------------------------

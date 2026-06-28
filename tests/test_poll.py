@@ -181,6 +181,22 @@ def test_poll_source_does_not_update_store(tmp_path: Path):
     assert store.get(_SOURCE.url) is None  # caller commits; poll never writes
 
 
+def test_poll_source_sends_browser_user_agent(tmp_path: Path):
+    # Some official sources 403 a default python user-agent; poll must send a browser UA so
+    # the fetch (and the change it detects) actually succeeds.
+    captured: dict = {}
+
+    class _CapturingClient:
+        def get(self, url: str, **kwargs):
+            captured.update(kwargs)
+            return _FakeResponse(_HTML)
+
+    poll_source(_SOURCE, HashStore(tmp_path / "h.json"), http_client=_CapturingClient())
+
+    assert "User-Agent" in captured["headers"]
+    assert "Mozilla" in captured["headers"]["User-Agent"]
+
+
 # ---------------------------------------------------------------------------
 # poll_all
 # ---------------------------------------------------------------------------
