@@ -25,22 +25,84 @@ Adding Texas, Utah, a federal rule, the EU AI Act, or a court decision later =
 "multi-jurisdiction" future, pre-paid for an hour of design now. The Phase 9 ingestion agent is just
 an automated writer *into this folder*.
 
-## v1 contents (to be added during the build)
+## Current contents
 
-- Colorado **SB 26-189** ("Automated Decision-Making Technology") — cleaned text + metadata. Signed
-  May 14 2026 (Ch. 131); repeals and replaces the original Colorado AI Act (SB 24-205). Regulates ADMT
-  used to **materially influence** a consequential decision (education, employment, housing, financial/
-  lending, insurance, health-care, essential government services). Effective Jan 1, 2027. Enforced by
-  the CO AG under the Colorado Consumer Protection Act (deceptive trade practice); 60-day cure period
-  through Jan 1, 2030. Official text: https://leg.colorado.gov/bill_files/116489/download
-- Connecticut **SB 5 / Public Act 26-15** (Connecticut Artificial Intelligence Responsibility and
-  Transparency Act" is a commentator nickname; official title is "An Act Concerning Online Safety") —
-  cleaned text + metadata. Signed May 27 2026 (per the official PA "Governor's Action"). Regulates
-  AERDT that is a **substantial factor** in an employment-related decision,
-  and is broader than employment alone (healthcare, online safety, AI companions, frontier models).
-  Staggered effective dates: general provisions Oct 1, 2026; employment deployer disclosure /
-  pre-decision notice obligations Oct 1, 2027. CT AG under CUTPA. Official text:
+Each entry below is one file pair (`<law_id>.md` + `<law_id>.meta.yaml`) already loaded. The
+operative terms differ on purpose and are **not** harmonized (see `../.claude/rules/corpus.md`); the
+canonical metadata is each record's `.meta.yaml`, not these summaries.
+
+- **`co-sb26-189`** — Colorado **SB 26-189** ("Concerning the Use of Automated Decision-Making
+  Technology in Consequential Decisions"). Signed May 14 2026 (Session Laws ch. 131); repeals and
+  replaces the original Colorado AI Act (SB 24-205). Regulates ADMT used to **materially influence** a
+  consequential decision (education, employment, housing, financial/lending, insurance, health-care,
+  government services). Effective Jan 1, 2027. CO AG under the Colorado Consumer Protection Act; 60-day
+  cure period. Codified at Colo. Rev. Stat. §§ 6-1-1701 to 6-1-1709. Official text:
+  https://leg.colorado.gov/bill_files/116489/download
+- **`ct-sb5-pa26-15`** — Connecticut **SB 5 / Public Act 26-15** (official title "An Act Concerning
+  Online Safety"). Signed May 27 2026. Regulates an AERDT that is a **substantial factor** in an
+  employment-related decision, and reaches beyond employment (AI companions, generative-AI provenance,
+  frontier models). Staggered: general provisions Oct 1, 2026; employment deployer disclosure /
+  pre-decision notice Oct 1, 2027. CT AG under CUTPA. Official text:
   https://www.cga.ct.gov/2026/act/pa/pdf/2026PA-00015-R00SB-00005-PA.pdf
+- **`il-hb3773`** — Illinois **HB 3773 / Public Act 103-0804**, amending the Illinois Human Rights Act
+  (775 ILCS 5/2-101(M)-(N), 5/2-102(L)). Effect-based: bars an employer from using AI that **has the
+  effect of** discriminating in employment on a protected basis, and from using zip code as a proxy;
+  adds an employee-notice duty. Effective Jan 1, 2026. Enforced by IDHR / IHRC (individual complaint
+  process, no AG-exclusive enforcement). Official text:
+  https://www.ilga.gov/documents/legislation/publicacts/103/103-0804.htm
+- **`ca-feha-ads`** — California **FEHA automated-decision-system employment regulations** (Civil
+  Rights Council), 2 CCR §§ 11008 et seq. Extends existing FEHA employment-discrimination liability to
+  an "automated-decision system" (§ 11009(f)) rather than adding a new decision-influence trigger;
+  adds four-year recordkeeping. Effective Oct 1, 2025. CRD / Civil Rights Council, with a private right
+  of action after exhaustion. Official text: https://calcivilrights.ca.gov/wp-content/uploads/sites/32/2025/03/Attachment-B-Final-Unmodified-Text-of-Proposed-Employment-Regulations-Regarding-Automated-Decision-Systems.pdf
+- **`ca-ccpa-admt`** — California **CCPA ADMT consumer-privacy regulations**, 11 CCR §§ 7200 et seq. A
+  privacy regime, not a discrimination rule: procedural duties (pre-use notice, opt-out, access, risk
+  assessment) attach when a business uses ADMT to make a **significant decision** (financial/lending,
+  housing, education, employment, health-care — broader than the FEHA regs' employment-only scope).
+  Regulations effective Jan 1, 2026; ADMT-Article compliance due Jan 1, 2027. CPPA + CA AG. Official
+  text: https://cppa.ca.gov/regulations/pdf/ccpa_updates_cyber_risk_admt_appr_text.pdf
+- **`nyc-ll144`** — New York City **Local Law 144 of 2021** (AEDT bias-audit law), N.Y.C. Admin. Code
+  §§ 20-870 to 20-874. Requires an annual independent **bias audit** plus candidate notice before an
+  automated employment decision tool is used. DCWP enforcement (via OATH) began Jul 5, 2023. A
+  non-state jurisdiction large enough to sit beside the states. Official text:
+  https://legistar.council.nyc.gov/LegislationDetail.aspx?ID=4344524&GUID=B051915D-A9AC-451E-81F8-6596032FA3F9
+- **`nj-njac-13-16`** — New Jersey **Division on Civil Rights disparate-impact rules**, N.J.A.C.
+  §§ 13:16-1.1 to 13:16-6.2. An effect-based, multi-domain framework under the NJ Law Against
+  Discrimination (employment, housing, financial/lending, education) that expressly reaches AEDTs.
+  Adopted and effective Dec 15, 2025 (no phase-in). DCR / NJ AG; administrative complaint or Superior
+  Court suit. Official text:
+  https://www.njoag.gov/wp-content/uploads/2025/12/N.J.A.C.-13-16-Disparate-Impact-Discrimination.pdf
 
-Source the actual bill text from the CO and CT legislature sites. This is the one genuine research
-task, and the J.D. edge makes it the cheap part.
+Statute text is always sourced from the official site above and only formatting-cleaned — never
+authored or paraphrased by an LLM (`../.claude/rules/corpus.md`). The J.D. edge makes the
+read-and-clean step the cheap part.
+
+## Candidate jurisdictions (not yet in the corpus)
+
+The corpus is **curated, not exhaustive** — it grows deliberately, and it is never implied to be
+complete (`../docs/CORPUS_TRACKER.md` holds the full landscape research and decision log). The clearest
+near-term expansion is the **state comprehensive-privacy profiling cluster**: roughly ten states whose
+general consumer-privacy statutes give residents a right to **opt out of profiling** in furtherance of
+"decisions that produce legal or similarly significant effects." That is a real, AI-triggered business
+obligation, but a *lighter* consumer opt-out rather than a bias-audit or impact-assessment framework.
+The states surfaced in the 2026-06-28 landscape sweep: **Alabama, Colorado, Connecticut, Delaware,
+Florida, Indiana, Kentucky, Maryland, Minnesota, Montana**. California's CCPA ADMT regulations (already
+in the corpus) are the heavy, detailed-rulemaking version of exactly this category; the rest are the
+lighter statutory opt-out.
+
+This cluster is **deliberately deferred for now** (decided 2026-06-28) — it dilutes the AI-specific
+focus and the call is not forced. If it is revisited (e.g. after launch, on credible outside advice),
+the sequence is **Colorado and Connecticut first**: the corpus already holds their AI-specific laws
+(CO SB 26-189, CT SB 5), so adding their privacy-law opt-out *completes a state already covered* rather
+than opening a brand-new jurisdiction — deepen before broaden.
+
+Also on the watch list, not yet ingestible:
+
+- **Virginia HB 2094** — a Colorado-style consequential-decisions deployer law, **vetoed March 2025**;
+  watch for a 2026 reintroduction (re-verify the session outcome before any action).
+- **Texas TRAIGA (HB 149)** — enacted, but imposes almost no private-sector obligations (intentional
+  discrimination only, no audits or notices, government-use focus); parked as an optional later
+  completeness add, not a headline.
+
+Anything added here follows the same rule as everything above: primary statute text at ingest, a human
+gates the change, and the file-pair-plus-loader path does the rest — zero code change.

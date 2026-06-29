@@ -322,9 +322,9 @@ drift) and `locate_section` (jurisdiction-aware, digit-boundary citation matcher
 citation-exists and groundedness).
 
 **Metrics shipped:** scope accuracy + retrieval hit-rate (deterministic, free, `eval/metrics.py`);
-citation-exists (deterministic logic, scores a real memo); coverage (fuzzy difflib, free logic);
-groundedness (LLM-judge, `eval/judge.py`). `make eval` runs the free tier; `make eval-judge` runs the
-paid tier behind the spend guard.
+citation-exists (deterministic logic, scores a real memo); coverage (gold-content-word recall, free logic —
+originally difflib, replaced 2026-06-29); groundedness (LLM-judge, `eval/judge.py`). `make eval` runs the
+free tier; `make eval-judge` runs the paid tier behind the spend guard.
 
 ### Results (deterministic tier — the free numbers)
 - **Scope accuracy: 28/28 = 100%.** The load-bearing Seam-3 logic is proven against the gold set, not
@@ -341,11 +341,37 @@ paid tier behind the spend guard.
   - **Phase 8 baseline:** the last-mile (one `uncertain` case still misses § 6-1-1705 at k=8) is the
     hybrid-retrieval target. recall@8 = 95.5% is the **before** number Phase 8 must beat.
 
+> Note: scope/retrieval totals grew with the corpus — the 2026-06-29 run reports **scope 238/238 = 100%**
+> and **recall@8 = 98%** over 34 gold cases (25 in-scope). The 28/28 and 95.5% above are the earlier
+> (pre-CA/NJ) figures; the conclusions (k=8, scope logic correct) held.
+
+### Results (judged tier — the 2026-06-29 paid run, $4.57)
+The one judged run executed 2026-06-29 (~3:11–3:46am): Anthropic, memo `claude-sonnet-4-6`, judge
+`claude-opus-4-8`, 25 in-scope cases. Cost **$4.57** = $1.65 Sonnet (memo) + $2.92 Opus (judge); the
+per-obligation judge is ~64% of the bill. Each memo was persisted to
+`eval/results/memos-20260629T081459Z/<case>.md` (readable prose + folded raw JSON) so output is
+*reviewable*, not just scored.
+- **Groundedness: 179/207 = 86.5%.** The Opus judge read each cited statute passage and rated whether
+  the obligation actually follows from it. This is the headline quality number for a grounded-RAG legal
+  tool, and it is a strong one.
+- **Citations resolve: 207/209 = 99.0%.** Only 2 invalid citations across the entire run — the cheap
+  deterministic guard against the worst failure mode (citing a section that doesn't exist).
+- **Coverage: 29/37 = 78.4%** *after a metric fix.* The metric as-run reported a degenerate **1/37 (2.7%)**
+  — proven a measurement artifact, not memo quality: `difflib.SequenceMatcher` char-ratio ≥ 0.50 against
+  the single best memo obligation is unreachable for a paraphrase of a 300+ char gold sentence (best
+  observed 0.135 on a case whose memo stated the gold's point verbatim in meaning). Fix (free, no
+  re-spend): `score_coverage` now uses **gold-content-word recall ≥ 0.6 against the pooled memo
+  obligation text + citation strings**, recomputed on the saved memos. Still a weak proxy — groundedness
+  is the real signal — and it under-counts the few gold entries written as cross-references
+  ("Same … as case X"). Future tidy: rewrite those shorthand gold entries as real text.
+
 ### Decisions resolved
 - **Judge model = `claude-opus-4-8`**, not the plan's Sonnet recommendation — the Phase-5 split made the
   memo a Sonnet call, so a Sonnet judge would grade its own model (judge≠judged).
 - **Custom harness** (no Ragas/TruLens) — as planned; no new deps.
-- **Coverage = fuzzy difflib first** (free), judge-based coverage left as the upgrade.
+- **Coverage = gold-content-word recall** (free; replaced the original difflib char-ratio on 2026-06-29
+  after it scored a degenerate 1/37 — see the judged-tier results above). Judge-based coverage remains the
+  upgrade if the word-recall proxy outgrows its usefulness.
 - **Memo retrieval k = 8** (above).
 
 ### Deviations from the plan worth noting
@@ -361,13 +387,16 @@ killed. Response: built `eval/safety.py:confirm_spend` — one chokepoint all pa
 plus the `docs/SPENDING_SAFETY.md` practice and the rule that **token-spending commands are human-run like
 git**. Full write-up: [[project-spending-incident-and-guardrail-2026-06-23]].
 
-### Deferred — the one paid run (do this when credits refill, ~next week)
-`make eval-judge` (interactive; it's gated). It will: generate a real memo per in-scope case (Sonnet),
-judge groundedness (Opus), score citation-exists + coverage on real output. That produces the **judged
-numbers** and settles the **Haiku-vs-Sonnet** generation decision (plan §8) — the only two DoD items left
-at `[-]` in `phase-6-evals.md` §2. Record those numbers + the measured cost back here when it runs.
+### The one paid run — DONE 2026-06-29
+Executed `make eval-judge` on Anthropic (memo Sonnet, judge Opus), 25 in-scope cases, **$4.57**. Produced
+the judged numbers (groundedness 86.5%, citations-resolve 99.0%, coverage 78.4% after the metric fix) and
+settled the production model choice (Sonnet memo + Opus judge). Both former `[-]` DoD items in
+`phase-6-evals.md` §2 are now `[x]`. Full numbers in the judged-tier results section above; session detail
+in [[project-judged-eval-run-2026-06-29]]. **Gotcha for re-runs:** flipping only `LLM_PROVIDER=anthropic`
+while `.env` pins OpenRouter `:free` model ids 404s on every case (the model ids stay OpenRouter-shaped) —
+override all three inline: `LLM_PROVIDER=anthropic MEMO_MODEL=claude-sonnet-4-6 JUDGE_MODEL=claude-opus-4-8 make eval-judge`.
 
-**2026-06-24 — attempted on OpenRouter FREE models ($0), judged numbers still pending.** With the Phase 8
+**2026-06-24 — earlier attempt on OpenRouter FREE models ($0), judged numbers still pending.** With the Phase 8
 OpenRouter provider online, ran `eval.run --judge` on free models (memo=`openai/gpt-oss-120b:free`,
 judge=`google/gemma-4-31b-it:free`) to fill this for $0. What this *validated*: the provider path end to
 end, a free-run spend gate (`_is_free_run` skips the typed confirmation only when provider=openrouter and

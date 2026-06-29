@@ -287,7 +287,9 @@ Verified 2026-06-17. The whole project fits a free-tier / penny-level budget.
 ## 8. Scope discipline and the auth decision
 
 Explicitly OUT of v1 (Phases 0–5):
-- No jurisdictions beyond CO and CT (more come via the Phase 9 agent, not by hand).
+- No jurisdictions beyond CO and CT in v1 itself. (In practice the next wave — IL, both CA regimes,
+  NYC LL144, NJ N.J.A.C. 13:16 — was added by hand during Phase 9; the Phase 9 agent automates that
+  same file-pair-plus-loader path rather than being the only way laws arrive.)
 - No evals, observability, or hybrid retrieval in v1 (Phases 6–8).
 - No monitoring or arbitrary-statute ingestion in v1 (Phase 9).
 - No payment, no multi-tenant anything.

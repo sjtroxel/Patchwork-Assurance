@@ -35,7 +35,9 @@ RESULTS_DIR = Path(__file__).parent / "results"
 _IN_SCOPE = ("yes", "uncertain")
 # Rough, deliberately conservative per-case cost for the spend estimate (one Sonnet memo + a few
 # Opus judge calls). Used only to make the confirmation prompt informative, never to bill.
-_EST_USD_PER_JUDGED_CASE = 0.10
+# Calibrated to the 2026-06-29 judged run: $4.57 / 25 cases ≈ $0.18 (the Opus per-obligation judge is
+# ~2/3 of it). Sonnet memo + Opus judge; a cheaper judge would lower this materially.
+_EST_USD_PER_JUDGED_CASE = 0.18
 
 
 def _is_free_run() -> bool:
@@ -48,10 +50,61 @@ def _is_free_run() -> bool:
     )
 
 
-def run_judged(core, cases, limit: int | None = None) -> None:
+def _memo_to_markdown(memo, case_id, cite, grounded, coverage) -> str:
+    """Render a generated ComplianceMemo to readable markdown for the paid-run dump.
+
+    The judged tier scores memos and otherwise discards them; since the run spends real tokens, we
+    persist each memo (eval/results/memos-<ts>/<case>.md) so it can be *read*, not just scored. The
+    raw model output is also embedded as JSON so nothing is lost. Deterministic — no API calls."""
+    lines = [f"# Eval memo — {case_id}", ""]
+    lines.append(
+        f"_scores: citations real {cite.valid}/{cite.total} · "
+        f"grounded {grounded.grounded_yes}/{grounded.judged} · "
+        f"coverage {coverage.covered}/{coverage.total}_"
+    )
+    lines.append("")
+    for finding in memo.per_law:
+        lines += [
+            f"## {finding.short_name} ({finding.law_id}) — {finding.in_scope}",
+            "",
+            finding.why,
+        ]
+        if finding.effective_dates:
+            lines += ["", "Effective: " + "; ".join(finding.effective_dates)]
+        if finding.obligations:
+            lines += ["", "Obligations:"]
+            lines += [f"- {ob.text}  _({ob.citation})_" for ob in finding.obligations]
+        lines.append("")
+    if memo.draft_notices:
+        lines += ["## Draft notices", ""]
+        for dn in memo.draft_notices:
+            lines += [f"### {dn.kind} — {dn.jurisdiction}", "", dn.text, ""]
+    if memo.deadline_checklist:
+        lines += ["## Deadline checklist", ""]
+        lines += [f"- {d.date} — {d.what} ({d.law})" for d in memo.deadline_checklist]
+        lines.append("")
+    if memo.next_steps:
+        lines += ["## Next steps", ""]
+        lines += [f"- {s}" for s in memo.next_steps]
+        lines.append("")
+    lines += ["## Disclaimer", "", memo.disclaimer, "", "---", ""]
+    lines += [
+        "<details><summary>raw memo JSON</summary>",
+        "",
+        "```json",
+        memo.model_dump_json(indent=2),
+        "```",
+        "</details>",
+        "",
+    ]
+    return "\n".join(lines)
+
+
+def run_judged(core, cases, limit: int | None = None, stamp: str | None = None) -> None:
     """Tier B: generate a real memo per in-scope case and judge it. Paid on Anthropic / non-free
     OpenRouter; $0 on OpenRouter `:free` models. `limit` caps the cases run — useful on a free model
-    whose shared upstream rate-limits a full 14-case burst (run a few at a time)."""
+    whose shared upstream rate-limits a full 14-case burst (run a few at a time). `stamp` pairs the
+    memo dir with the run's scorecard json (same timestamp) so a run's artifacts stay together."""
     if settings.llm_provider == "stub":
         print(
             "\n  [judged tier skipped] Set LLM_PROVIDER=anthropic|openrouter to run it.\n"
@@ -92,6 +145,8 @@ def run_judged(core, cases, limit: int | None = None) -> None:
     print("\n" + "=" * 64)
     print(f"  JUDGED TIER (paid)  —  memo={settings.memo_model}  judge={settings.judge_model}")
     print("=" * 64)
+    memo_dir = RESULTS_DIR / f"memos-{stamp or datetime.now(UTC).strftime('%Y%m%dT%H%M%SZ')}"
+    memo_dir.mkdir(parents=True, exist_ok=True)
     errors = 0
     for case in in_scope_cases:
         # Tolerate a per-case LLM failure (e.g. a transient free-tier 429) — report it and keep going
@@ -102,6 +157,9 @@ def run_judged(core, cases, limit: int | None = None) -> None:
             cite = score_citation_exists(memo, core.sections, case.id)
             grounded = score_groundedness(memo, core.section_texts, judge_llm, case.id)
             coverage = score_coverage(memo, case.expect.obligations, case_id=case.id)
+            (memo_dir / f"{case.id.replace('/', '_')}.md").write_text(
+                _memo_to_markdown(memo, case.id, cite, grounded, coverage), encoding="utf-8"
+            )
         except LLMError as e:
             errors += 1
             print(f"\n  {case.id}\n    [skipped] LLM error: {str(e)[:160]}")
@@ -118,6 +176,7 @@ def run_judged(core, cases, limit: int | None = None) -> None:
         )
     if errors:
         print(f"\n  ({errors}/{len(in_scope_cases)} case(s) skipped on LLM errors)")
+    print(f"\n  memos written to {memo_dir}  (one .md per case — read them, not just the scores)")
 
 
 def _retrieval(core, cases, k: int, mode: str) -> tuple[float, int, list[str]]:
@@ -241,7 +300,7 @@ def main() -> int:
     print(f"  wrote {out.relative_to(Path.cwd())}\n")
 
     if args.judge or settings.eval_use_judge:
-        run_judged(core, cases, limit=args.limit)
+        run_judged(core, cases, limit=args.limit, stamp=stamp)
 
     if args.strict and scope_correct < scope_total:
         return 1

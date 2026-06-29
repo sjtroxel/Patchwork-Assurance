@@ -35,47 +35,43 @@ couldn't tune those responsibly before because you couldn't measure them. Now yo
 - [x] **Deterministic metrics** (no LLM, free, reproducible): scope accuracy, retrieval hit-rate
       (recall@k), citation-exists (every cited section is real and in the corpus).
       *Done — scope accuracy + retrieval hit-rate run free in `make eval`; citation-exists logic built + offline-tested (it scores a real memo, so its number comes from the judged tier).*
-- [-] **LLM-as-judge metrics** for the subjective parts: citation **groundedness/faithfulness** (does
+- [x] **LLM-as-judge metrics** for the subjective parts: citation **groundedness/faithfulness** (does
       each obligation actually follow from its cited chunk?) and obligation coverage — structured
       verdicts, a **judge model different from the judged model**.
-      *Built + stub-tested offline (`eval/judge.py`). Path validated end-to-end on free OpenRouter models 2026-06-24 (judge `qwen3-next-80b` ≠ memo `gpt-oss-120b`); a full clean run is deferred — see the deferred ticket below.*
+      *Built + stub-tested offline (`eval/judge.py`); measured on the 2026-06-29 judged run — memo `claude-sonnet-4-6`, judge `claude-opus-4-8` (judge ≠ judged). **Groundedness 179/207 = 86.5%** of cited obligations rated fully supported by their cited statute text, across 25 in-scope cases.*
 - [x] `make eval` runs it; the deterministic tier runs offline/free, the judge tier behind a flag.
       *Done — `make eval` (free) and `make eval-judge` (paid, behind the spend guard).*
-- [-] A short results write-up that **resolves** the deferred model/retrieval decisions with the
+- [x] A short results write-up that **resolves** the deferred model/retrieval decisions with the
       measured numbers.
-      *Deterministic half done (IMPLEMENTATION §10): scope 28/28; retrieval recall@5 68% → resolved by raising memo k to 8 (95%). **Production model decision (provider/model — see scope note) + groundedness numbers await the one judged run (deferred ticket above).***
+      *Done — full results in IMPLEMENTATION §10. Deterministic: scope 238/238 = 100%; retrieval recall@8 98%. Judged (2026-06-29): groundedness 86.5%, citations-resolve 207/209 = 99.0%, coverage 78.4% (after the metric fix below). Production models settled at Sonnet memo + Opus judge for the judged tier.*
 
 > **Marker legend:** `[x]` = done; `[-]` = built, tested, and committed, but its measured result is
-> **willfully deferred to one judged run** — not empty, not forgotten. The two `[-]` items above are a
-> single bounded ticket, specified below; do not flip them to `[x]` until the numbers exist.
+> **willfully deferred to one judged run** — not empty, not forgotten. Both former `[-]` items above were
+> a single bounded ticket; the judged run executed 2026-06-29, so they are now `[x]`.
 
-### Deferred ticket — the one judged run (closes both `[-]` items)
+### Deferred ticket — the one judged run — RESOLVED 2026-06-29
 
-**Status (2026-06-24): code-complete, CI-green, one judged run outstanding.** Everything is built, tested
-offline, and committed. The deterministic tier runs free and surfaced a real retrieval finding (resolved).
-The whole judged *path* is now proven to run end to end — only a full, clean *measurement* is owed.
+**Status: closed.** The judged run executed 2026-06-29 (~3:11–3:46am), Anthropic, memo `claude-sonnet-4-6`
++ judge `claude-opus-4-8`, 25 in-scope cases. **Measured cost $4.57** ($1.65 Sonnet memo + $2.92 Opus
+judge — the per-obligation judge is ~64% of the bill). Numbers landed:
 
-**What is owed (exactly two numbers, aggregated over the gold set):**
-1. **Groundedness** — % of memo obligations the judge rates fully supported by their cited statute text.
-2. **Coverage** — % of each case's expected obligations the memo actually surfaces.
-   (Citations-real already scores from this same run; one live free case scored 5/5 real, 4/5 grounded,
-   0/2 coverage — a smoke result on a weak model, *not* the metric.)
+1. **Groundedness — 179/207 = 86.5%** of cited obligations rated fully supported by their cited statute text.
+2. **Citations resolve — 207/209 = 99.0%** (only 2 invalid citations across the whole run).
+3. **Coverage — 29/37 = 78.4%** *after a metric fix* (see below). The metric as-run reported a degenerate
+   1/37 (2.7%); that was a measurement artifact, not memo quality.
 
-**The one action that clears it:** `make eval-judge` (or `python -m eval.run --judge`) on the full gold
-set, behind the `eval/safety.py:confirm_spend` gate (`docs/SPENDING_SAFETY.md`). **User's to run** — it
-spends tokens (git-style hand-off rule).
+**Coverage metric fix (2026-06-29, free — no re-spend).** The original `score_coverage` used
+`difflib.SequenceMatcher` char-ratio ≥ 0.50 against the single best memo obligation — mathematically
+unreachable for a paraphrase of a 300+ char gold sentence (best observed ratio 0.135 on a case whose memo
+said the gold's point verbatim in meaning). Replaced with **gold-content-word recall ≥ 0.6 against the
+pooled memo obligation text + citation strings**; recomputed for free on the saved memos
+(`eval/results/memos-20260629T081459Z/`), no tokens spent. It remains a *weak proxy* — groundedness is the
+real quality signal — and it under-counts the handful of gold entries written as cross-references
+("Same … as case X"), which no text metric can match.
 
-**Two ways to run it; pick one when a window opens:**
-- **Anthropic (recommended, clean):** native structured output, no 429s. Set `LLM_PROVIDER=anthropic`.
-  One-time cost ≈ **$1–3** measured from real token counts (Sonnet memo + Opus judge ≈ $1.65; Haiku+Sonnet
-  ≈ $0.80). Gate: Anthropic balance funded.
-- **OpenRouter free (\$0, flaky):** validated end-to-end 2026-06-24 but slow (~10 min/case) and throttle-prone;
-  the parser fix + bounded retry loop in `core/llm.py` (added 2026-06-24) make it survivable but not fast.
-  Gate: a quiet free-tier window and patience for retries/skips.
-
-**Scope note (provider pivot):** the original DoD said this run "settles Haiku-vs-Sonnet." That framing is
-**stale** — the provider strategy shifted toward OpenRouter for budget. Re-read item 2 below as "settle the
-production memo/judge model choice (Anthropic tier *or* OpenRouter model)," not specifically Haiku-vs-Sonnet.
+**Production model decision (settled):** Sonnet memo + Opus judge for the judged tier. Opus-as-judge is the
+expensive ~2/3 of the run but is the deliberate "don't let a model grade its own blind spots" choice; a
+cheaper judge is the lever if cost ever outweighs judge quality.
 
 Done = a repeatable scorecard for the app, and the earlier "tune later" decisions are now made.
 

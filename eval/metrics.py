@@ -5,7 +5,7 @@ coverage) are Tier B, wired later behind a flag (phase-6 IMPLEMENTATION §6) bec
 API tokens.
 """
 
-import difflib
+import re
 from dataclasses import dataclass
 
 from eval.harness import Core
@@ -115,8 +115,33 @@ def score_citation_exists(
 
 
 # --- obligation coverage (deterministic, fuzzy: free; needs a real generated memo to measure) ---
-# Are the gold obligations present in the memo (paraphrase allowed)? A coarse fuzzy proxy now; a
+# Are the gold obligations present in the memo (paraphrase allowed)? A weak text-overlap proxy; a
 # judge-based coverage check is the upgrade (phase-6 IMPLEMENTATION §6) when the metric outgrows it.
+#
+# History: the first cut used difflib.SequenceMatcher char-ratio >= 0.50 against the single best
+# memo obligation. That is mathematically unreachable for a paraphrase of a long (300+ char) gold
+# sentence — the 2026-06-29 judged run scored 1/37 (2.7%) on memos that were actually well-covered.
+# Replaced 2026-06-29 with gold-content-word recall against the POOLED memo text: a gold obligation
+# is "covered" if >= `threshold` of its content words appear anywhere across the union of the memo's
+# obligation prose AND citation strings. Pooling matters because one terse gold sentence often maps
+# to several memo obligations; folding in citations matters because some gold entries carry the duty
+# as a bare section number (e.g. "6-1-1704", "11 CCR 7220") the memo keeps in its citation field.
+# This is still a weak proxy — groundedness (the Opus judge) remains the real quality signal — and it
+# under-counts the few gold entries written as cross-references ("Same ... as case X").
+
+# Genuine English stopwords plus a couple of cross-reference connectives that carry no obligation
+# content ("same ... as case ..."), so they don't inflate a shorthand gold entry's recall.
+_STOP = frozenset(
+    "a an the of to in on for and or by with as is are be been that this it its which may must "
+    "shall not no any all each per their before use used uses using under over into out from at "
+    "than then so such these those there here other others incl including include includes etc "
+    "same case duties".split()
+)
+
+
+def _content_words(text: str) -> set[str]:
+    """Lowercased alphanumeric tokens (len > 2) that aren't stopwords — the comparable content."""
+    return {w for w in re.findall(r"[a-z0-9]+", text.lower()) if len(w) > 2 and w not in _STOP}
 
 
 @dataclass
@@ -124,23 +149,25 @@ class CoverageOutcome:
     case_id: str
     total: int
     covered: int
-    missed: list[str]  # gold obligations with no close match in the memo
+    missed: list[str]  # gold obligations whose content words aren't sufficiently present
 
 
 def score_coverage(
-    memo: ComplianceMemo, gold_obligations: list[str], threshold: float = 0.5, case_id: str = ""
+    memo: ComplianceMemo, gold_obligations: list[str], threshold: float = 0.6, case_id: str = ""
 ) -> CoverageOutcome:
-    """For each gold obligation, is there a memo obligation similar enough (difflib ratio >=
-    threshold)? Fuzzy text overlap is a weak proxy for paraphrase — the judge tier is the real
-    coverage signal; this is the free first cut."""
-    memo_texts = [ob.text for finding in memo.per_law for ob in finding.obligations]
+    """For each gold obligation, do >= `threshold` of its content words appear in the memo's pooled
+    obligation text + citations? Word-recall tolerates paraphrase and many-to-one mapping; it is a
+    weak proxy and the judge tier is the real coverage signal."""
+    pool: set[str] = set()
+    for finding in memo.per_law:
+        for ob in finding.obligations:
+            pool |= _content_words(ob.text)
+            pool |= _content_words(ob.citation)
     missed = []
     for gold in gold_obligations:
-        best = max(
-            (difflib.SequenceMatcher(None, gold.lower(), m.lower()).ratio() for m in memo_texts),
-            default=0.0,
-        )
-        if best < threshold:
+        gold_words = _content_words(gold)
+        recall = len(gold_words & pool) / len(gold_words) if gold_words else 0.0
+        if recall < threshold:
             missed.append(gold)
     return CoverageOutcome(
         case_id, len(gold_obligations), len(gold_obligations) - len(missed), missed
