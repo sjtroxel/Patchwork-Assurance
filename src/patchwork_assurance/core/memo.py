@@ -1,3 +1,5 @@
+from datetime import date
+
 from patchwork_assurance.core.contracts import (
     ComplianceMemo,
     DeadlineItem,
@@ -48,8 +50,18 @@ def generate_memo(
     user = render_memo_user(situation, scope, chunks, list(laws_by_id.values()))
     memo = llm.complete_structured(MEMO_SYSTEM, [Msg(role="user", content=user)], ComplianceMemo)
 
-    # Deadlines and orientation are facts/templates, not LLM guesses — set them deterministically so
-    # CT's staggered dates and the not-legal-advice-shaped "next steps" stay correct and controlled.
+    # Deadlines, the dated stamps, and orientation are facts/templates, not LLM guesses — set them
+    # deterministically so CT's staggered dates, the trustworthy "as of" stamp, and the
+    # not-legal-advice-shaped "next steps" stay correct and controlled (Phase 4.6, Phase 11).
+    memo.generated_on = date.today().isoformat()
+    # The corpus's currency = the latest statute-retrieval date across the laws considered. Set
+    # unconditionally (None when no metadata) so the stamp is always fully determined here, never
+    # left to a value the LLM emitted. getattr-guarded so test fixtures built with model_construct
+    # (no retrieved_on) degrade to None.
+    retrieved = [
+        law.retrieved_on for law in laws_by_id.values() if getattr(law, "retrieved_on", None)
+    ]
+    memo.corpus_as_of = max(retrieved).isoformat() if retrieved else None
     if laws_by_id:
         memo.deadline_checklist = _deadlines(scope, laws_by_id)
     memo.next_steps = _next_steps(situation, scope, laws_by_id)

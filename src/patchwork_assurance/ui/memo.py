@@ -1,5 +1,7 @@
 import streamlit as st
 
+from patchwork_assurance.core.contracts import ComplianceMemo, Situation
+from patchwork_assurance.core.render import executive_summary
 from patchwork_assurance.ui import client
 from patchwork_assurance.ui.chrome import (
     inject_brand_css,
@@ -151,8 +153,14 @@ def _browser_ip() -> str:
         return ""
 
 
-def _render_memo(memo: dict) -> None:
+def _render_memo(memo: dict, situation: dict) -> None:
     SCOPE_BOX = {"yes": st.success, "uncertain": st.info, "no": st.warning}
+
+    # Deterministic, hedged orientation atop the memo (Phase 11) — the same shared helper the PDF
+    # uses, so the screen summary and the exported document read identically. The UI holds the memo
+    # as a dict; reconstruct the typed pair so there's one typed path, no dict-vs-object drift.
+    typed = ComplianceMemo.model_validate(memo)
+    st.info(executive_summary(typed, Situation.model_validate(situation)))
 
     render_seam()
     for law in memo.get("per_law", []):
@@ -170,8 +178,10 @@ def _render_memo(memo: dict) -> None:
     if notices:
         st.subheader("Draft notice language")
         for n in notices:
-            st.caption(f"{n.get('kind', '')} ({n.get('jurisdiction', '')})")
-            st.code(n.get("text", ""), language=None)
+            # Expander → a scannable list collapsed by default; st.code stays INSIDE so Streamlit's
+            # built-in copy button is preserved (Phase 11 §6).
+            with st.expander(f"{n.get('kind', '')} ({n.get('jurisdiction', '')})"):
+                st.code(n.get("text", ""), language=None)
 
     deadlines = memo.get("deadline_checklist", [])
     if deadlines:
@@ -239,7 +249,7 @@ if submitted:
     try:
         with st.spinner("Analyzing against the statute text…"):
             memo = client.analyze(situation, client_ip=client_ip)
-        _render_memo(memo)
+        _render_memo(memo, situation)
     except client.APIError as exc:
         st.error(str(exc))
 

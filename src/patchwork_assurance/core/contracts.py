@@ -108,6 +108,11 @@ class ComplianceMemo(BaseModel):
     deadline_checklist: list[DeadlineItem] = []
     next_steps: list[str] = []  # condensed, hedged "what to do next" orientation (Phase 4.6)
     disclaimer: str
+    # Set deterministically in generate_memo (NOT the LLM), Phase 11. ISO dates. They give the
+    # shareable PDF a trustworthy "as of" stamp: generated_on = when this memo was produced;
+    # corpus_as_of = the latest law.retrieved_on across the laws considered.
+    generated_on: str | None = None
+    corpus_as_of: str | None = None
 
 
 # ---- chat ----

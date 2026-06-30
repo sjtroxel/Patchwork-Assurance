@@ -89,6 +89,28 @@ def test_memo_page_renders_memo_on_submit():
     assert "CO SB 26-189" in expander_labels
     warnings = [w.value for w in at.warning]
     assert any("Educational analysis" in w for w in warnings)
+    # Phase 11: the deterministic, hedged executive-summary line renders atop the memo (st.info).
+    infos = [i.value for i in at.info]
+    assert any("appear to be in scope" in i for i in infos)
+
+
+def test_memo_page_draft_notices_render_as_expanders():
+    """Phase 11: each draft notice is its own collapsible expander (label = kind + jurisdiction)."""
+    memo = {
+        **SAMPLE_MEMO,
+        "draft_notices": [
+            {"kind": "Consumer notice", "jurisdiction": "Colorado", "text": "We use ADMT..."}
+        ],
+    }
+    at = AppTest.from_file("src/patchwork_assurance/ui/memo.py").run()
+    at.multiselect[0].set_value(["Colorado"])
+    at.multiselect[1].set_value(["employment"])
+
+    with patch("patchwork_assurance.ui.client.analyze", return_value=memo):
+        at.button[0].click().run()
+
+    assert not at.exception
+    assert "Consumer notice (Colorado)" in [e.label for e in at.expander]
 
 
 def test_memo_page_shows_error_when_api_down():

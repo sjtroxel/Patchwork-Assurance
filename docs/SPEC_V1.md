@@ -300,7 +300,15 @@ class ComplianceMemo(BaseModel):
     deadline_checklist: list[DeadlineItem] = []   # set deterministically from metadata (4.6); not LLM
     next_steps: list[str] = []                    # condensed, hedged orientation; templated, not LLM (4.6)
     disclaimer: str    # always the canonical not-legal-advice line from core/prompts.py
+    generated_on: str | None = None   # ISO date; set deterministically in generate_memo (11), not LLM
+    corpus_as_of: str | None = None   # ISO date; latest law.retrieved_on across laws considered (11), not LLM
 ```
+
+`generated_on` / `corpus_as_of` (Phase 11) give the shareable PDF a trustworthy dated stamp. Like
+`deadline_checklist` / `next_steps`, they are **overwritten post-LLM** in `generate_memo` (the model
+never authors them): `generated_on = date.today()`; `corpus_as_of = max(law.retrieved_on)` over the
+laws considered. Optional with defaults, so every existing fixture/`StubLLM` memo still validates; plain
+`str | None` adds no schema constraint.
 
 **Schema constraint:** No `min_length`, `ge`, `le`, or recursive schemas — the Anthropic structured-output
 JSON Schema does not support numeric/length constraints; the SDK strips them, so keep the models clean.

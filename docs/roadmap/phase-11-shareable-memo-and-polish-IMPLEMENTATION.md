@@ -186,6 +186,48 @@ Notes:
 - The HTML carries **fixed light styling** on purpose: a PDF/printable is theme-independent. Dark mode (§9)
   is the *screen* theme only; it must never bleed into the exported document.
 
+## 3.1 See-it-to-pick-it: design the memo document BEFORE finalizing `memo_to_html` (Opus, build step 1)
+
+sjtroxel cares highly that the memo looks great both **in the browser** and **as a PDF**, and wants to
+**react to real artifacts**, not abstract CSS choices ([[feedback-interactive-design-process]] — the Phase
+4.5 design method, extended here from palette/hero to the *document* itself). So the `<style>`/layout in
+`memo_to_html` is **not** authored blind — it is chosen from previews. This is an **Opus-level design loop**
+and is the first thing the implementation chat does, ahead of locking §3's renderer.
+
+**The loop (throwaway, in `scratchpad/`, committed to nothing):**
+1. Build **one realistic fixture `ComplianceMemo`** that stresses every section — use the **dense Missouri
+   7-law** situation (employment + housing, multiple in-scope laws, draft notices, staggered deadlines,
+   next steps). A dense memo exposes layout problems a thin one hides.
+2. Hand-write **3–4 distinct visual treatments** as standalone HTML+CSS files (different typography scale,
+   section rhythm, how the scope verdict/citations/disclaimer are emphasized, light use of the quilt-brand
+   accents). Keep them on-brand (Bricolage Grotesque headings / Work Sans body; the jewel palette) but
+   genuinely different in feel.
+3. For **each** candidate render **both** forms so both surfaces are judged from reality:
+   - **`.html`** → open in a browser (fast iteration; the in-browser look).
+   - **`.pdf`** → `weasyprint candidate.html candidate.pdf` (the source-of-truth exported artifact).
+   - **Caveat:** WeasyPrint is not a browser engine, so the `.html` is a close proxy, not pixel-identical to
+     the `.pdf`. Judge the **PDF** as final; the HTML is the quick-look.
+4. sjtroxel views, reacts, picks/iterates (more rounds as wanted). **Then** the winning layout becomes the
+   real `<style>`/structure inside `core/render.py:memo_to_html`.
+
+**Resolve the in-app fork in the same loop (decide from visuals, not abstractly):** include **one mock of
+the current native-Streamlit memo look** alongside the document candidates, so sjtroxel can choose between:
+- **(a) WYSIWYG** — the in-app memo renders the *same styled HTML document* (via `st.html`), so the screen
+  matches the PDF exactly. Cost: it won't auto-adapt to dark mode (a document is a light artifact) and loses
+  native interactivity (the expander copy buttons, the deadline `st.dataframe`).
+- **(b) Native** — the in-app memo stays themed Streamlit widgets (interactive, dark-mode-aware), visually
+  *similar but not identical* to the PDF; the polished document is the export only.
+
+This choice feeds §6 (expanders) and §9 (dark mode): **(b)** keeps both as written; **(a)** means the memo
+body is fixed-light HTML in-app and only the chrome/shell follows the theme. **Record the pick in §14.**
+
+**sjtroxel's current lean (2026-06-30): (b) native Streamlit for the in-app browser view "for the most
+part"** — keep the interactive, dark-mode-aware widgets on screen; the polished styled document is the
+**PDF export** (and the eval `.html`). He still wants the WYSIWYG mock built into the pick-it loop so the
+call is confirmed from real visuals, not assumed — so **show the native-look mock beside the document
+candidates regardless**, and let him confirm (b) or flip to (a)/a hybrid after seeing them. Default to (b)
+unless the visuals change his mind; the heavy design investment goes into the **document/PDF** treatment.
+
 ## 4. Contract additions — `generated_on` + `corpus_as_of`
 
 Add two **additive, optional** fields to `ComplianceMemo` so the PDF/summary have a single trustworthy,
@@ -423,10 +465,21 @@ All tests run on the **stub provider, offline, zero spend** — same posture as 
 
 ## 12. Build order (the checklist the implementer follows)
 
-1. [ ] `core/render.py`: `executive_summary` + `memo_to_html` (pure) + `tests/test_render.py`. Free, no risk.
-2. [ ] Contract fields (`generated_on`, `corpus_as_of`) + `generate_memo` wiring + SPEC §8.4 update + stamp test.
-3. [ ] Executive-summary line into the screen view (`ui/memo.py`) — count/hedging tests.
-4. [ ] Draft-notice expanders (`ui/memo.py`) — the tiny `st.expander` change.
+1. [x] **See-it-to-pick-it the memo document (§3.1)** — 3–4 HTML+PDF treatments over the dense Missouri
+       fixture + one native-look mock; sjtroxel picks; resolve the WYSIWYG-vs-native in-app fork. THEN
+       write `core/render.py`: `executive_summary` + `memo_to_html` (pure) with the chosen layout +
+       `tests/test_render.py`. Free, no risk. **DONE 2026-06-30** — Candidate A locked; `core/render.py`
+       + `tests/test_render.py` (8 tests) written, 319 passed.
+2. [x] Contract fields (`generated_on`, `corpus_as_of`) + `generate_memo` wiring + SPEC §8.4 update + stamp test.
+       **DONE 2026-06-30** — both optional fields added; `generate_memo` always stamps them post-LLM
+       (`corpus_as_of` = max `retrieved_on` over laws considered → 2026-06-27 for the full corpus); SPEC §8.4
+       updated; 2 stamp tests. 321 passed.
+3. [x] Executive-summary line into the screen view (`ui/memo.py`) — count/hedging tests. **DONE 2026-06-30**
+       — `_render_memo(memo, situation)` reconstructs the typed pair and shows `executive_summary` via
+       `st.info`; AppTest asserts the hedged line renders. Hedging/count locks live in `test_render.py`.
+4. [x] Draft-notice expanders (`ui/memo.py`) — the tiny `st.expander` change. **DONE 2026-06-30** — each
+       notice is its own collapsed expander (`kind (jurisdiction)` label) with `st.code` inside (copy
+       button preserved); AppTest checks the expander label.
 5. [ ] Retire `eval/run.py:_memo_to_markdown` onto the shared helper (HTML dump) + the "routes through" test.
 6. [ ] PDF: pick + pin the library (§7), `ui/pdf.py`, the `st.download_button`, Dockerfile sysdeps if
        WeasyPrint, and **lock the disclaimer-in-PDF test** before calling it done.
@@ -456,12 +509,31 @@ visible wins. Each step is independently committable.
 
 ## 14. As-built notes (fill in during the build)
 
-- PDF library + version pinned: `__________`
-- WeasyPrint system deps added to Dockerfile (exact list, verified at build): `__________`
+- Memo-document design picked (§3.1 — which candidate / iterations): **Candidate A "Legal Memorandum"**
+  — conservative, black-and-white-laser safe (verdict meaning carried by label text, not color fills;
+  confirmed against a grayscale render). Iterations: (1) added a thin `border:1px solid currentColor`
+  to the verdict chips so they survive mono printing; (2) added a small stat strip below the exec
+  summary, then **removed it** at sjtroxel's call (an "earliest deadline" can already be past, which
+  reads as noise — the per-law `Effective:` lines + the III. Deadlines section cover it); (3) added a
+  **running footer on every page** (`@page` margin boxes: "Patchwork Assurance" / "Generated <date>" /
+  "Page X of Y", 7.5pt grey). Exec-summary earliest-deadline *prose* kept. Design loop artifacts in
+  scratchpad (`phase11-design/`), committed to nothing.
+- In-app memo fork (§3.1): WYSIWYG-HTML (a) or native-Streamlit (b): **(b) native Streamlit** — keep the
+  interactive, dark-mode-aware widgets on screen; Candidate A is the PDF/export only (the eval `.html`).
+- PDF library + version pinned: **`weasyprint==69.0`** (current on PyPI, verified 2026-06-30; renders a
+  valid `%PDF` end-to-end). Pin into `pyproject.toml` at build step 6 (the renderer itself imports no
+  PDF lib — `ui/pdf.py` does).
+- WeasyPrint system deps added to Dockerfile (exact list, verified at build): pending build step 6. NOTE:
+  the local WSL box already had `libpango-1.0-0 / libpangoft2 / libpangocairo / libharfbuzz / libcairo /
+  libfontconfig / libgdk-pixbuf / libffi8` (no `apt` needed here), but Railway's `python:3.12-slim` will
+  still need them — verify the current WeasyPrint v69 list at build.
 - Streamlit theming confirmed (1.58 `[theme.dark]` keys; selector reachable under `toolbarMode`): `__________`
 - Dark palette finalized (chosen hexes / preview picked): `__________`
 - Eval dump format change (`.md` → `.html`) — confirmed? `__________`
 - `POST /memo/pdf` endpoint built or deferred: `__________`
 - Running-app visual QA (PDF look, dark mode, expanders, chrome legibility): `__________`
-- Deviations from this plan: `__________`
+- Deviations from this plan: §4's snippet set `corpus_as_of` only inside `if laws_by_id:`. Changed to
+  set it **unconditionally** (None when no metadata) — the stamp test exposed that `StubLLM` returns a
+  shared memo object, so a conditional set leaked a stale value across tests. Always-determining the
+  stamp in `generate_memo` is the correct contract anyway.
 ```

@@ -176,6 +176,46 @@ CT_IN_SCOPE = [
 CT_SITUATION = Situation(jurisdictions=["CT"], decision_domains=["employment"], roles=["deployer"])
 
 
+def test_memo_stamps_generated_on_and_corpus_as_of():
+    """Phase 11: generated_on is today (stamped at generation, not the LLM); corpus_as_of is the
+    LATEST retrieved_on across the laws considered — the trustworthy 'as of' date for the PDF."""
+
+    def _law(law_id, short_name, jur, retrieved):
+        return LawMetadata.model_construct(
+            law_id=law_id,
+            short_name=short_name,
+            jurisdiction=jur,
+            operative_standard="",
+            regulated_roles=["deployer"],
+            scope_domains=["employment"],
+            enforcement_authority="",
+            key_obligations=[],
+            effective_dates=[],
+            retrieved_on=retrieved,
+        )
+
+    law_co = _law("co-sb-26-189", "CO AI Act", "CO", date(2026, 6, 17))
+    law_ct = _law("ct-sb-5", "CT AI Act", "CT", date(2026, 6, 27))
+    memo = generate_memo(
+        SITUATION,
+        SCOPE,
+        _StubRetriever([CHUNK]),
+        StubLLM(structured=CANNED_MEMO),
+        [law_co, law_ct],
+    )
+    assert memo.generated_on == date.today().isoformat()
+    assert memo.corpus_as_of == "2026-06-27"  # max(retrieved_on), not the CO date
+
+
+def test_memo_stamps_without_law_metadata():
+    """generated_on is always stamped; corpus_as_of is None when no law metadata is supplied."""
+    memo = generate_memo(
+        SITUATION, SCOPE, _StubRetriever([CHUNK]), StubLLM(structured=CANNED_MEMO), []
+    )
+    assert memo.generated_on == date.today().isoformat()
+    assert memo.corpus_as_of is None
+
+
 def test_deadlines_are_deterministic_and_sorted():
     memo = generate_memo(
         CT_SITUATION,
