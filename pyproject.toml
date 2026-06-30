@@ -29,6 +29,7 @@ dependencies = [
     "anthropic",
     "openai",  # OpenRouter provider (OpenAI-compatible API); Seam 4 — only core/llm.py imports it
     "sse-starlette",
+    "mcp>=1.28,<2",  # MCP server SDK — Phase 10
 ]
 
 [project.optional-dependencies]

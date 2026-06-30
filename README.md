@@ -95,6 +95,44 @@ make lint             # ruff lint + format check
 Requires Python 3.12+. Generation runs as an offline stub until `LLM_PROVIDER=anthropic` and
 `ANTHROPIC_API_KEY` are set in `.env` (retrieval and the deterministic scope/deadlines are always real).
 
+## Use it as an MCP tool
+
+The engine is also exposed as an **MCP server**, so any compatible client (Claude Desktop, Cursor,
+Claude Code) can call it as a tool — without a UI.
+
+```bash
+make mcp              # run the MCP server over stdio (free tools work with LLM_PROVIDER=stub)
+```
+
+**Connect from a client** — add this to your client's MCP config (e.g. `claude_desktop_config.json`).
+Use the absolute path to the venv Python if the client doesn't inherit the project environment:
+
+```json
+{
+  "mcpServers": {
+    "patchwork-assurance": {
+      "command": "python",
+      "args": ["-m", "patchwork_assurance.mcp.server"],
+      "env": { "LLM_PROVIDER": "anthropic", "ANTHROPIC_API_KEY": "sk-ant-..." }
+    }
+  }
+}
+```
+
+**Tools exposed** (all read-only — the corpus is never mutated over MCP):
+
+| Tool | Cost | What it does |
+|---|---|---|
+| `list_jurisdictions` | free | Jurisdictions, domains, and roles the corpus covers |
+| `check_scope` | free | Deterministic scope screen — which laws apply to this situation |
+| `search_corpus` | free | Semantic passage lookup over the statute text, with citations |
+| `generate_memo` | Sonnet | Full educational compliance memo as structured output |
+| `query_metadata` | Haiku | Factual metadata questions (effective dates, cure periods, scope) |
+
+The three free tools (`list_jurisdictions`, `check_scope`, `search_corpus`) work fully with
+`LLM_PROVIDER=stub`. The two cost-bearing tools require `LLM_PROVIDER=anthropic` and a key.
+Every tool output carries the not-legal-advice disclaimer.
+
 ## Layout
 
 ```
@@ -102,6 +140,7 @@ src/patchwork_assurance/
   core/        retrieval, corpus loading, scope, memo + chat logic (imports inward only)
   api/         FastAPI transport: /analyze, /chat (SSE), /health, /meta, /memo-quota
   ui/          Streamlit memo + chat surfaces, shared legal chrome
+  mcp/         MCP server: five read-only tools wrapping core/ (Phase 10)
 corpus/        cleaned statute text + metadata records (the only place laws live)
 site/          static landing page
 eval/          evaluation harness

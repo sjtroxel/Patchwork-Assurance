@@ -1,6 +1,6 @@
 VENV := .venv
 
-.PHONY: install dev test lint eval eval-judge sweep-knobs
+.PHONY: install dev test lint eval eval-judge sweep-knobs mcp
 
 install:
 	python -m venv $(VENV)
@@ -25,6 +25,9 @@ eval:
 # Needs LLM_PROVIDER=anthropic + ANTHROPIC_API_KEY in .env.
 eval-judge:
 	$(VENV)/bin/python -m eval.run --judge
+
+mcp:  ## run the MCP server over stdio
+	$(VENV)/bin/python -m patchwork_assurance.mcp.server
 
 # Phase 8 knob sweep — re-tune top_k / chunk size / embedding model (free, offline).
 sweep-knobs:

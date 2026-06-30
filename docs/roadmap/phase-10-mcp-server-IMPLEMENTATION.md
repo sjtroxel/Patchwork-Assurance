@@ -238,16 +238,16 @@ fixtures the eval/api tests already use.
 
 ## 10. Build order (the checklist Sonnet follows)
 
-1. [ ] Add + pin `mcp`; `make mcp` target; `mcp/` package skeleton.
-2. [ ] `build_deps()` (mirror lifespan); confirm it constructs against the committed corpus.
-3. [ ] `list_jurisdictions` (free, trivial) → connect from a real client to prove the stdio transport.
-4. [ ] `check_scope` (free, deterministic) + its wrapper test.
-5. [ ] `search_corpus` (free, local embed) + test.
-6. [ ] `generate_memo` (cost-bearing) — disclaimer rides in `.model_dump()`; test with `StubLLM`.
-7. [ ] `query_metadata` (cost-bearing) + test.
-8. [ ] Disclaimer test across all five; read-only test; schema tests.
-9. [ ] README "connect it to your client" note; manual e2e; record as-built notes in §12.
-10. [ ] `ruff check . && ruff format --check . && pytest` green.
+1. [x] Add + pin `mcp`; `make mcp` target; `mcp/` package skeleton.
+2. [x] `build_deps()` (mirror lifespan); confirm it constructs against the committed corpus.
+3. [x] `list_jurisdictions` (free, trivial) → connect from a real client to prove the stdio transport.
+4. [x] `check_scope` (free, deterministic) + its wrapper test.
+5. [x] `search_corpus` (free, local embed) + test.
+6. [x] `generate_memo` (cost-bearing) — disclaimer rides in `.model_dump()`; test with `StubLLM`.
+7. [x] `query_metadata` (cost-bearing) + test.
+8. [x] Disclaimer test across all five; read-only test; schema tests.
+9. [x] README "connect it to your client" note; manual e2e; record as-built notes in §12.
+10. [x] `ruff check . && ruff format --check . && pytest` green.
 
 ## 11. Open decisions (carry from scope doc §13; resolve while building)
 
@@ -257,10 +257,20 @@ fixtures the eval/api tests already use.
 - **`query_metadata` model:** reuses `memo_model` (Sonnet) above; a cheaper model is fine if cost matters
   (it's a small structured call) — decide at build.
 
-## 12. As-built notes (fill in during the build)
+## 12. As-built notes (filled in 2026-06-30)
 
-- `mcp` version pinned: `__________`
-- FastMCP API confirmed current (import path / `@mcp.tool` / `run`): `__________`
-- Model IDs re-verified via `claude-api`: `__________`
-- Manual e2e client + result: `__________`
-- Deviations from this plan: `__________`
+- `mcp` version pinned: **`mcp>=1.28,<2`** (1.28.1 installed; verified `pip show mcp`)
+- FastMCP API confirmed current: `from mcp.server.fastmcp import FastMCP` ✅ · `@mcp.tool()` returns
+  the original function unchanged (direct test calls work) ✅ · `mcp.run(transport="stdio")` ✅ ·
+  tool introspection via `mcp._tool_manager.list_tools()` (sync) for tests ✅
+- Model IDs: inherited from `settings` — no new IDs hardcoded. At build: `memo_model=claude-sonnet-4-6`,
+  `chat_model=claude-haiku-4-5`. `query_metadata` reuses `memo_llm` (Sonnet) per open-decision §11.
+- Manual e2e client + result: **verified 2026-06-30 in Claude Code.** `claude mcp add patchwork-assurance --scope project` (`.mcp.json`); `list_jurisdictions` → all 6 jurisdictions + disclaimer; `check_scope(jurisdictions=[Colorado], decision_domains=[employment], roles=[deployer])` → CO SB 26-189 in scope, 6 others filtered on nexus. Deterministic gate confirmed working without an LLM (`LLM_PROVIDER=stub`).
+- Deviations from plan:
+  - `_deps` is **lazy** (`_deps: Deps | None = None` + `_get_deps()`) rather than module-level
+    `build_deps()` — tools look up `_deps` via `_get_deps()` at call time. This keeps imports cheap and
+    lets tests monkeypatch `server._deps` without triggering a corpus load. Functionally identical for
+    production; the `__main__` block calls `_get_deps()` to warm up before `mcp.run()`.
+  - Tests use two fixtures (`test_deps` / `meta_test_deps`) because `StubLLM.complete_structured` with
+    `MetadataIntent` returns `model_construct()` (missing `field`), which crashes `lookup_intent`. The
+    `meta_test_deps` fixture uses `StubLLM(structured=MetadataIntent(field="cure_period"))` instead.

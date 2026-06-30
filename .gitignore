@@ -27,6 +27,10 @@ venv/
 chroma/
 *.sqlite3
 
+# Local MCP client config (created by `claude mcp add`) — holds a machine-specific
+# absolute interpreter path. The README documents the portable config to use instead.
+.mcp.json
+
 # Eval scorecards (JSON run output) — reproducible by re-running `make eval`
 eval/results/
 

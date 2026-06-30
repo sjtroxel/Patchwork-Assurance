@@ -159,18 +159,18 @@ wrapper instead of a rewrite.
 
 ## 2. Definition of done
 
-- [ ] An **MCP server** (a `mcp/` package) exposing Patchwork's read-only capabilities as **tools**:
+- [x] An **MCP server** (a `mcp/` package) exposing Patchwork's read-only capabilities as **tools**:
       `check_scope`, `generate_memo`, `search_corpus`, `query_metadata` (and a small
       `list_jurisdictions`).
-- [ ] The server **imports `core/`** and wraps the existing functions — no business logic re-implemented
+- [x] The server **imports `core/`** and wraps the existing functions — no business logic re-implemented
       (the keystone rule).
-- [ ] It runs over a standard transport and **connects from a real MCP client** (Claude Desktop / Cursor
+- [x] It runs over a standard transport and **connects from a real MCP client** (Claude Desktop / Cursor
       / Claude Code) — a manual end-to-end call works.
-- [ ] Tool outputs carry the **not-legal-advice disclaimer** (it rides in the memo payload already;
+- [x] Tool outputs carry the **not-legal-advice disclaimer** (it rides in the memo payload already;
       ensure every tool surface includes it).
-- [ ] The server is **read-only** — no corpus-write / ingestion tools exposed (§9).
-- [ ] Tests cover the tool wrappers (input/output mapping) with `core` stubbed where needed.
-- [ ] A short "connect it to your client" note in the README.
+- [x] The server is **read-only** — no corpus-write / ingestion tools exposed (§9).
+- [x] Tests cover the tool wrappers (input/output mapping) with `core` stubbed where needed.
+- [x] A short "connect it to your client" note in the README.
 
 Done = Patchwork's engine is callable as MCP tools from a real client, read-only and disclaimed.
 

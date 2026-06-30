@@ -276,8 +276,28 @@ fabricated prose — it is the load-bearing new code, so it gets the most test a
 **DoD (`phase-7-observability-security.md` §2): all closed** — request tracing ✓, token/cost capture ✓,
 defended chat surface ✓, defended loader ✓, output-grounding guard ✓, ops note ✓.
 
-**Deferred to a live run (paid), not gaps in the code:** (1) the first real per-request cost *numbers*
-(the "pennies per memo" claim, measured) — needs `LLM_PROVIDER=anthropic`, rides the same credits-refill
-timing as the Phase 6 judged run; (2) the live injection-resistance tests (`pytest -m live`, spends
-tokens — human-run); (3) the ContextVar→threadpool `request_id` propagation check on the live box (unit
-tests are same-thread). All structural code is built, tested offline, and committed.
+**Live run — CLOSED 2026-06-30 (~$0.08 total).** The three items deferred to a paid run are done.
+Ran a real `/analyze` + `/chat` through the local API on `LLM_PROVIDER=anthropic` (Haiku chat / Sonnet
+memo), read the Seam-4 `llm_call` log lines, then `pytest -m live`. Results:
+
+1. **Real per-request cost/latency (the "pennies per memo" claim, now measured not estimated).**
+   - **Memo** (`/analyze`, Sonnet, `complete_structured`): 12,602 in / 1,975 out tokens, **40.2 s**,
+     **$0.0674**. This was a 7-law memo (a Colorado employment deployer pulled all 7 corpus laws into
+     scope via effect-based reach), so it is the high end — memo cost scales with laws-in-scope.
+   - **Chat** (`/chat`, Haiku, `stream`): 9,640 in / 378 out tokens, **5.2 s**, **$0.0115**.
+   - **Cost instrumentation cross-checked against the real meter:** logged `est_cost_usd` summed to
+     $0.0789; the Anthropic billing console moved $15.42 → $15.34 = $0.08 actually billed. `core/pricing.py`
+     agrees with the meter to the rounding — the logged cost numbers are trustworthy, not a guess.
+2. **Live injection resistance — `pytest -m live` green.** `test_chat_refuses_system_prompt_exfiltration`
+   and `test_chat_still_answers_a_legitimate_statutory_question` both PASS against the live model (refuses
+   the exfiltration attempt; does not over-refuse a legitimate statutory question). (`test_live_memo`/
+   `test_live_chat` skipped — their fixture guards on `ANTHROPIC_API_KEY` in the shell env; the real
+   live-path proof is the curl run above, which is stronger since it goes through the API threadpool.)
+3. **ContextVar → threadpool `request_id` propagation — confirmed.** Both `llm_call` lines carried a
+   distinct non-null `request_id` (memo `479bed…`, chat `59e6c0…`). The memo route is a sync `def` (FastAPI
+   runs it in a threadpool); chat uses explicit `run_in_threadpool`. The `request_id` set in the HTTP
+   middleware rode into the threadpool worker and onto the Seam-4 log line in both cases — the thing unit
+   tests can't prove (same-thread).
+
+   One observation worth keeping: the memo took **40 s** (7 laws in one structured Sonnet call) — fine
+   behind a spinner, but a real latency figure for any UX/cost framing.
