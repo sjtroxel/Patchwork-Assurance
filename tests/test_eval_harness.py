@@ -274,3 +274,40 @@ def test_confirm_spend_requires_typed_yes(monkeypatch):
     assert confirm_spend(description="x", units=1, cap=50, est_cost_usd=0.1) is True
     monkeypatch.setattr("builtins.input", lambda *_: "nope")
     assert confirm_spend(description="x", units=1, cap=50) is False
+
+
+def test_judged_dump_routes_through_shared_renderer():
+    """Phase 11 §8: the judged-tier HTML dump body goes through core.render.memo_to_html (one shared
+    layout, no second template to drift), with only the eval-specific scores banner + raw-JSON wrapper
+    added around it."""
+    from types import SimpleNamespace
+
+    from eval.run import _memo_to_html
+
+    memo = ComplianceMemo(
+        per_law=[
+            LawFinding(
+                law_id="co",
+                short_name="CO SB 26-189",
+                in_scope="yes",
+                why="Likely applies.",
+                obligations=[
+                    MemoObligation(text="Provide notice.", citation="Colorado § 6-1-1704")
+                ],
+            )
+        ],
+        disclaimer="Educational analysis, not legal advice.",
+    )
+    cite = SimpleNamespace(valid=2, total=2, invalid=0)
+    grounded = SimpleNamespace(grounded_yes=3, judged=3)
+    coverage = SimpleNamespace(covered=1, total=1, missed=0)
+    out = _memo_to_html(memo, "co/basic", cite, grounded, coverage)
+
+    # Distinctive renderer markup proves the body routed through the shared helper.
+    assert "PATCHWORK ASSURANCE" in out
+    assert "Educational Compliance Memorandum" in out
+    assert "Colorado § 6-1-1704" in out
+    # Eval-only wrapper present.
+    assert "eval co/basic" in out
+    assert "citations real 2/2" in out
+    assert "raw memo JSON" in out

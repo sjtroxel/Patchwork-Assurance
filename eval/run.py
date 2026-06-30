@@ -10,6 +10,7 @@ The judged tier is opt-in on purpose so the everyday `make eval` stays free.
 """
 
 import argparse
+import html
 import json
 import sys
 from datetime import UTC, datetime
@@ -29,6 +30,7 @@ from eval.safety import confirm_spend
 from patchwork_assurance.config import settings
 from patchwork_assurance.core.llm import LLMError, build_llm
 from patchwork_assurance.core.memo import MEMO_RETRIEVAL_K, generate_memo
+from patchwork_assurance.core.render import memo_to_html
 from patchwork_assurance.core.scope import applicable_laws
 
 RESULTS_DIR = Path(__file__).parent / "results"
@@ -50,54 +52,29 @@ def _is_free_run() -> bool:
     )
 
 
-def _memo_to_markdown(memo, case_id, cite, grounded, coverage) -> str:
-    """Render a generated ComplianceMemo to readable markdown for the paid-run dump.
+def _memo_to_html(memo, case_id, cite, grounded, coverage) -> str:
+    """Render a generated ComplianceMemo to a readable HTML page for the paid-run dump.
 
     The judged tier scores memos and otherwise discards them; since the run spends real tokens, we
-    persist each memo (eval/results/memos-<ts>/<case>.md) so it can be *read*, not just scored. The
-    raw model output is also embedded as JSON so nothing is lost. Deterministic — no API calls."""
-    lines = [f"# Eval memo — {case_id}", ""]
-    lines.append(
-        f"_scores: citations real {cite.valid}/{cite.total} · "
-        f"grounded {grounded.grounded_yes}/{grounded.judged} · "
-        f"coverage {coverage.covered}/{coverage.total}_"
+    persist each memo (eval/results/memos-<ts>/<case>.html) so it can be *read* — and now it opens in
+    a browser looking like the real memo/PDF, because the body routes through the SAME shared
+    `core.render.memo_to_html` the export uses (no second layout to drift, Phase 11 §8). Only the
+    eval-specific wrapper is added here: a scores banner at the top and the raw model JSON at the
+    bottom (so nothing is lost). Deterministic — no API calls."""
+    doc = memo_to_html(memo)
+    scores = (
+        '<div style="font-family:monospace;background:#ece2d3;border-radius:6px;'
+        'padding:8px 12px;margin:0 0 14px;font-size:9pt">'
+        f"eval {html.escape(case_id)} &middot; citations real {cite.valid}/{cite.total} &middot; "
+        f"grounded {grounded.grounded_yes}/{grounded.judged} &middot; "
+        f"coverage {coverage.covered}/{coverage.total}</div>"
     )
-    lines.append("")
-    for finding in memo.per_law:
-        lines += [
-            f"## {finding.short_name} ({finding.law_id}) — {finding.in_scope}",
-            "",
-            finding.why,
-        ]
-        if finding.effective_dates:
-            lines += ["", "Effective: " + "; ".join(finding.effective_dates)]
-        if finding.obligations:
-            lines += ["", "Obligations:"]
-            lines += [f"- {ob.text}  _({ob.citation})_" for ob in finding.obligations]
-        lines.append("")
-    if memo.draft_notices:
-        lines += ["## Draft notices", ""]
-        for dn in memo.draft_notices:
-            lines += [f"### {dn.kind} — {dn.jurisdiction}", "", dn.text, ""]
-    if memo.deadline_checklist:
-        lines += ["## Deadline checklist", ""]
-        lines += [f"- {d.date} — {d.what} ({d.law})" for d in memo.deadline_checklist]
-        lines.append("")
-    if memo.next_steps:
-        lines += ["## Next steps", ""]
-        lines += [f"- {s}" for s in memo.next_steps]
-        lines.append("")
-    lines += ["## Disclaimer", "", memo.disclaimer, "", "---", ""]
-    lines += [
-        "<details><summary>raw memo JSON</summary>",
-        "",
-        "```json",
-        memo.model_dump_json(indent=2),
-        "```",
-        "</details>",
-        "",
-    ]
-    return "\n".join(lines)
+    raw = (
+        '<details style="margin-top:18px"><summary>raw memo JSON</summary>'
+        f"<pre>{html.escape(memo.model_dump_json(indent=2))}</pre></details>"
+    )
+    # Inject the eval wrapper into the shared document (single <body>, single closing tag).
+    return doc.replace("<body>", f"<body>{scores}", 1).replace("</body>", f"{raw}</body>", 1)
 
 
 def run_judged(core, cases, limit: int | None = None, stamp: str | None = None) -> None:
@@ -157,8 +134,8 @@ def run_judged(core, cases, limit: int | None = None, stamp: str | None = None) 
             cite = score_citation_exists(memo, core.sections, case.id)
             grounded = score_groundedness(memo, core.section_texts, judge_llm, case.id)
             coverage = score_coverage(memo, case.expect.obligations, case_id=case.id)
-            (memo_dir / f"{case.id.replace('/', '_')}.md").write_text(
-                _memo_to_markdown(memo, case.id, cite, grounded, coverage), encoding="utf-8"
+            (memo_dir / f"{case.id.replace('/', '_')}.html").write_text(
+                _memo_to_html(memo, case.id, cite, grounded, coverage), encoding="utf-8"
             )
         except LLMError as e:
             errors += 1
@@ -176,7 +153,7 @@ def run_judged(core, cases, limit: int | None = None, stamp: str | None = None) 
         )
     if errors:
         print(f"\n  ({errors}/{len(in_scope_cases)} case(s) skipped on LLM errors)")
-    print(f"\n  memos written to {memo_dir}  (one .md per case — read them, not just the scores)")
+    print(f"\n  memos written to {memo_dir}  (one .html per case — open them, not just the scores)")
 
 
 def _retrieval(core, cases, k: int, mode: str) -> tuple[float, int, list[str]]:

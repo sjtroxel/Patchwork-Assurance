@@ -9,6 +9,13 @@ FROM python:3.12-slim
 
 WORKDIR /app
 
+# WeasyPrint (memo PDF export, Phase 11) runtime libs. v69 on Debian needs only Pango + harfbuzz-subset
+# (Cairo was dropped in v60+); fonts-dejavu-core gives the PDF a font fallback when the brand webfonts
+# aren't reachable. Verified against WeasyPrint's official install docs 2026-06-30.
+RUN apt-get update && apt-get install -y --no-install-recommends \
+      libpango-1.0-0 libpangoft2-1.0-0 libharfbuzz-subset0 fonts-dejavu-core \
+    && rm -rf /var/lib/apt/lists/*
+
 # Copy the whole repo first: hatchling needs the source tree (src/ layout) to build the wheel, and the
 # api needs the committed corpus/ at runtime to build the Chroma index on first boot.
 COPY . .

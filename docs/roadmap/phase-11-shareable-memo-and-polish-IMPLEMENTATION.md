@@ -480,9 +480,14 @@ All tests run on the **stub provider, offline, zero spend** — same posture as 
 4. [x] Draft-notice expanders (`ui/memo.py`) — the tiny `st.expander` change. **DONE 2026-06-30** — each
        notice is its own collapsed expander (`kind (jurisdiction)` label) with `st.code` inside (copy
        button preserved); AppTest checks the expander label.
-5. [ ] Retire `eval/run.py:_memo_to_markdown` onto the shared helper (HTML dump) + the "routes through" test.
-6. [ ] PDF: pick + pin the library (§7), `ui/pdf.py`, the `st.download_button`, Dockerfile sysdeps if
-       WeasyPrint, and **lock the disclaimer-in-PDF test** before calling it done.
+5. [x] Retire `eval/run.py:_memo_to_markdown` onto the shared helper (HTML dump) + the "routes through" test.
+       **DONE 2026-06-30** — `_memo_to_html` injects the eval scores banner + raw-JSON wrapper around
+       `core.render.memo_to_html`; dump now `.html`; "routes through" test added.
+6. [x] PDF: pick + pin the library (§7), `ui/pdf.py`, the `st.download_button`, Dockerfile sysdeps if
+       WeasyPrint, and **lock the disclaimer-in-PDF test** before calling it done. **DONE 2026-06-30** —
+       `weasyprint==69.0`; `ui/pdf.py` (`memo_pdf_bytes` lazy-imports WeasyPrint, `memo_filename`);
+       download wired via `_render_pdf_button` in `_render_memo`; Dockerfile + CI gained the Pango libs;
+       `test_pdf.py` locks valid-PDF + disclaimer + dated stamps. Two extra fixes fell out (§14). 325 passed.
 7. [ ] Dark mode: `[theme.light]`/`[theme.dark]` split; finalize the dark palette via see-it-to-pick-it;
        confirm the selector is reachable under `toolbarMode="minimal"`; chrome legibility; landing untouched.
 8. [ ] `ruff check . && ruff format --check . && pytest` green; running-app visual QA recorded in §14.
@@ -520,20 +525,36 @@ visible wins. Each step is independently committable.
   scratchpad (`phase11-design/`), committed to nothing.
 - In-app memo fork (§3.1): WYSIWYG-HTML (a) or native-Streamlit (b): **(b) native Streamlit** — keep the
   interactive, dark-mode-aware widgets on screen; Candidate A is the PDF/export only (the eval `.html`).
-- PDF library + version pinned: **`weasyprint==69.0`** (current on PyPI, verified 2026-06-30; renders a
-  valid `%PDF` end-to-end). Pin into `pyproject.toml` at build step 6 (the renderer itself imports no
-  PDF lib — `ui/pdf.py` does).
-- WeasyPrint system deps added to Dockerfile (exact list, verified at build): pending build step 6. NOTE:
-  the local WSL box already had `libpango-1.0-0 / libpangoft2 / libpangocairo / libharfbuzz / libcairo /
-  libfontconfig / libgdk-pixbuf / libffi8` (no `apt` needed here), but Railway's `python:3.12-slim` will
-  still need them — verify the current WeasyPrint v69 list at build.
+- PDF library + version pinned: **`weasyprint>=69,<70`** (installed 69.0; verified 2026-06-30, renders a
+  valid `%PDF`). Pinned in `pyproject.toml` base deps; `core/render.py` imports no PDF lib, `ui/pdf.py`
+  lazy-imports WeasyPrint inside `memo_pdf_bytes`.
+- WeasyPrint system deps added to Dockerfile (exact list, verified at build): **`libpango-1.0-0
+  libpangoft2-1.0-0 libharfbuzz-subset0 fonts-dejavu-core`** — WeasyPrint v60+ dropped Cairo; this is the
+  official v69 list (doc.courtbouillon.org, checked 2026-06-30) plus a font fallback. The SAME list was
+  added to `.github/workflows/ci.yml` so `test_pdf.py` renders a real PDF in CI.
+- `POST /memo/pdf` endpoint built or deferred: **DEFERRED** (UI-only this phase, §13; clean MCP-reusable
+  add later).
 - Streamlit theming confirmed (1.58 `[theme.dark]` keys; selector reachable under `toolbarMode`): `__________`
 - Dark palette finalized (chosen hexes / preview picked): `__________`
 - Eval dump format change (`.md` → `.html`) — confirmed? `__________`
 - `POST /memo/pdf` endpoint built or deferred: `__________`
 - Running-app visual QA (PDF look, dark mode, expanders, chrome legibility): `__________`
-- Deviations from this plan: §4's snippet set `corpus_as_of` only inside `if laws_by_id:`. Changed to
-  set it **unconditionally** (None when no metadata) — the stamp test exposed that `StubLLM` returns a
-  shared memo object, so a conditional set leaked a stale value across tests. Always-determining the
-  stamp in `generate_memo` is the correct contract anyway.
+- Deviations from this plan:
+  1. §4's snippet set `corpus_as_of` only inside `if laws_by_id:`. Changed to set it **unconditionally**
+     (None when no metadata) — the stamp test exposed that `StubLLM` returns a shared memo object, so a
+     conditional set leaked a stale value across tests. Always-determining the stamp in `generate_memo`
+     is the correct contract anyway.
+  2. **Added `st.session_state` persistence of the in-session memo** (`ui/memo.py`). `st.download_button`
+     reruns the whole page on click (streamlit#3832); under the old `if submitted:` structure that wiped
+     the memo off-screen after clicking Export. Persisting the memo (ephemeral, discarded with the
+     session — same pattern already used for `meta`; no DB, statelessness intact) re-renders it across
+     the rerun. The download is isolated in `_render_pdf_button`.
+  3. **AppTest gotcha (cost real time, documented for next time):** rendering a real `st.download_button`
+     in the post-form-submit path makes Streamlit's AppTest raise a *false-positive* "Forms cannot be
+     nested in other forms" (discuss.streamlit.io/t/.../62277) — the running app is fine. Also `AppTest
+     .from_file` executes the page in a **fresh namespace**, so patching `patchwork_assurance.ui.memo.*`
+     silently does nothing; you must patch the **source** symbol. The UI smoke tests therefore patch
+     `patchwork_assurance.ui.pdf.memo_pdf_bytes` to raise, which renders the graceful "PDF export
+     unavailable" caption instead of a download widget. The real PDF render is locked in `test_pdf.py`,
+     and the live download button is a step-8 visual-QA item.
 ```

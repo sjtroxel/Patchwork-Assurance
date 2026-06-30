@@ -10,6 +10,7 @@ from patchwork_assurance.ui.chrome import (
     render_hero,
     render_seam,
 )
+from patchwork_assurance.ui.pdf import memo_filename, memo_pdf_bytes
 
 inject_brand_css()
 render_chrome()
@@ -153,6 +154,29 @@ def _browser_ip() -> str:
         return ""
 
 
+def _render_pdf_button(typed: ComplianceMemo, typed_situation: Situation) -> None:
+    """Forwardable PDF (Phase 11) — built in-session from the memo already on screen (no re-send, no
+    re-spend), with the memo's own dated stamps. The export is a nice-to-have: if PDF rendering is
+    unavailable in some environment, degrade gracefully rather than break the memo view.
+
+    Note for tests: Streamlit's AppTest raises a documented false-positive "Forms cannot be nested in
+    other forms" when it renders an st.download_button in the post-form-submit path
+    (discuss.streamlit.io/t/.../62277). The real app is unaffected. AppTest runs the page in a fresh
+    namespace, so the UI smoke tests force this path to degrade by patching the *source* symbol
+    `patchwork_assurance.ui.pdf.memo_pdf_bytes` to raise (the caption renders instead of a widget); the
+    real PDF path is locked in tests/test_pdf.py.
+    """
+    try:
+        st.download_button(
+            "Export to PDF",
+            data=memo_pdf_bytes(typed, typed_situation),
+            file_name=memo_filename(typed),
+            mime="application/pdf",
+        )
+    except Exception:
+        st.caption("PDF export is temporarily unavailable.")
+
+
 def _render_memo(memo: dict, situation: dict) -> None:
     SCOPE_BOX = {"yes": st.success, "uncertain": st.info, "no": st.warning}
 
@@ -160,7 +184,9 @@ def _render_memo(memo: dict, situation: dict) -> None:
     # uses, so the screen summary and the exported document read identically. The UI holds the memo
     # as a dict; reconstruct the typed pair so there's one typed path, no dict-vs-object drift.
     typed = ComplianceMemo.model_validate(memo)
-    st.info(executive_summary(typed, Situation.model_validate(situation)))
+    typed_situation = Situation.model_validate(situation)
+    st.info(executive_summary(typed, typed_situation))
+    _render_pdf_button(typed, typed_situation)
 
     render_seam()
     for law in memo.get("per_law", []):
@@ -248,10 +274,20 @@ if submitted:
     }
     try:
         with st.spinner("Analyzing against the statute text…"):
-            memo = client.analyze(situation, client_ip=client_ip)
-        _render_memo(memo, situation)
+            # Hold the in-session result in session_state (ephemeral, discarded with the session — the
+            # same pattern already used for `meta`; no DB, no saved history, statelessness intact). This
+            # is what lets the PDF download button work: st.download_button reruns the page on click
+            # (streamlit#3832), and persisting the memo means that rerun re-renders it instead of wiping
+            # it back to the empty form.
+            st.session_state.memo = client.analyze(situation, client_ip=client_ip)
+        st.session_state.memo_situation = situation
     except client.APIError as exc:
+        st.session_state.pop("memo", None)
         st.error(str(exc))
+
+# Render the current in-session memo (from this submit or preserved across a download-button rerun).
+if st.session_state.get("memo"):
+    _render_memo(st.session_state.memo, st.session_state.memo_situation)
 
 # Memo quota indicator (reflects this run's generation, if any). Read-only; never blocks the page.
 try:

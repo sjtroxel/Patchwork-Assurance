@@ -81,7 +81,14 @@ def test_memo_page_renders_memo_on_submit():
     at.multiselect[1].set_value(["employment"])  # decision domain
     # role + AI-use radios keep their defaults (deployer / "Yes")
 
-    with patch("patchwork_assurance.ui.client.analyze", return_value=SAMPLE_MEMO):
+    # Force the PDF path to degrade (raise) so no st.download_button renders: a real one trips a
+    # documented AppTest false-positive ("Forms cannot be nested", discuss.streamlit.io/t/.../62277).
+    # Patch the SOURCE symbol (ui.pdf) — AppTest runs the page in a fresh namespace, so patching
+    # ui.memo would not apply. The real PDF render is locked in test_pdf.py.
+    with (
+        patch("patchwork_assurance.ui.client.analyze", return_value=SAMPLE_MEMO),
+        patch("patchwork_assurance.ui.pdf.memo_pdf_bytes", side_effect=RuntimeError("no libs")),
+    ):
         at.button[0].click().run()
 
     assert not at.exception
@@ -89,9 +96,11 @@ def test_memo_page_renders_memo_on_submit():
     assert "CO SB 26-189" in expander_labels
     warnings = [w.value for w in at.warning]
     assert any("Educational analysis" in w for w in warnings)
-    # Phase 11: the deterministic, hedged executive-summary line renders atop the memo (st.info).
+    # Phase 11: the deterministic, hedged executive-summary line renders atop the memo (st.info)...
     infos = [i.value for i in at.info]
     assert any("appear to be in scope" in i for i in infos)
+    # ...and the PDF export is wired into the memo render (degraded to its caption here, no libs in test).
+    assert any("unavailable" in c.value for c in at.caption)
 
 
 def test_memo_page_draft_notices_render_as_expanders():
@@ -106,7 +115,11 @@ def test_memo_page_draft_notices_render_as_expanders():
     at.multiselect[0].set_value(["Colorado"])
     at.multiselect[1].set_value(["employment"])
 
-    with patch("patchwork_assurance.ui.client.analyze", return_value=memo):
+    with (
+        patch("patchwork_assurance.ui.client.analyze", return_value=memo),
+        # degrade the PDF path so no download widget renders (AppTest nested-form false-positive)
+        patch("patchwork_assurance.ui.pdf.memo_pdf_bytes", side_effect=RuntimeError("no libs")),
+    ):
         at.button[0].click().run()
 
     assert not at.exception

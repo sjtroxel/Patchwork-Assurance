@@ -30,6 +30,10 @@ dependencies = [
     "openai",  # OpenRouter provider (OpenAI-compatible API); Seam 4 — only core/llm.py imports it
     "sse-starlette",
     "mcp>=1.28,<2",  # MCP server SDK — Phase 10
+    # Memo PDF export (Phase 11), imported only by ui/pdf.py. Needs Pango system libs at runtime
+    # (libpango-1.0-0, libpangoft2-1.0-0, libharfbuzz-subset0) — added in the Dockerfile + CI. The
+    # api service installs but never imports it (image-size cost only). v60+ dropped Cairo.
+    "weasyprint>=69,<70",
 ]
 
 [project.optional-dependencies]
