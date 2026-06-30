@@ -19,6 +19,15 @@ memos next week, **the groundedness number is the evidence that those memos are 
 section is the plan; the as-built steps land in `phase-10-mcp-server-IMPLEMENTATION.md` tomorrow on fresh
 quota. Standing rule: **token-spending commands are sjtroxel's to run**, like git.*
 
+**Update 2026-06-29 — this §0 is now a parallel "ledger closure" track, decoupled from "strictly before
+MCP."** Per sjtroxel's direction, the funded-run catch-up runs as **one paid validation per morning**
+(ROADMAP §6 "funded-run ledger") while the roadmap build work proceeds alongside — and the **Phase 10 MCP
+build (and its IMPLEMENTATION doc) is deliberately NOT started** until the still-to-do list is organized
+and the Phase 11/12 scope docs are written. Done so far: **§0.3 Phase 6 ✅**, **§0.7 production smoke
+test ✅**, **§0.8 custom domain ✅** (all 2026-06-29). Remaining paid runs: **Tue 6/30 = §0.4 Phase
+7-live · Wed 7/1 = §0.5 Phase 8-live + the free N=7 re-sweep · Thu 7/2 = §0.11 Phase 9 first live PR**
+(no longer "optional" — it's the launch headline; it needs the CO/CT privacy statute added first).
+
 **Do these roughly in order — safety and the free win first, then the paid runs, then the domain.**
 
 ### 0.1 Pre-flight: spending safety (do this FIRST, before any paid command)
@@ -37,6 +46,9 @@ is exactly the failure mode a funded key makes more expensive. Before any `--jud
       ≠ the judged. Pin them in the IMPLEMENTATION doc.
 
 ### 0.3 Phase 6 — the one judged run (closes the two `[-]` items + the model decision)
+**✅ DONE 2026-06-29 ($4.57).** Groundedness 86.5%, citations-resolve 99.0%, coverage 78.4% (after fixing
+the metric), models settled Sonnet+Opus. Both `[-]` flipped in `phase-6-evals.md` §2 (ticket RESOLVED);
+results in `-IMPLEMENTATION.md` §10; session detail in [[project-judged-eval-run-2026-06-29]].
 The single bounded ticket from `phase-6-evals.md` §2. **The confidence metric for the whole product.**
 - [ ] Run `make eval-judge` (= `python -m eval.run --judge`, `LLM_PROVIDER=anthropic`) on the **full**
       gold set, behind the spend gate. Estimated **$1–3** one-time (Sonnet memo + Opus judge ≈ $1.65;
@@ -78,10 +90,18 @@ walkthrough was never recorded.
       with real deadlines. Confirm and close the QA note.
 
 ### 0.7 End-to-end production smoke test (the funded key, the deployed path)
+**✅ DONE (memo) 2026-06-29.** The maximal Missouri property-mgmt memo (6 nexus states, employment +
+housing) generated end-to-end through the live `app.patchworkassurance.com` → `api.` path in ~1 min, on
+the funded key. CA two-regime split + per-domain scoping held. *Still worth a quick check:* one real
+**chat** round-trip in production (the memo path is the one verified).
 - [ ] One real memo + one real chat through the **deployed Railway** path on the funded key — the first
       genuine paid generation in production. Confirm streaming, the rate limit, and the chrome all behave.
 
 ### 0.8 Custom domain + the one-umbrella wiring
+**✅ DONE 2026-06-29.** `patchworkassurance.com` (Cloudflare Registrar, $10.46/yr). apex+`www` → Vercel
+landing, `app.` → Railway Streamlit, `api.` → Railway FastAPI (`/docs` exposed). All grey-cloud, HTTPS
+verified, `API_BASE_URL`/CORS/README/landing-button updated, GitHub homepage flipped. Full wiring in
+[[project-custom-domain-live-2026-06-29]].
 The Phase 5 "custom-domain umbrella" was deferred to the post-v1 backlog; do it now (see
 [[feedback-deploy-hosting-preferences]]: landing → free static host, UI + API → Railway always-on, no
 cold-start).

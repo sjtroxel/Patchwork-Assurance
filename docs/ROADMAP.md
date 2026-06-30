@@ -211,17 +211,20 @@ phases actually turned out).
 | **4.5 — Visual identity & front door** | A real quilt visual identity (palette, logo, type) replacing the placeholder; a cinematic static landing page (the "front door"); app polished to gorgeous-but-trustworthy. A presentation half-phase, no functional change. **COMPLETE 2026-06-20.** | Visual design; static HTML/CSS/JS; brand |
 | **4.6 — Memo form & scope rework** | Fix the input model so the headline case works: an out-of-state business with CO/CT employees/consumers/residents (jurisdiction = where the law *reaches*, not HQ via a corpus-driven nexus screen); real business roles mapping to statutory developer/deployer; shadow-AI discovery; verdict-first memo with deterministic deadlines + templated next-steps. **BUILT 2026-06-20** (96 tests; pending running-app QA). | Domain modeling; scope logic; UX of legal intake |
 | **5 — Deploy + README** | **Starts by wiring the Anthropic API key.** Two-model generation: **chat = Haiku (unlimited)**, **memo = Sonnet (rate-limited, ~2/IP/day)**; multi-agent memo is an open enhancement. UI **and** API on Railway (always-on) + static landing on a free host; custom-domain umbrella (optional); public repo. **Shippable v1. COMPLETE 2026-06-21.** As-built corrections: shipped via a shared **Dockerfile** (not Railpack); **CORS not needed** (UI calls API server-side); **no `.gitattributes`** needed (Linguist excludes prose Markdown; repo reads **Python 87%**); custom-domain umbrella **deferred to the post-v1 backlog**. Live: app + landing both up. | Deploy; secrets; env config; model/cost strategy |
-| **6 — Evals** | Gold set of situations → expected scope/obligations; retrieval hit-rate, scope accuracy, citation groundedness; LLM-as-judge — run against the same API path. **CODE-COMPLETE 2026-06-23 (121 tests):** 14-case gold set, harness on the real `core/` path, free deterministic tier (`make eval`: scope 28/28; retrieval recall@5 68% → **raised memo k 5→8** → 95.5%, a Phase-8 baseline), judged tier built + stub-tested behind a spend guard (`make eval-judge`). **One paid judged run outstanding** (groundedness/coverage numbers + Haiku-vs-Sonnet decision) — deferred to when credits refill, user-run. Also produced `eval/safety.py` + `docs/SPENDING_SAFETY.md` after a $0.32 accidental-spend incident. | Evals; LLM-as-judge |
+| **6 — Evals** | Gold set of situations → expected scope/obligations; retrieval hit-rate, scope accuracy, citation groundedness; LLM-as-judge — run against the same API path. **CODE-COMPLETE 2026-06-23 (121 tests):** 14-case gold set, harness on the real `core/` path, free deterministic tier (`make eval`: scope 28/28; retrieval recall@5 68% → **raised memo k 5→8** → 95.5%, a Phase-8 baseline), judged tier built + stub-tested behind a spend guard (`make eval-judge`). **Judged run DONE 2026-06-29** ($4.57): groundedness 86.5%, citations-resolve 99.0%, coverage 78.4% (after replacing the degenerate difflib metric with word-recall); production models settled at Sonnet memo + Opus judge. Also produced `eval/safety.py` + `docs/SPENDING_SAFETY.md` after a $0.32 accidental-spend incident. | Evals; LLM-as-judge |
 | **7 — Observability & security** | Tracing + token-cost/latency instrumentation over the API path; prompt-injection and poisoned-document defenses for the chat surface and the corpus loader. **COMPLETE 2026-06-23 (141 tests):** structured JSON logging + `request_id` correlation + Seam-4 token/cost capture (`core/obs.py`, `core/pricing.py`; stdlib logging, no new dep); runtime citation grounding-guard on `/analyze` + `/chat` (`core/grounding.py`, lifted from `eval/`); chat prompt hardening + injection regression set; corpus-ingest sanitization (`scan_for_injection`, flag-not-block — the Phase-9 rail); ops note (`docs/OBSERVABILITY.md`). Logs are metadata-only (privacy invariant, test-locked). Deferred to a live paid run: real cost numbers + live injection-resistance tests. | Observability tooling; LLM security |
 | **8 — Retrieval quality (hybrid RAG)** | Add structured / text→SQL retrieval over the corpus metadata (jurisdiction, scope domains, dates) alongside semantic search; route queries; compare flavors of RAG, measured against the Phase 6 evals. **COMPLETE 2026-06-25 (201 tests):** full retrieval ladder built behind the interface — semantic, metadata-`filtered`, hand-rolled BM25 + RRF `hybrid`, `routed` (rules + agentic tool-use loop), and read-only text→SQL over a `LawMetadata` table with an allowlist guard. Scored on the Phase 6 gold set + a new exact-term/citation gold set via a free deterministic sweep (`make eval --sweep`, `make sweep-knobs`). **Verdict (honest):** at N=2 laws, `routed = filtered = hybrid = 95.5%` recall@8 and all modes tie on exact-term recall — semantic + metadata filtering carries it; the fancier rungs don't beat baseline at this scale, so the **default stays `filtered` + `rules`** and the ladder is kept, measured, and **banked for Phase 9** corpus growth (one config line to switch). Knobs re-tuned (batch 5): embedding model `bge-small` validated by measurement (95.5% vs MiniLM 72.7%); `k=8`/chunk-2800 held (the "bigger→100%" gains were N=2 artifacts of a ~50-chunk corpus). Deferred to a funded run: the agentic-router + text→SQL *eval numbers* (code built + stub-tested, same posture as Phase 6's judged tier). | Hybrid + agentic RAG; retrieval tuning |
 | **9 — Monitoring/ingestion agent (v2 headline)** | Scheduled poll → free diff → LLM-on-change → agent writes into `corpus/` → human gate surfaces changes for review; prove it by adding a 3rd jurisdiction. **COMPLETE 2026-06-28 (297 tests):** the full five-stage pipeline is built + offline-tested — scheduled GitHub Actions cron (`monitor.yml`), free hash/diff gate (`poll.py`), LLM-on-change fetch + classify (`assess.py`), Seam-1 draft (`draft.py`), and a **PR-as-human-gate**. Fetch/extract hardened this phase: HTML normalization, **PDF text-layer extraction (pypdf) with an OCR fallback (PyMuPDF + tesseract)** for scanned-image statutes, and a **browser user-agent** so official sources that 403 a default UA (e.g. nj.gov) fetch cleanly. Phase 7's `scan_for_injection` + a provenance allowlist guard the path. **Proof (honest):** the corpus grew **2→7 jurisdictions** (CO, CT, IL, both CA regimes, NYC, NJ) — each indexed by the Phase 1 loader and served in memo + chat with **zero `core/` code change** (the Seam 1/2/3 payoff), Phase 6 gold cases green, no CO/CT regression. Those additions were **human-curated** (drafted + reviewed by hand), so the pipeline's first **live** end-to-end agent PR is **deferred to a funded run** — the same posture as Phases 6–8's deferred paid/live items; the human gate is a first-class feature, not a gap. | Agents; agent loops; the AI-native engine |
 | **10 — MCP server** | Expose Patchwork's tools (scope check, memo, retrieval) as an MCP server usable from Claude / Cursor | MCP; tool + server design |
+| **11 — Shareable memo & UX polish** | A combined medium phase (two smaller lifts). Make the memo a **shareable artifact**: PDF export (attorney-forwardable, carries the not-legal-advice chrome + an "as of [date]" stamp), a brief **executive-summary line** atop the memo, and **collapsible + copyable** draft-notice blocks. Plus a **dark mode** for the app (the landing-page animated quilt unchanged in both modes). Scope doc: `phase-11-shareable-memo-and-polish.md`. | Document rendering (HTML→PDF); Streamlit theming; UX polish |
+| **12 — Multi-agent memo (the showcase)** | Rebuild memo generation as a small, purposeful agent pipeline: deterministic scope → parallel **per-law analyst agents** (each grounded only in its own law) → a **grounding/hedge reviewer agent** that verifies every claim is cited + hedged and enforces the not-legal-advice boundary (the J.D. edge as an agent), with a **live fold-out observability panel** of the agent calls (the Asteroid-Bonanza four-agent-swarm pattern). Promoted from the post-v1 backlog 2026-06-29; the reviewer agent natively produces the Phase 11 summary line. Scope doc: `phase-12-multi-agent-memo.md`. Ships as default only if the Phase 6 eval says groundedness held or improved. | Multi-agent orchestration; agent observability; the AI-native headline |
 
 **v1 = Phases 0–5** (with **4.5** and **4.6** inserted between build and deploy — 4.5 presentation-only,
 4.6 a small functional correction to the intake/scope model).
 **v1.x = Phases 6–8 (measure, harden, improve retrieval). v2 = Phases 9–10 (the self-updating engine +
-MCP).** Phase 4.5 adds no functional capability, so it does not touch binding rule 1's gate: Phases 6+
-remain blocked until v1 is deployed and works end to end.
+MCP). v2.x = Phases 11–12 (shareable-memo & UX polish, then the multi-agent memo showcase)** — post-launch
+enhancements, built after v1 is public. Phase 4.5 adds no functional capability, so it does not touch
+binding rule 1's gate: Phases 6+ remain blocked until v1 is deployed and works end to end.
 
 *Ordering rationale for 6–10:* ship v1 first, then **measure** it (evals), then **harden** it
 (observability + security), then **improve retrieval** (hybrid RAG) now that evals can tell whether the
@@ -232,12 +235,36 @@ security, MCP) on a real app rather than in a paid cohort. If the monitoring age
 headline) needs to come sooner for motivation, it can move up — it is sequenced here for support, not
 priority.
 
+*The funded-run ledger — four paid validations (closing the week of 2026-06-29).* Phases 6–9 were each
+built + tested offline with one **measurement / live-proof** willfully deferred to a paid run — the
+Anthropic key sat at ~$0.31 until it was funded 2026-06-28, so the deferral was budget, not doubt. With
+funding in, these close as four short focused sessions, **one per morning**, each: run → crunch the
+numbers → write them into the phase's IMPLEMENTATION doc → flip `[-]`→`[x]`. Every paid run goes through
+the `eval/safety.py:confirm_spend` gate and is **sjtroxel's to run** (the git-style hand-off). This is a
+parallel track to the roadmap build work below — it does not block, and is not blocked by, the Phase 11/12
+scope work. Detailed checklists live in `phase-10-mcp-server.md` §0 and each phase's IMPLEMENTATION doc.
+
+- **Mon 2026-06-29 — Phase 6 (judged eval).** ✅ DONE, $4.57. Groundedness 86.5%, citations-resolve 99.0%,
+  coverage metric fixed (difflib → word-recall) → 78.4%; models settled Sonnet memo + Opus judge.
+- **Tue 2026-06-30 — Phase 7 (live).** First real per-request **cost/latency numbers** (the "pennies per
+  memo" claim, measured not estimated) + `pytest -m live` injection-resistance + the live `request_id`
+  threadpool-propagation check (unit tests are same-thread, so it can only be confirmed live).
+- **Wed 2026-07-01 — Phase 8 (live + free).** Paid: the agentic-`routed` + read-only text→SQL *eval
+  numbers*. Free, do regardless: the **N=7 re-sweep** — the prior "semantic + filter is enough" verdict was
+  an explicit N=2 artifact; at 7 laws the hybrid/routed rungs may finally earn their keep and flip the
+  default retrieval mode (one config line). Possibly the most interesting result of the week.
+- **Thu 2026-07-02 — Phase 9 (live).** The monitoring agent's **first live end-to-end PR** — the AI-native
+  headline, and the strongest single thing to point at in the launch post. Needs a real new statute to
+  ingest: the leading candidate is the **CO + CT consumer-privacy laws** (see corpus-expansion below).
+
 *Post-v1 enhancement backlog (not numbered phases; tracked here so they aren't lost):*
-- **Custom-domain umbrella** — deferred at the Phase 5 ship (2026-06-21) on cost timing, ~$12/yr, revisit
-  ~early July. Today the two Railway services differ only by a hyphen (`patchwork-assurance` API vs
-  `patchworkassurance` UI) and the landing page lives on `patchwork-assurance.vercel.app`. A domain unifies
-  them: apex → landing, `app.` subdomain → the Streamlit UI. Pure polish; v1 ships and works without it.
-- **Multi-agent memo generation** — agreed 2026-06-20, **post-deploy** (gated behind v1, binding rule 1).
+- **Custom-domain umbrella** — DONE 2026-06-29. Registered `patchworkassurance.com` (Cloudflare Registrar,
+  $10.46/yr; `.com` over `.ai` — the latter is $75+/yr with a 2-yr minimum). Unified surface: apex + `www`
+  → Vercel landing, `app.` → the Railway Streamlit UI, `api.` → the Railway FastAPI (`/docs` exposed as a
+  portfolio surface). All grey-cloud (DNS-only) at Cloudflare; Vercel/Railway terminate their own TLS.
+  Wiring detail in the [[project-custom-domain-live-2026-06-29]] memory.
+- **Multi-agent memo generation** — **promoted to a numbered phase (Phase 12) on 2026-06-29; design kept
+  here for reference.** Agreed 2026-06-20, post-deploy (gated behind v1, binding rule 1).
   The v1 memo is a single Sonnet call; afterward, upgrade it to a small, purposeful pipeline that is a
   genuine showcase (not swarm-for-its-own-sake): **scope** stays deterministic; **per-law analyst agents**
   (one per in-scope law, parallel, each grounded only in that law's excerpts) extract obligations; a
@@ -253,6 +280,15 @@ priority.
   code). The integrity guard is the same at any size: state exactly what is covered and decline the rest
   (the out-of-corpus refusal added 2026-06-20). Risk to manage is users assuming completeness, not corpus
   size.
+  **Near-term (week of 2026-06-29):** the corpus is now **7 laws** (CO, CT, IL, CA×2, NYC, NJ). The leading
+  next addition is a **consumer-privacy / automated-decision cluster** — the **Colorado Privacy Act** and
+  the **Connecticut Data Privacy Act** (both carry profiling / automated-decision opt-out provisions) — to
+  pair with the **CA CCPA-ADMT** regime already in the corpus, giving a coherent CA/CO/CT privacy triad.
+  This is the statute the **Phase 9 agent's first live PR** (Thu 7/2) is slated to add. Curation caveat
+  holds: scope each law honestly to its **automated-decision** provisions and don't let it read as a
+  general consumer-privacy tool — the corpus is about AI/automated decisions over people, not privacy law
+  writ large. Finalize the exact sections to include (and confirm each official source format) before
+  ingesting.
 
 ---
 

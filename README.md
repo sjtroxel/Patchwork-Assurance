@@ -5,8 +5,9 @@ a business's specific situation. It grounds every answer in the actual statutory
 and it is built so that new jurisdictions, court decisions, and federal action can be folded in as the
 landscape shifts.
 
-**Live:** [patchwork-assurance.vercel.app](https://patchwork-assurance.vercel.app) (landing) ·
-[Launch the tool](https://patchworkassurance.up.railway.app) (the app)
+**Live:** [patchworkassurance.com](https://patchworkassurance.com) (landing) ·
+[Launch the tool](https://app.patchworkassurance.com) (the app) ·
+[API docs](https://api.patchworkassurance.com/docs)
 
 ## Not legal advice
 
