@@ -1,5 +1,6 @@
 import json
 import re
+import threading
 import time
 from collections.abc import Callable, Iterator
 from types import SimpleNamespace
@@ -191,9 +192,17 @@ class StubLLM:
         text: str = "(stub)",
         structured: BaseModel | None = None,
         tool_script: list | None = None,
+        structured_by_schema: dict[type, object] | None = None,
     ) -> None:
         self._text = text
         self._structured = structured
+        # Phase 12: drive a multi-call pipeline (N analysts -> LawFinding, reviewer -> JudgeVerdict)
+        # deterministically offline. Maps a schema type to either a fixed instance (returned for every
+        # call with that schema) or a list drained FIFO per call. Keyed by schema so interleaved
+        # analyst/reviewer calls don't consume each other's scripted values. Falls back to `structured`
+        # then the schema default, so existing single-value stubs are unchanged.
+        self._structured_by_schema = structured_by_schema or {}
+        self._lock = threading.Lock()  # analysts drain the queues from parallel threads
         # A scripted tool program for run_tools: a list of steps, each either a bare tool name or a
         # (name, input_dict) tuple. The stub "calls" each via dispatch (exercising the wiring) and
         # returns `text` as the final answer — deterministic, zero tokens. (Phase 8 §6.)
@@ -205,6 +214,12 @@ class StubLLM:
 
     def complete_structured(self, system, messages, schema, max_tokens=16000):
         obs.log_llm_call("stub", None, 0.0, surface="complete_structured")
+        if schema in self._structured_by_schema:
+            entry = self._structured_by_schema[schema]
+            if isinstance(entry, list):
+                with self._lock:  # parallel analysts drain the same queue
+                    return entry.pop(0)
+            return entry
         if self._structured is not None:
             return self._structured
         if schema is ComplianceMemo:

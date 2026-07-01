@@ -367,9 +367,20 @@ emits, through the real `core/` path. So:
        `analyst_max_workers` to `Settings`. `generate_memo` now dispatches on `settings.memo_pipeline`;
        `_generate_multi_agent` raises `NotImplementedError` until step 5. Overlays extracted verbatim
        (byte-identical). Two dispatch tests added to `test_memo.py`; 329 green.*
-3. [ ] **Stub extension** (§12) — per-schema/queued structured returns, so the rest is testable offline.
-4. [ ] **One analyst** (`analyze_law`, single law) → `LawFinding` + `AgentTrace`; stub-test. *(Teach: a
+3. [x] **Stub extension** (§12) — per-schema/queued structured returns, so the rest is testable offline.
+       *Done 2026-07-01. `StubLLM(structured_by_schema={Schema: value | [queue]})`: a fixed instance
+       returns for every call with that schema; a list drains FIFO per call (under a lock — analysts
+       drain from parallel threads). Keyed by schema so interleaved analyst/reviewer calls don't consume
+       each other's values. Back-compat: `structured=` and the schema defaults are unchanged.*
+4. [x] **One analyst** (`analyze_law`, single law) → `LawFinding` + `AgentTrace`; stub-test. *(Teach: a
        constrained structured call; why IDs are set deterministically after.)*
+       *Done 2026-07-01. New `core/agents/` package (`trace.py` = AgentTrace/AgentEvent dataclasses,
+       `analyst.py` = `analyze_law`, `__init__.py`). New `ANALYST_SYSTEM` + `render_analyst_user` in
+       `prompts.py` (factored `_situation_block`/`_excerpt_block` out of `render_memo_user`, byte-identical).
+       `analyze_law` stamps `law_id`/`short_name`/`in_scope`/`effective_dates` deterministically after the
+       call (the agent owns prose only; can't move the verdict); `model` passed in explicitly for panel
+       attribution. 3 agent tests incl. the isolation guard (a CT-only token never appears in a CO prompt).
+       334 green.*
 5. [ ] **Fan-out** over N laws via `ThreadPoolExecutor` (§5) + per-law chunk buckets; test isolation +
        generic-over-N + `request_id`. *(Teach: the threadpool, parallel-not-async, latency = slowest law.)*
 6. [ ] **Reviewer** (§6): deterministic pre-filter → `judge_groundedness` → language guard →
