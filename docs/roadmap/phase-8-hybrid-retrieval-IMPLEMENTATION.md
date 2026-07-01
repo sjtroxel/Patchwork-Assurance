@@ -356,6 +356,65 @@ not a placeholder:
   metadata filtering is enough; hybrid/lexical/agentic/text→SQL are implemented and measured but earn
   their keep only as the corpus grows.* That is the intended senior narrative, not a shortfall.
 
+**Batch 7 as-built (2026-07-01): the N=7 re-sweep — the free half of the Phase 8 funded run.** With the
+corpus now at **7 jurisdictions** (CO, CT, IL, CA×2, NYC, NJ), re-ran the free deterministic sweep
+(`python -m eval.run --sweep`) and the knob sweep (`python -m eval.sweep_knobs`). Scope accuracy
+**238/238 = 100%** (mode-independent, unchanged). Results: `eval/results/20260701T122637Z.json`,
+`eval/results/knobs-20260701T122804Z.json`.
+
+Rung sweep, mean recall@8:
+
+| mode | grounding (25 in-scope cases) | exact-term (5 cases) |
+|---|---|---|
+| semantic | **20.0%** | 80.0% |
+| filtered | **98.0%** | 100.0% |
+| hybrid | 98.0% | 100.0% |
+| routed | 98.0% | 100.0% |
+
+**The N=2 verdict is refined, not overturned — and the refinement is the more interesting result.** At
+N=2, semantic-only scored 63.6% (workable); at N=7 it **collapses to 20.0%**. Diagnosis (not guessed):
+the corpus is one shared vector store, and the 7 statutes share heavy vocabulary (all AI / ADS /
+bias-audit law), so an unfiltered top-8 fills with near-duplicate chunks from the *wrong* jurisdictions
+and crowds the target law's sections out of the fixed 8 slots — a failure that worsens monotonically as
+the corpus grows. Jurisdiction **filtering** (which the memo path can always apply, since scope
+deterministically names the in-scope laws) restores recall to 98%. So the honest headline flips from
+"semantic + filter is enough" to **"the jurisdiction filter is now load-bearing"** — a measured
+before/after (20% → 98% at N=7) that *validates the shipped architecture* rather than a hybrid win.
+Hybrid/routed still **tie** filtered (98% / 100%), so the fancier rungs still don't beat baseline;
+**default stays `filtered` + `rules`.** The `semantic` rung stays in the sweep purely as the control that
+proves the filter earns its place.
+
+Knob re-sweep at N=7 (grounding / exact-term recall@8):
+
+| knob | value | grounding | exact-term |
+|---|---|---|---|
+| top_k | 3 | 70.0% | 60.0% |
+| top_k | 5 | 77.3% | 100.0% |
+| top_k | **8 (baseline)** | **98.0%** | **100.0%** |
+| top_k | 10 | 100.0% | 100.0% |
+| chunk max_chars | 1800 | 96.0% | 80.0% |
+| chunk max_chars | **2800 (baseline)** | **98.0%** | **100.0%** |
+| chunk max_chars | 3600 | 100.0% | 100.0% |
+| embed model | **bge-small-en-v1.5 (baseline)** | **98.0%** | **100.0%** |
+| embed model | all-MiniLM-L6-v2 | 86.7% | 100.0% |
+
+**Knobs held again, on the same reasoning as batch 5.** bge-small still clearly beats MiniLM (98.0% vs
+86.7%) — a scale-independent model-quality win, keep it. `k=10` and chunk `3600` each still touch 100%,
+but that +2% is bought with more retrieved tokens injected into every memo (a recurring cost Phase 12's
+~7× analyst fan-out multiplies), so `k=8` / 2800 stays the deliberate cost/quality knee. Banked lever,
+not a change.
+
+**The paid half — CLOSED 2026-07-01 (on `claude-sonnet-5`).** Two `live`-marked proof tests pass against the
+real Anthropic API: `tests/test_live.py::test_live_agentic_route` (the agentic router *chose* a retrieval
+tool and returned a grounded answer — `tools_called` non-empty) and `::test_live_text_to_sql` (`text_to_sql`
+produced allowlist-valid SQL — `validate_sql` clean — that executed read-only and returned rows). Run:
+`ANTHROPIC_API_KEY=… MEMO_MODEL=claude-sonnet-5 pytest -m live -k "agentic or text_to_sql"` (~29 s, **$0.10
+billed**, 2026-07-01).
+The `routed` *sweep* uses the free `rules` router by design, so **no `eval.run` flag produces this** — these
+dedicated live tests are the agentic-router / text→SQL proof. Bonus: this confirmed **Sonnet 5 works live on
+the account** (tool use + completion), de-risking the Phase 12 analyst-model choice. A `live_llm` guard was
+added so an OpenRouter-mode `.env` (`MEMO_MODEL=…:free`) skips with a clear reason instead of a 404.
+
 **Phase 8 DoD: met.** All six items checked in the plan doc. The deferred paid-run items below are
 *measurement on a funded run*, not unbuilt code — the same standing posture as Phase 6's judged tier.
 
@@ -364,6 +423,10 @@ and the `live`-marked "does the model route well / write valid SQL" checks — b
 `LLM_PROVIDER=anthropic` + credits and ride the same spend chokepoint and credits-refill timing as the
 Phase 6 judged run and the Phase 7 live injection tests. All structural code is built, tested offline
 with `StubLLM`, and committed before any paid run.
+
+**Closed 2026-07-01 ($0.10):** the agentic-router + text→SQL live proof is now `test_live_agentic_route`
+and `test_live_text_to_sql` (Batch 7 above), both passing on `claude-sonnet-5`. This was the last deferred
+Phase 8 item — Phase 8 is now fully closed, free and paid.
 
 ## 13. Open decisions remaining — resolved at build
 

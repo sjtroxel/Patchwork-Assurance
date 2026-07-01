@@ -9,10 +9,19 @@ parallel per-law analyst fan-out + a grounding/hedge reviewer, emitting the **un
 the Phase 10 MCP server all keep consuming the same contract with zero change.*
 
 > **VERIFY-AT-BUILD (do these first — they churn or are load-bearing):**
-> 1. **Model IDs + pricing.** Re-verify via the `claude-api` skill and pin in §16: analyst = Sonnet
->    (`claude-sonnet-4-6`, currently `memo_model`), reviewer = Opus (`claude-opus-4-8`, currently
->    `judge_model`), the cheap-analyst option = Haiku (`claude-haiku-4-5`). The judge≠judged discipline
->    (phase-6 IMPL §6) still binds: the reviewer/judge model must differ from the analyst model.
+> 1. **Model IDs + pricing — RE-VERIFIED 2026-07-01 (see §16).** §14 model assignment is **DECIDED**:
+>    analyst = **Sonnet 5 (`claude-sonnet-5`)**, reviewer = **Opus 4.8 (`claude-opus-4-8`)**, cheap-analyst
+>    fallback still Haiku (`claude-haiku-4-5`). Sonnet 5 shipped 2026-06-30 — near-Opus quality at intro
+>    **$2/$10 per Mtok through 2026-08-31** (then $3/$15), a real lift over the doc's prior `claude-sonnet-4-6`
+>    pin and over Haiku for per-law statutory reasoning. The judge≠judged discipline (phase-6 IMPL §6) still
+>    binds and holds: Opus reviewer ≠ Sonnet analyst.
+>    **Two Sonnet-5 gotchas that touch this codebase — handle at build:**
+>    - **Adaptive thinking is ON by default** (omitting `thinking` runs it, spending thinking tokens). The
+>      analyst `complete_structured` call is schema-bound; pass `thinking={"type":"disabled"}` (or a low
+>      effort) unless the eval (§11) shows thinking earns its tokens. This feeds `eval/safety.py:confirm_spend`.
+>    - **New tokenizer, ~30% more tokens** for the same text vs Sonnet 4.6. Re-baseline the `est_cost`
+>      constants / spend-gate math with `count_tokens` against `claude-sonnet-5` before any live fan-out run,
+>      or the chokepoint under-reports. Budget for the Aug-31 jump to $3/$15 on the ~7× analyst fan-out.
 > 2. **Orchestration library — RESOLVED (scope §14): hand-rolled, NO framework.** `concurrent.futures`
 >    threadpool over the synchronous `LLMClient`, explicit state passed as function args. No LangGraph
 >    (that's a deliberate-later learning project). So **no new dependency** unless §15 reopens it.
@@ -141,8 +150,11 @@ def analyze_law(
 - **Output is a `LawFinding`** (`complete_structured(system, [Msg(...)], LawFinding)`) — the contract
   already fits one-analyst-to-one-finding. Set `law_id`/`short_name` deterministically from `law`/`scope`
   after the call (don't trust the model to echo IDs), same discipline as the deterministic overlays.
-- **The `AgentTrace`** (`trace.py`) carries `law_id`, `status`, `ms`, and best-effort `tokens`/`cost` for
-  the panel (§9) — returned, not read from the racy `obs` global.
+- **The `AgentTrace`** (`trace.py`) carries `law_id`, `model`, `status`, `ms`, and best-effort
+  `tokens`/`cost` for the panel (§9) — returned, not read from the racy `obs` global. `model` is the resolved
+  model string the orchestrator passes into `analyze_law` explicitly (the Protocol has no model field, §9), so
+  per-agent model attribution flows to the UI without touching provider internals. So `analyze_law` takes a
+  `model: str` param alongside `llm`.
 - **Generic over N** — no per-jurisdiction branches (invariant 2); the analyst is identical for every law.
 
 ## 5. The fan-out (`core/agents/orchestrator.py`) — parallel over N laws
@@ -251,17 +263,29 @@ The panel needs **live** per-agent progress, but `/analyze` is a single POST —
 intermediate work. Add a streaming surface, reusing the existing `/chat` sse-starlette pattern
 (`sse-starlette` is already a dependency; `ui/client.py:stream_chat` is the client template):
 
-- **`core/agents/trace.py`:** `AgentEvent(kind, law_id, detail, tokens, cost_usd, ms)` where `kind ∈
+- **`core/agents/trace.py`:** `AgentEvent(kind, law_id, model, detail, tokens, cost_usd, ms)` where `kind ∈
   {analyst_start, analyst_done, review_verdict, review_summary, done}`. The orchestrator's `on_event`
-  callback emits these as each step completes.
+  callback emits these as each step completes. **`model` is required on every event** — each analyst event
+  carries the analyst model id it ran on, each reviewer event the reviewer model id, so the panel can show
+  the user *which model produced each contribution* (the explicit ask). **The `LLMClient` Protocol does NOT
+  expose a model id** (only `AnthropicLLM._model`, private; `StubLLM` has none — confirmed 2026-07-01), so the
+  orchestrator passes the resolved model string it already holds (`settings.analyst_model` / `reviewer_model`,
+  or their `memo_model`/`judge_model` fallbacks) **explicitly** into each agent call, and the agent stamps it
+  onto its `AgentTrace`/events. Do **not** reach into `_model`. Because it flows from config, swapping analysts
+  to Haiku makes the panel update itself — the UI hardcodes nothing.
 - **`POST /analyze/stream` (`api/main.py`):** runs the multi-agent orchestrator with an `on_event` that
   pushes `AgentEvent`s onto an SSE stream, then a final `memo` event with the `ComplianceMemo` JSON. Mirror
   the `/chat` `EventSourceResponse`/`events()` shape. Non-streaming `/analyze` stays for MCP/eval/curl.
 - **`ui/client.py:analyze_stream()`:** consumes the SSE (like `stream_chat`), yielding events then the memo.
 - **`ui/memo.py`:** wrap generation in `st.status("Generating your memo…", expanded=True)`; on each event
-  `st.write` a line — "Analyzing CO SB 26-189…", "✓ Colorado § 6-1-1704 grounded", "✗ dropped a fabricated
-  citation", per-agent tokens/cost — then render the memo from the final event. **The latency becomes the
-  demo** (this is the answer Phase 11 deliberately deferred to here).
+  `st.write` a line that **names the model** — "Analyzing CO SB 26-189 · Sonnet 5…", "✓ Colorado § 6-1-1704
+  grounded (reviewed by Opus 4.8)", "✗ dropped a fabricated citation", per-agent tokens/cost — then render
+  the memo from the final event. Map the raw model id to a friendly label once (a small `core`/`ui` dict:
+  `claude-sonnet-5`→"Sonnet 5", `claude-opus-4-8`→"Opus 4.8", `claude-haiku-4-5`→"Haiku 4.5"; fall back to
+  the raw id for anything unmapped, so a future model still shows *something* truthful). Consider a one-line
+  header in the fold-out — "Analysts: Sonnet 5 · Reviewer: Opus 4.8" — so the split is legible at a glance,
+  not only inferable line-by-line. **The latency becomes the demo** (the answer Phase 11 deferred to here),
+  and the visible model attribution is part of the honest, measured story.
 - **Per-agent cost** comes from the `AgentEvent` (returned by each agent, §4/§5) — **not** from the racy
   `obs._totals` global. `obs.log_llm_call` still fires per call for the logs; the panel reads the returned
   traces. (Verify at build whether the installed provider exposes `usage` to the agent wrapper; if not,
@@ -358,8 +382,10 @@ independently committable (single short one-liner, no attribution; sjtroxel runs
 
 - **Orchestration — RESOLVED (scope §14):** hand-rolled `concurrent.futures`, no LangGraph. A *teaching*
   build (walk-an-interviewer-through-it, unaided).
-- **Model assignment:** analysts Haiku (cheap+parallel) + Opus reviewer, vs all-Sonnet — **decide from the
-  §11 cost/quality table**, not a priori.
+- **Model assignment — RESOLVED 2026-07-01:** analysts on **Sonnet 5** (`claude-sonnet-5`, near-Opus quality
+  at intro $2/$10), reviewer on **Opus 4.8** (`claude-opus-4-8`). Upgrades the analysts from the doc's prior
+  Haiku/Sonnet-4.6 options; Haiku stays the documented cheap fallback if the §11 eval shows Sonnet 5 isn't
+  earning its cost. Judge≠judged holds. Per-agent model is surfaced to the user in the panel (§9).
 - **Reviewer batching:** per-obligation (faithful eval reuse) first, then batch-per-law if §10 cost
   demands — safe because the eval re-scores the emitted memo independently.
 - **Reviewer scope:** judge every obligation vs a sampled subset — recommend every-obligation (the
@@ -373,7 +399,13 @@ independently committable (single short one-liner, no attribution; sjtroxel runs
 ## 16. As-built notes (fill in during the build)
 
 - Judge lifted to `core/judge.py` — `eval/judge.py` re-pointed, tests green? `__________`
-- Model IDs/pricing re-verified (analyst / reviewer / cheap-analyst): `__________`
+- Model IDs/pricing re-verified (analyst / reviewer / cheap-analyst): **analyst `claude-sonnet-5`
+  ($2/$10 intro→$3/$15 after 2026-08-31), reviewer `claude-opus-4-8` ($5/$25), cheap-analyst fallback
+  `claude-haiku-4-5` ($1/$5); re-verified 2026-07-01 via `claude-api` skill + anthropic.com/news/claude-sonnet-5.
+  Sonnet-5 caveats logged in VERIFY-AT-BUILD: adaptive-thinking-on-by-default, ~30% tokenizer inflation.
+  **Sonnet 5 confirmed working LIVE on the account 2026-07-01** — tool use + completion, proven via the
+  Phase 8 `test_live_agentic_route` / `test_live_text_to_sql` run ($0.10). The analyst-model choice is
+  de-risked before Phase 12 build starts.**
 - Stub extension shape chosen (per-schema map / queue): `__________`
 - Threadpool `request_id` propagation — how handled + tested: `__________`
 - Reviewer: per-obligation vs batched (and why): `__________`

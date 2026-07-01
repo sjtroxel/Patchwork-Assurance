@@ -26,11 +26,25 @@ from pydantic import BaseModel
 
 from patchwork_assurance.config import Settings
 from patchwork_assurance.core.chat import chat
-from patchwork_assurance.core.contracts import ChatTurn, ComplianceMemo, Msg, Situation
+from patchwork_assurance.core.contracts import (
+    ChatTurn,
+    ComplianceMemo,
+    Msg,
+    Situation,
+    ToolRunResult,
+)
 from patchwork_assurance.core.embeddings import FastEmbedEmbedder
 from patchwork_assurance.core.llm import build_llm
 from patchwork_assurance.core.memo import generate_memo
+from patchwork_assurance.core.metadata_query import (
+    build_metadata_db,
+    query_metadata,
+    run_sql,
+    text_to_sql,
+    validate_sql,
+)
 from patchwork_assurance.core.retrieval import Retriever
+from patchwork_assurance.core.router import agentic_route
 from patchwork_assurance.core.scope import applicable_laws, load_law_metadata
 from patchwork_assurance.core.vectorstore import ChromaVectorStore
 
@@ -42,6 +56,14 @@ def live_llm():
     if not os.environ.get("ANTHROPIC_API_KEY"):
         pytest.skip("ANTHROPIC_API_KEY not set")
     s = Settings(llm_provider="anthropic")
+    # Guard the OpenRouter-mode .env trap: this fixture forces the anthropic provider, so an
+    # OpenRouter model id in MEMO_MODEL (left over from the free-tier experiment) would be sent to the
+    # Anthropic endpoint and 404. Skip with a clear reason instead — no wasted call, no confusing trace.
+    if not s.memo_model.startswith("claude"):
+        pytest.skip(
+            f"MEMO_MODEL={s.memo_model!r} is not an Anthropic model — set MEMO_MODEL=claude-... to run "
+            "the Anthropic live tests (your .env may be in OpenRouter mode)."
+        )
     return build_llm(s, s.memo_model)
 
 
@@ -78,6 +100,42 @@ def test_live_chat(live_llm, retriever):
     )
     assert isinstance(turn, ChatTurn)
     assert turn.reply
+
+
+def test_live_agentic_route(live_llm, retriever):
+    """Phase 8 paid proof (§8): handed the retrieval tools, the model CHOOSES one and answers grounded.
+    This is the agentic-RAG learning rep run live — the `routed` sweep uses the free `rules` router, so
+    this is the only path that exercises `agentic_route` against the real API. Runs on the memo model for
+    reliable tool use. COST-BEARING: a real `run_tools` loop (bounded by `_MAX_TOOL_ITERS`)."""
+    conn = build_metadata_db(load_law_metadata(Path("corpus")))
+    result = agentic_route(
+        "What must a deployer in Colorado do before an automated employment decision?",
+        live_llm,
+        retriever,
+        conn,
+    )
+    assert isinstance(result, ToolRunResult)
+    assert result.text  # a grounded answer came back
+    assert result.tools_called  # the model actually chose at least one retrieval tool (it routed)
+
+
+def test_live_text_to_sql(live_llm):
+    """Phase 8 paid proof (§6): the model writes allowlist-valid SQL that executes read-only against the
+    metadata DB and returns rows. COST-BEARING: one completion per `text_to_sql` call."""
+    conn = build_metadata_db(load_law_metadata(Path("corpus")))
+    # The hard proof: generated SQL passes the allowlist guard AND returns data.
+    sql = text_to_sql("List the law_id and jurisdiction of every law in the corpus.", live_llm)
+    validate_sql(
+        sql
+    )  # raises UnsafeSQLError if it isn't a single read-only SELECT over the allowlist
+    rows = run_sql(conn, sql)
+    assert rows  # the model's SQL executed and returned rows
+    assert all(isinstance(r, dict) for r in rows)
+    # End-to-end fail-closed wrapper still returns a list (empty on any failure) without crashing.
+    rows2 = query_metadata(
+        "Which jurisdictions regulate employment decisions?", conn, live_llm, mode="sql"
+    )
+    assert isinstance(rows2, list)
 
 
 # ---- OpenRouter (free-model) live smoke tests (Phase 8 interlude) ----

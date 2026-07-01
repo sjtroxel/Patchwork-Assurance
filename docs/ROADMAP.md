@@ -251,10 +251,13 @@ scope work. Detailed checklists live in `phase-10-mcp-server.md` §0 and each ph
   `est_cost_usd` ($0.079) matched the billed delta ($0.08) so `core/pricing.py` is trustworthy. `pytest -m
   live` injection set green; live `request_id` threadpool-propagation confirmed on both surfaces. Detail in
   the Phase 7 IMPLEMENTATION doc's live-run block.
-- **Wed 2026-07-01 — Phase 8 (live + free).** Paid: the agentic-`routed` + read-only text→SQL *eval
-  numbers*. Free, do regardless: the **N=7 re-sweep** — the prior "semantic + filter is enough" verdict was
-  an explicit N=2 artifact; at 7 laws the hybrid/routed rungs may finally earn their keep and flip the
-  default retrieval mode (one config line). Possibly the most interesting result of the week.
+- **Wed 2026-07-01 — Phase 8 (live + free). ✅ DONE ($0.10).** Free N=7 re-sweep: **semantic collapsed
+  63.6% → 20.0%** as the corpus grew (shared-vocabulary crowding across 7 AI statutes pushes the target
+  law's sections out of the fixed top-8), while filtered/hybrid/routed hold **98.0%** — so the jurisdiction
+  filter is now *load-bearing*, not optional. Default stays `filtered` + `rules` (fancier rungs still tie).
+  Paid proof (on `claude-sonnet-5`): two `live` tests pass — the agentic router routes + answers grounded,
+  and text→SQL writes allowlist-valid SQL that executes. **Sonnet 5 also validated live on-account** (the
+  Phase 12 analyst model). Detail in the Phase 8 IMPL doc, Batch 7.
 - **Thu 2026-07-02 — Phase 9 (live).** The monitoring agent's **first live end-to-end PR** — the AI-native
   headline, and the strongest single thing to point at in the launch post. Needs a real new statute to
   ingest: the leading candidate is the **CO + CT consumer-privacy laws** (see corpus-expansion below).
@@ -289,8 +292,49 @@ scope work. Detailed checklists live in `phase-10-mcp-server.md` §0 and each ph
   This is the statute the **Phase 9 agent's first live PR** (Thu 7/2) is slated to add. Curation caveat
   holds: scope each law honestly to its **automated-decision** provisions and don't let it read as a
   general consumer-privacy tool — the corpus is about AI/automated decisions over people, not privacy law
-  writ large. Finalize the exact sections to include (and confirm each official source format) before
-  ingesting.
+  writ large.
+
+  **Sourced 2026-07-01 (ingest-ready, verified against primary sources):**
+  - **CT — Connecticut Data Privacy Act (CTDPA).** Conn. Gen. Stat. §§ 42-515 – 42-525 (Chapter 743jj);
+    scope to **§ 42-515** (defs: "profiling," "decision that produces legal or similarly significant
+    effects") + **§ 42-520** (profiling opt-out + the new ADM transparency/challenge rights). Official
+    source: `https://www.cga.ct.gov/current/pub/chap_743jj.htm` — **clean HTML, no OCR** (like IL). **Timing
+    is the story: SB 1295 (enacted 2025-06-24) removed "solely" → opt-out now reaches *any* automated
+    decision, added profiling impact assessments; core changes effective 2026-07-01, impact-assessment duty
+    2026-08-01** (staggered dates → `effective_dates`). Verify the "current" HTML already reflects SB 1295;
+    if it lags, reconcile against the SB 1295 public act.
+  - **CO — Colorado Privacy Act (CPA).** C.R.S. §§ 6-1-1301 – 6-1-1314 (Title 6, Art. 1, **Part 13** — NOT
+    the CO AI Act at Part 17 already in corpus); scope to **§ 6-1-1303** (defs) + **§ 6-1-1306(1)(a)**
+    (profiling opt-out). Official source: OLLS `crs2024-title-06.pdf` (`content.leg.colorado.gov/.../images/olls/`)
+    — **image-scan → OCR at 400 DPI** ([[project-statute-sources-need-ocr]]; the Phase 9 pypdf→OCR fallback
+    handles it); extract **Part 13 only**. Do NOT use the clean-text SB 21-190 signed PDF as primary (2021
+    session law, misses later amendments). Effective 2023-07-01; universal-opt-out 2024-07-01.
+  - **Do not harmonize operative terms:** CT is now broadest ("any automated decision"); CO frames it as
+    "profiling" → "decisions producing legal or similarly significant effects"; CA CCPA-ADMT has its own
+    "ADMT" framing. Keep each verbatim per-law (same discipline as CO "materially influence" vs CT
+    "substantial factor" on the AI side).
+
+  **Coverage audit 2026-07-01 (completeness of included laws = OK; second-law gaps found):** the *included*
+  laws are complete to their documented scope (small files = small laws — IL HB 3773 is a 3-subsection
+  amendment, NYC LL144 five sections; omissions stated in each citation). The gap is *additional* relevant
+  laws per state:
+  - **NJ — real gap:** the **NJ Data Privacy Act** (eff. 2025-01-15) has a profiling opt-out + profiling
+    assessments; corpus has only the DCR disparate-impact rules. Same pattern as CO/CT. Backlog.
+  - **IL — real gap:** the **AI Video Interview Act** (820 ILCS 42, ilga.gov clean HTML) — notice / consent /
+    deletion / bias-reporting for AI-analyzed interviews; corpus has only HB 3773. Backlog (IL has no
+    consumer-privacy act, so this is IL's second ADM law).
+  - **NY — watchlist, not a gap:** NYC LL144 is the only *enacted* NY AEDT law; NY State's AEDT bill (S4394)
+    and NY AI Act are still pending — a Phase 9 *monitoring-agent* target, not an ingest.
+  - **CA — theme covered:** the two reg sets cover the ADM/employment/profiling core; CA's transparency /
+    training-data laws (AB 2013, SB 942) are out of the current ADM scope by design, not an accidental gap.
+
+  **Launch hardening (recommended):** add a visible "**what's covered**" scope note naming the specific
+  statutes per state and stating the corpus is a curated ADM/AI set, not every AI law in a jurisdiction —
+  makes the integrity boundary explicit and pre-empts the "did I get the whole law?" concern. The dense
+  single-state stacking (CO AI Act + CO Privacy Act; NJ DCR rules + NJDPA; IL HB 3773 + AIVIA) is the
+  patchwork thesis made concrete — a launch-post asset, not a weakness.
+
+  Confirm the exact sections and each official source format at ingest.
 
 ---
 
