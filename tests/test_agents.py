@@ -5,10 +5,11 @@ from datetime import date
 
 from patchwork_assurance.core import obs
 from patchwork_assurance.core.agents.analyst import analyze_law
-from patchwork_assurance.core.agents.orchestrator import run_analysts
+from patchwork_assurance.core.agents.orchestrator import run_analysts, run_multi_agent_memo
 from patchwork_assurance.core.agents.reviewer import review_findings
 from patchwork_assurance.core.agents.trace import AgentTrace
 from patchwork_assurance.core.contracts import (
+    ComplianceMemo,
     LawFinding,
     MemoObligation,
     Msg,
@@ -19,6 +20,7 @@ from patchwork_assurance.core.contracts import (
 from patchwork_assurance.core.corpus.metadata import EffectiveDate, LawMetadata
 from patchwork_assurance.core.judge import JudgeVerdict
 from patchwork_assurance.core.llm import StubLLM
+from patchwork_assurance.core.prompts import DISCLAIMER
 
 # ---- fixtures ----
 
@@ -346,3 +348,64 @@ def test_summary_falls_back_when_it_trips_the_language_guard():
         [_finding([GROUNDED_OB])], SIT, SECTION_TEXTS, llm, "claude-opus-4-8"
     )
     assert summary == ""
+
+
+# ---- assembly / run_multi_agent_memo (step 7) ----
+
+
+class _StubRetriever:
+    def __init__(self, chunks):
+        self._chunks = chunks
+
+    def retrieve(self, query, filters=None, k=5):
+        return self._chunks[:k]
+
+
+def test_run_multi_agent_memo_assembles_reviewed_memo():
+    analyst = StubLLM(structured_by_schema={LawFinding: RAW_FINDING.model_copy(deep=True)})
+    reviewer = StubLLM(
+        text="This educational summary is hedged.",
+        structured_by_schema={JudgeVerdict: JudgeVerdict(grounded="yes", reason="ok")},
+    )
+    memo = run_multi_agent_memo(
+        SIT,
+        [
+            CO_SCOPE,
+            CT_SCOPE,
+        ],  # only CO/CT below; CT dropped by out-of-scope? both are in_scope here
+        _StubRetriever([CO_CHUNK]),
+        analyst,
+        reviewer,
+        [_co_law(), _ct_law()],
+        analyst_model="claude-sonnet-5",
+        reviewer_model="claude-opus-4-8",
+        section_texts=SECTION_TEXTS,
+        max_revisions=0,
+    )
+    assert isinstance(memo, ComplianceMemo)
+    assert [f.law_id for f in memo.per_law] == ["co-sb-26-189", "ct-sb-5"]  # scope order
+    assert memo.disclaimer == DISCLAIMER
+    assert memo.summary == "This educational summary is hedged."  # reviewer's NL summary
+    # RAW_FINDING's obligation (Colorado § 6-1-1704) resolves + judges "yes" -> kept.
+    assert all(len(f.obligations) == 1 for f in memo.per_law)
+
+
+def test_run_multi_agent_memo_summary_none_when_guard_trips():
+    analyst = StubLLM(structured_by_schema={LawFinding: RAW_FINDING.model_copy(deep=True)})
+    reviewer = StubLLM(
+        text="We guarantee you are compliant.",  # trips guard -> reviewer returns "" -> memo None
+        structured_by_schema={JudgeVerdict: JudgeVerdict(grounded="yes", reason="ok")},
+    )
+    memo = run_multi_agent_memo(
+        SIT,
+        [CO_SCOPE],
+        _StubRetriever([CO_CHUNK]),
+        analyst,
+        reviewer,
+        [_co_law()],
+        analyst_model="claude-sonnet-5",
+        reviewer_model="claude-opus-4-8",
+        section_texts=SECTION_TEXTS,
+        max_revisions=0,
+    )
+    assert memo.summary is None  # falls back to the deterministic executive_summary at render time

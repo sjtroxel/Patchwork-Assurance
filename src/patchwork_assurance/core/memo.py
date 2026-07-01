@@ -91,10 +91,32 @@ def _generate_multi_agent(
     llm,
     laws_by_id: dict[str, LawMetadata],
 ) -> ComplianceMemo:
-    """Phase 12: per-law analyst fan-out + grounding/hedge reviewer. Built in steps 4-6; the
-    orchestrator lands in core/agents/. Until then the flag is inert (default is "single")."""
-    raise NotImplementedError(
-        "MEMO_PIPELINE=multi_agent is not built yet (Phase 12 step 5); use the default 'single'."
+    """Phase 12: per-law analyst fan-out + grounding/hedge reviewer. The passed `llm` is the analyst
+    model (Sonnet); the reviewer model is built from settings internally so the two-model pipeline
+    needs no new caller argument. Imports are LOCAL to break the memo<->orchestrator cycle (the
+    orchestrator imports retrieve_per_law from this module at load time)."""
+    from pathlib import Path
+
+    from patchwork_assurance.core.agents.orchestrator import run_multi_agent_memo
+    from patchwork_assurance.core.grounding import corpus_section_texts
+    from patchwork_assurance.core.llm import build_llm
+
+    analyst_model = settings.analyst_model or settings.memo_model
+    reviewer_model = settings.reviewer_model or settings.judge_model
+    reviewer_llm = build_llm(settings, reviewer_model)
+    # Deterministic disk read (no embeddings, no store) — the ground truth the reviewer judges against.
+    section_texts = corpus_section_texts(Path(settings.corpus_path))
+    return run_multi_agent_memo(
+        situation,
+        scope,
+        retriever,
+        llm,
+        reviewer_llm,
+        list(laws_by_id.values()),
+        analyst_model=analyst_model,
+        reviewer_model=reviewer_model,
+        section_texts=section_texts,
+        max_revisions=settings.reviewer_max_revisions,
     )
 
 

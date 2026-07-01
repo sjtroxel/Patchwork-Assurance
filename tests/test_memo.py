@@ -2,8 +2,6 @@
 
 from datetime import date
 
-import pytest
-
 from patchwork_assurance.core.contracts import (
     ComplianceMemo,
     LawFinding,
@@ -279,9 +277,27 @@ def test_default_pipeline_is_single_and_generates(monkeypatch):
     assert isinstance(memo, ComplianceMemo)
 
 
-def test_multi_agent_pipeline_not_built_yet(monkeypatch):
-    # The flag dispatches: multi_agent routes to the (not-yet-built) orchestrator, which raises rather
-    # than silently falling back to single. This test flips to the real path in Phase 12 step 5.
+def test_multi_agent_pipeline_runs_end_to_end(monkeypatch):
+    # Flip the flag: generate_memo now runs the real analyst->reviewer pipeline offline on a bare stub
+    # (analyst + the internally-built reviewer are both StubLLM; section_texts read from the real
+    # corpus on disk). Returns a valid, overlay-stamped ComplianceMemo — no NotImplementedError.
+    # Force the STUB provider: the multi_agent path builds its reviewer via build_llm(settings, ...),
+    # which would otherwise honor a real LLM_PROVIDER in .env and hit the network. Offline discipline.
     monkeypatch.setattr("patchwork_assurance.core.memo.settings.memo_pipeline", "multi_agent")
-    with pytest.raises(NotImplementedError):
-        generate_memo(SITUATION, SCOPE, _StubRetriever([CHUNK]), StubLLM(structured=CANNED_MEMO))
+    monkeypatch.setattr("patchwork_assurance.core.memo.settings.llm_provider", "stub")
+    law = LawMetadata.model_construct(
+        law_id="co-sb-26-189",
+        short_name="CO AI Act",
+        jurisdiction="CO",
+        operative_standard="",
+        regulated_roles=["deployer"],
+        scope_domains=["employment"],
+        enforcement_authority="",
+        key_obligations=[],
+        effective_dates=[],
+    )
+    memo = generate_memo(SITUATION, SCOPE, _StubRetriever([CHUNK]), StubLLM(), [law])
+    assert isinstance(memo, ComplianceMemo)
+    assert memo.disclaimer == DISCLAIMER  # assembly sets the chrome
+    assert memo.generated_on == date.today().isoformat()  # deterministic overlay still applied
+    assert [f.law_id for f in memo.per_law] == ["co-sb-26-189"]  # only the in-scope law

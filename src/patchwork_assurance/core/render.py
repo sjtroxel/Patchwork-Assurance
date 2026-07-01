@@ -118,7 +118,9 @@ def memo_to_html(
     as-of note if not supplied. Every memo string is HTML-escaped (LLM output is untrusted)."""
     gen = (generated_on or date.today()).isoformat()
     as_of = corpus_as_of or gen
-    summary = _esc(executive_summary(memo, situation))
+    # Phase 12 seam: prefer the reviewer's natural-language summary when present (multi_agent mode),
+    # else the deterministic Phase 11 line (single-call / no-situation path). Both are HTML-escaped.
+    summary = _esc(memo.summary or executive_summary(memo, situation))
     disc = _esc(memo.disclaimer or DISCLAIMER)
 
     laws = []

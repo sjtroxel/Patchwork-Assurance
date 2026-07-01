@@ -113,6 +113,10 @@ class ComplianceMemo(BaseModel):
     # corpus_as_of = the latest law.retrieved_on across the laws considered.
     generated_on: str | None = None
     corpus_as_of: str | None = None
+    # Set by the Phase 12 reviewer in multi_agent mode (a hedged, natural-language executive summary);
+    # None in single-call mode, where the renderer falls back to the deterministic executive_summary
+    # (Phase 11). Additive/back-compatible: every existing fixture and stub memo still validates.
+    summary: str | None = None
 
 
 # ---- chat ----

@@ -401,8 +401,19 @@ emits, through the real `core/` path. So:
        (REVIEWER_SUMMARY_SYSTEM), falls back to "" (→ deterministic executive_summary) if it trips the guard.
        Prohibited-language list factored to `core/language.py` (test_render re-imports it — single source).
        7 reviewer tests incl. "fabricated dropped with 0 judge calls". 343 green.*
-7. [ ] **Assembly + the `summary` field** (§7): contract field, renderer prefers it, SPEC §8.4, overlays
+7. [x] **Assembly + the `summary` field** (§7): contract field, renderer prefers it, SPEC §8.4, overlays
        identical. Full stub `ComplianceMemo` round-trips through UI/PDF/MCP unchanged.
+       *Done 2026-07-01. `ComplianceMemo.summary: str | None` added (SPEC §8.4). `orchestrator.run_multi_agent_memo`
+       assembles fan-out→reviewer into a ComplianceMemo (`summary or None`); `generate_memo`'s multi_agent
+       branch calls it (LOCAL imports break the memo<->orchestrator cycle) — builds the reviewer via
+       `build_llm(settings, reviewer_model)` internally, so no caller change. `render.memo_to_html` prefers
+       `memo.summary or executive_summary(...)`. StubLLM got valid defaults (LawFinding/JudgeVerdict/
+       MemoObligation) so the whole pipeline runs offline on a bare stub (make-dev parity), and now returns
+       a COPY of fixed structured_by_schema values (parallel analysts mutate in place — one shared instance
+       would race). **GOTCHA (logged):** the multi_agent reviewer is built from `settings.llm_provider`, so
+       an offline test must force `llm_provider="stub"` or it hits the real provider from .env (caught: a test
+       fired ~2min of OpenRouter :free calls, $0 but a real isolation bug). 345 green, full suite back to ~8s.
+       **STILL TODO in step 8:** ui/memo.py should also prefer `typed.summary` (done with the panel).*
 8. [ ] **Observability** (§9): `AgentEvent`, `/analyze/stream` SSE, `analyze_stream()`, the `st.status`
        fold-out. *(Teach: the SSE progress protocol, why streaming is required here.)*
 9. [ ] **The eval gate** (§11): `make eval-judge` single vs multi on the Phase 6 gold set; record the

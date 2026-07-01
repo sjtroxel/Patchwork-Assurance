@@ -15,11 +15,60 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 
 from patchwork_assurance.config import settings
 from patchwork_assurance.core.agents.analyst import analyze_law
+from patchwork_assurance.core.agents.reviewer import review_findings
 from patchwork_assurance.core.agents.trace import AgentEvent, AgentTrace
-from patchwork_assurance.core.contracts import LawFinding, RetrievedChunk, ScopeResult, Situation
+from patchwork_assurance.core.contracts import (
+    ComplianceMemo,
+    LawFinding,
+    RetrievedChunk,
+    ScopeResult,
+    Situation,
+)
 from patchwork_assurance.core.corpus.metadata import LawMetadata
+from patchwork_assurance.core.memo import _IN_SCOPE, retrieve_per_law
+from patchwork_assurance.core.prompts import DISCLAIMER
 
 OnEvent = Callable[[AgentEvent], None]
+
+
+def run_multi_agent_memo(
+    situation: Situation,
+    scope: list[ScopeResult],
+    retriever,
+    analyst_llm,
+    reviewer_llm,
+    laws: list[LawMetadata],
+    *,
+    analyst_model: str,
+    reviewer_model: str,
+    section_texts: dict[str, dict[str, str]],
+    max_revisions: int = 1,
+    on_event: OnEvent | None = None,
+) -> ComplianceMemo:
+    """scope-in -> per-law analyst fan-out -> grounding/hedge reviewer -> assemble the ComplianceMemo.
+    The deterministic overlays (deadlines / stamps / next-steps) are applied by generate_memo AFTER
+    this returns, identically to the single-call path — this function owns only the analysis prose."""
+    laws_by_id = {law.law_id: law for law in laws}
+    in_scope = [s for s in scope if s.in_scope in _IN_SCOPE]
+    buckets = retrieve_per_law(situation, scope, retriever)
+    findings: list[LawFinding] = []
+    if in_scope:
+        findings, _ = run_analysts(
+            situation, in_scope, buckets, laws_by_id, analyst_llm, analyst_model, on_event=on_event
+        )
+    reviewed, summary, _ = review_findings(
+        findings,
+        situation,
+        section_texts,
+        reviewer_llm,
+        reviewer_model,
+        max_revisions=max_revisions,
+        on_event=on_event,
+    )
+    memo = ComplianceMemo(per_law=reviewed, disclaimer=DISCLAIMER, summary=summary or None)
+    if on_event:
+        on_event(AgentEvent(kind="done", model=reviewer_model))
+    return memo
 
 
 def run_analysts(

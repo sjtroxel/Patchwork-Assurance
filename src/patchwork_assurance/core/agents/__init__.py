@@ -6,8 +6,15 @@ entry) is re-exported here once it lands in step 5.
 """
 
 from patchwork_assurance.core.agents.analyst import analyze_law
-from patchwork_assurance.core.agents.orchestrator import run_analysts
+from patchwork_assurance.core.agents.orchestrator import run_analysts, run_multi_agent_memo
 from patchwork_assurance.core.agents.reviewer import review_findings
 from patchwork_assurance.core.agents.trace import AgentEvent, AgentTrace
 
-__all__ = ["analyze_law", "run_analysts", "review_findings", "AgentEvent", "AgentTrace"]
+__all__ = [
+    "analyze_law",
+    "run_analysts",
+    "run_multi_agent_memo",
+    "review_findings",
+    "AgentEvent",
+    "AgentTrace",
+]

@@ -302,7 +302,13 @@ class ComplianceMemo(BaseModel):
     disclaimer: str    # always the canonical not-legal-advice line from core/prompts.py
     generated_on: str | None = None   # ISO date; set deterministically in generate_memo (11), not LLM
     corpus_as_of: str | None = None   # ISO date; latest law.retrieved_on across laws considered (11), not LLM
+    summary: str | None = None        # reviewer's NL executive summary in multi_agent mode (12); None otherwise
 ```
+
+`summary` (Phase 12) is the reviewer agent's hedged natural-language executive summary, set only when
+`MEMO_PIPELINE=multi_agent`; `None` in single-call mode, where the renderer falls back to the
+deterministic `executive_summary` (Phase 11). Additive/optional, so every existing fixture and `StubLLM`
+memo still validates.
 
 `generated_on` / `corpus_as_of` (Phase 11) give the shareable PDF a trustworthy dated stamp. Like
 `deadline_checklist` / `next_steps`, they are **overwritten post-LLM** in `generate_memo` (the model

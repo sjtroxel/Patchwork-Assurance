@@ -16,6 +16,7 @@ from patchwork_assurance.core.contracts import (
     Msg,
     ToolRunResult,
 )
+from patchwork_assurance.core.judge import JudgeVerdict
 from patchwork_assurance.core.prompts import DISCLAIMER
 
 T = TypeVar("T", bound=BaseModel)
@@ -219,13 +220,27 @@ class StubLLM:
             if isinstance(entry, list):
                 with self._lock:  # parallel analysts drain the same queue
                     return entry.pop(0)
-            return entry
+            # Return a COPY of a fixed value: parallel analysts mutate their finding in place
+            # (analyze_law stamps ids), so handing them one shared instance would race. A real LLM
+            # returns a fresh object per call, so this matches production.
+            return entry.model_copy(deep=True) if isinstance(entry, BaseModel) else entry
         if self._structured is not None:
             return self._structured
         if schema is ComplianceMemo:
             # Default offline output must be a VALID, chrome-complete memo (invariant #4: the
             # disclaimer rides on every surface) so `make dev` renders a faithful memo with no key.
             return _default_memo()
+        # Phase 12: valid defaults for the multi-agent schemas so the whole analyst->reviewer pipeline
+        # runs offline on a bare stub too (the same `make dev`-with-no-key parity the memo has).
+        if schema is LawFinding:
+            return _default_finding()
+        if schema is JudgeVerdict:
+            return JudgeVerdict(grounded="yes", reason="(stub)")
+        if schema is MemoObligation:
+            return MemoObligation(
+                text="(stub) A deployer provides the consumer notice that ADMT is in use.",
+                citation="Colorado § 6-1-1704",
+            )
         return _minimal(schema)
 
     def stream(self, system, messages, max_tokens=16000):
@@ -524,8 +539,24 @@ def _default_memo() -> ComplianceMemo:
     )
 
 
+def _default_finding() -> LawFinding:
+    """A valid stub LawFinding (flagged as stub) so the Phase 12 analyst runs offline with no key."""
+    return LawFinding(
+        law_id="co-sb26-189",
+        short_name="CO SB 26-189",
+        in_scope="uncertain",
+        why="Stub response. Set LLM_PROVIDER=anthropic for a grounded, retrieved analysis.",
+        obligations=[
+            MemoObligation(
+                text="(stub) A deployer provides the consumer notice that ADMT is in use.",
+                citation="Colorado § 6-1-1704",
+            )
+        ],
+    )
+
+
 def _minimal(schema):
-    """Last-resort minimal instance for schemas other than ComplianceMemo (none exist in v1)."""
+    """Last-resort minimal instance for schemas other than the ones defaulted above."""
     return schema.model_construct()
 
 
