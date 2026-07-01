@@ -8,6 +8,19 @@
   <meta name="description"
         content="An educational tool for understanding how the state-by-state US AI-regulation patchwork may apply to your business. Grounded in the statute text. Not legal advice." />
 
+  <!-- no-flash theme init (Phase 11.1): set data-theme before paint from the saved choice, else the
+       OS preference — so the landing matches the Streamlit app (on Auto) and never flashes light. -->
+  <script>
+    (function () {
+      try {
+        var saved = localStorage.getItem('pa-theme');
+        var mode = saved || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+        document.documentElement.setAttribute('data-theme', mode);
+      } catch (e) {}
+    })();
+  </script>
+  <meta name="color-scheme" content="light dark" />
+
   <!-- favicon (M1 / Track A) -->
   <link rel="icon" type="image/svg+xml" href="assets/favicon.svg" />
 
@@ -38,6 +51,7 @@
   </div>
 
   <header class="site-header">
+    <button class="theme-toggle" type="button" aria-label="Switch color theme">&#9790;</button>
     <div class="wrap">
       <a class="brand" href="#top" aria-label="Patchwork Assurance home">
         <img src="assets/favicon.svg" alt="" />

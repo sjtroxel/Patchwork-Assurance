@@ -495,6 +495,16 @@ All tests run on the **stub provider, offline, zero spend** — same posture as 
        2026 theme selector (now in the ⋮ menu) is reachable; config smoke tests (`test_theme_config.py`).
 8. [x] `ruff check . && ruff format --check . && pytest` green; running-app visual QA recorded in §14.
        **DONE 2026-06-30** — all three gates green (327 passed); live `make dev` QA passed (§14).
+9. [x] **ADDENDUM 11.1 — landing-page dark mode** (beyond the original scope, which excluded it; added at
+       sjtroxel's request so the static landing + the Streamlit app feel like one product). **DONE 2026-06-30**
+       — `site/styles.css` gains a `[data-theme="dark"]` block (palette pixel-matched to the app's Deep Ink
+       Navy; only semantic role vars + the few hardcoded-light surfaces overridden, so the quilt hero/closing
+       video are untouched); `site/index.html` gets a no-flash inline `<head>` script + a header ☾/☀ toggle;
+       `site/main.js` gets the toggle handler + a live `prefers-color-scheme` listener. **Sync model:** both
+       surfaces DEFAULT to follow the OS (`prefers-color-scheme`), so they switch together when the app is on
+       Auto — that is the clean ceiling, because Streamlit exposes NO programmatic theme API (feature request
+       #14172), so a literal cross-domain toggle-sync would require abandoning native theming for fragile CSS
+       injection (rejected). `site/` is not CI-gated (workflow path filter) and auto-deploys via Vercel.
 
 Ship **1–4 first** (free, low-risk, immediately improve the launch demo); **5–7** are the heavier, more
 visible wins. Each step is independently committable.

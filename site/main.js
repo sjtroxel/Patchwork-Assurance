@@ -53,3 +53,39 @@
     videos.forEach(function (v) { videoObserver.observe(v); });
   }
 })();
+
+// (3) Theme toggle (Phase 11.1) — light/dark, persisted in localStorage. Default follows the OS
+// (prefers-color-scheme), so the landing and the Streamlit app (on its Auto setting) move together
+// with the system theme. A no-flash inline script in <head> sets data-theme before paint; this just
+// wires the button + tracks live OS changes when the user hasn't made an explicit choice.
+(function () {
+  "use strict";
+  var root = document.documentElement;
+  var btn = document.querySelector(".theme-toggle");
+  var mq = window.matchMedia("(prefers-color-scheme: dark)");
+
+  function effective() {
+    return root.getAttribute("data-theme") || (mq.matches ? "dark" : "light");
+  }
+  function apply(mode) {
+    root.setAttribute("data-theme", mode);
+    if (btn) {
+      // show the icon for the mode you'd switch TO: sun when dark, moon when light
+      btn.innerHTML = mode === "dark" ? "&#9728;" : "&#9790;";
+      btn.setAttribute("aria-label", mode === "dark" ? "Switch to light mode" : "Switch to dark mode");
+    }
+  }
+
+  apply(effective());
+  if (btn) {
+    btn.addEventListener("click", function () {
+      var next = effective() === "dark" ? "light" : "dark";
+      try { localStorage.setItem("pa-theme", next); } catch (e) {}
+      apply(next);
+    });
+  }
+  // Follow live OS changes only while the user hasn't chosen explicitly (mirrors the app on Auto).
+  mq.addEventListener("change", function (e) {
+    try { if (!localStorage.getItem("pa-theme")) apply(e.matches ? "dark" : "light"); } catch (err) {}
+  });
+})();

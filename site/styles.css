@@ -24,6 +24,38 @@
   --font-body:    "Work Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
 }
 
+/* ── Dark mode (Phase 11.1) — matches the Streamlit app's "Deep Ink Navy" exactly, so the two
+   surfaces read as one product. Default follows the OS (main.js resolves prefers-color-scheme into
+   data-theme, no-flash inline script in <head>); the toggle sets an explicit choice. Only the semantic
+   role vars + the few surfaces that hardcode a light color are overridden — the raw --c-* palette is
+   left alone so the quilt hero/closing video (which use --c-teal base + --c-paper text) stay unchanged
+   in both modes. */
+:root[data-theme="dark"] {
+  --bg:      #111a26;   /* app backgroundColor */
+  --text:    #f3ece1;   /* app textColor (paper-cream) */
+  --primary: #6f93a6;   /* app primaryColor — lifted teal (headings, ghost buttons) */
+  --accent:  #d18b97;   /* lifted oxblood — card headings, readable on dark */
+}
+[data-theme="dark"] .section-alt { background: #1b2736; }              /* app secondaryBackground */
+[data-theme="dark"] .card { background: #1b2736; border-color: #2f3d52; }
+[data-theme="dark"] .card h3 { color: var(--accent); }
+[data-theme="dark"] .corpus-list {
+  background: rgba(111, 147, 166, 0.08); border-color: rgba(111, 147, 166, 0.30);
+}
+[data-theme="dark"] .corpus-list-label { color: var(--primary); }
+[data-theme="dark"] .corpus-list-note { color: #9fb0c0; }
+[data-theme="dark"] a:not(.btn) { color: #e0b659; }                   /* app linkColor (gold) */
+
+/* theme toggle — small circular button in the header (right side) */
+.theme-toggle {
+  position: absolute; top: 50%; right: 1.5rem; transform: translateY(-50%);
+  width: 2.3rem; height: 2.3rem; border-radius: 999px;
+  border: 1px solid var(--primary); background: transparent; color: var(--primary);
+  cursor: pointer; font-size: 1.05rem; line-height: 1; display: grid; place-items: center;
+  transition: transform 0.15s ease, background 0.15s ease;
+}
+.theme-toggle:hover { transform: translateY(-50%) scale(1.08); }
+
 /* base application */
 body { font-family: var(--font-body); color: var(--text); background: var(--bg); }
 h1, h2, h3, .display { font-family: var(--font-display); font-weight: 700; }
@@ -44,7 +76,7 @@ a { color: var(--primary); }
 
 /* visible keyboard focus (M3d a11y). Dark ink ring + gold halo so one of the two
    always shows, whether the element is on paper or on the dark video. */
-a:focus-visible, .btn:focus-visible {
+a:focus-visible, .btn:focus-visible, .theme-toggle:focus-visible {
   outline: 2px solid var(--c-ink); outline-offset: 2px;
   box-shadow: 0 0 0 4px rgba(214, 164, 62, 0.55);
 }
@@ -65,7 +97,7 @@ a:focus-visible, .btn:focus-visible {
 }
 
 /* site header / wordmark */
-.site-header { padding: 1.25rem 0; }
+.site-header { position: relative; padding: 1.25rem 0; }
 .site-header .wrap { display: flex; justify-content: center; }
 .brand {
   display: flex; align-items: center; justify-content: center; flex-wrap: wrap;
