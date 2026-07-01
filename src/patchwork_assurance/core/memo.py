@@ -48,6 +48,24 @@ def generate_memo(
     return memo
 
 
+def retrieve_per_law(situation: Situation, scope: list[ScopeResult], retriever) -> dict[str, list]:
+    """Per-law chunk buckets for the in-scope laws (keyed by law_id), using the same focus query,
+    RetrievalFilters(law_id=...), and MEMO_RETRIEVAL_K everywhere. Filter by law_id, not jurisdiction:
+    a jurisdiction can hold more than one law (e.g. California's FEHA ADS + CCPA ADMT regs), and each
+    law's section must be grounded only in its own statute text. Shared by _generate_single (which
+    merges the buckets into one prompt) and the Phase 12 analyst fan-out (which keeps them separate —
+    that separation IS the cross-law isolation)."""
+    return {
+        s.law_id: retriever.retrieve(
+            query=_focus(situation),
+            filters=RetrievalFilters(law_id=s.law_id),
+            k=MEMO_RETRIEVAL_K,
+        )
+        for s in scope
+        if s.in_scope in _IN_SCOPE
+    }
+
+
 def _generate_single(
     situation: Situation,
     scope: list[ScopeResult],
@@ -57,17 +75,11 @@ def _generate_single(
 ) -> ComplianceMemo:
     """Today's path: retrieve every in-scope law's chunks into one list and generate the whole memo
     in a single complete_structured call."""
+    buckets = retrieve_per_law(situation, scope, retriever)
     chunks = []
     for s in scope:
         if s.in_scope in _IN_SCOPE:
-            chunks += retriever.retrieve(
-                query=_focus(situation),
-                # Filter by law_id, not jurisdiction: a jurisdiction can hold more than one law
-                # (e.g. California's FEHA ADS + CCPA ADMT regs), and each law's memo section must be
-                # grounded only in its own statute text.
-                filters=RetrievalFilters(law_id=s.law_id),
-                k=MEMO_RETRIEVAL_K,
-            )
+            chunks += buckets[s.law_id]
     user = render_memo_user(situation, scope, chunks, list(laws_by_id.values()))
     return llm.complete_structured(MEMO_SYSTEM, [Msg(role="user", content=user)], ComplianceMemo)
 

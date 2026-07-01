@@ -15,12 +15,13 @@ from patchwork_assurance.core.contracts import (
     MemoObligation,
     Situation,
 )
+from patchwork_assurance.core.language import PROHIBITED as _PROHIBITED
 from patchwork_assurance.core.prompts import DISCLAIMER
 from patchwork_assurance.core.render import executive_summary, memo_to_html
 
-# Words that assert authoritative legal judgment or a guarantee — must never appear in generated
-# copy (.claude/rules/legal-content.md; mirrors the prohibited list in core.prompts).
-_PROHIBITED = ("guarantee", "you are compliant", "you must comply", "we certify")
+# Words that assert authoritative legal judgment or a guarantee — must never appear in generated copy
+# (.claude/rules/legal-content.md). Single source now lives in core.language (shared with the Phase 12
+# reviewer guard); imported above so the render test and the live reviewer enforce the same list.
 
 
 def _memo() -> ComplianceMemo:

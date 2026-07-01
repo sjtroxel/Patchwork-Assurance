@@ -381,10 +381,26 @@ emits, through the real `core/` path. So:
        call (the agent owns prose only; can't move the verdict); `model` passed in explicitly for panel
        attribution. 3 agent tests incl. the isolation guard (a CT-only token never appears in a CO prompt).
        334 green.*
-5. [ ] **Fan-out** over N laws via `ThreadPoolExecutor` (§5) + per-law chunk buckets; test isolation +
+5. [x] **Fan-out** over N laws via `ThreadPoolExecutor` (§5) + per-law chunk buckets; test isolation +
        generic-over-N + `request_id`. *(Teach: the threadpool, parallel-not-async, latency = slowest law.)*
-6. [ ] **Reviewer** (§6): deterministic pre-filter → `judge_groundedness` → language guard →
+       *Done 2026-07-01. `core/agents/orchestrator.py:run_analysts` fans the analysts across a
+       `ThreadPoolExecutor` (workers capped at `analyst_max_workers`), returns (findings, traces) in
+       SCOPE order not completion order. `request_id` propagated via `contextvars.copy_context()` — a
+       fresh copy per submit (a Context can't be entered by two threads at once). Per-law chunk buckets
+       come from a new shared `memo.retrieve_per_law` (also now backs `_generate_single`, byte-identical),
+       which sidesteps the memo<->orchestrator import cycle (step 7 will lazy-import the orchestrator
+       inside generate_memo). 2 fan-out tests: generic-over-N scope-order + request_id-into-threads. 336 green.*
+6. [x] **Reviewer** (§6): deterministic pre-filter → `judge_groundedness` → language guard →
        drop/flag/bounded-revise → summary. Reuse Phase 6/7 code. *(Teach: verify-then-act, the bounded loop.)*
+       *Done 2026-07-01. `core/agents/reviewer.py:review_findings(findings, situation, section_texts,
+       reviewer_llm, model, *, max_revisions=1, on_event)` -> (reviewed findings, summary, events). Per
+       obligation: free `locate_section` pre-filter (drop fabricated, zero tokens) → `judge_groundedness`
+       (no=drop, partial=flag, yes=keep) → one bounded revise on partial-or-over-claiming (re-judge once)
+       → `has_prohibited_language` guard (drop over-claiming). `flag` = kept-but-event-marked (no contract
+       change); drops remove the obligation and emit a review_verdict event. Summary via `reviewer_llm.complete`
+       (REVIEWER_SUMMARY_SYSTEM), falls back to "" (→ deterministic executive_summary) if it trips the guard.
+       Prohibited-language list factored to `core/language.py` (test_render re-imports it — single source).
+       7 reviewer tests incl. "fabricated dropped with 0 judge calls". 343 green.*
 7. [ ] **Assembly + the `summary` field** (§7): contract field, renderer prefers it, SPEC §8.4, overlays
        identical. Full stub `ComplianceMemo` round-trips through UI/PDF/MCP unchanged.
 8. [ ] **Observability** (§9): `AgentEvent`, `/analyze/stream` SSE, `analyze_stream()`, the `st.status`

@@ -1,8 +1,12 @@
 """Phase 12 multi-agent pipeline — offline, StubLLM, zero spend."""
 
+import threading
 from datetime import date
 
+from patchwork_assurance.core import obs
 from patchwork_assurance.core.agents.analyst import analyze_law
+from patchwork_assurance.core.agents.orchestrator import run_analysts
+from patchwork_assurance.core.agents.reviewer import review_findings
 from patchwork_assurance.core.agents.trace import AgentTrace
 from patchwork_assurance.core.contracts import (
     LawFinding,
@@ -54,12 +58,33 @@ def _co_law():
     )
 
 
+def _ct_law():
+    return LawMetadata.model_construct(
+        law_id="ct-sb-5",
+        short_name="CT AI Act",
+        jurisdiction="CT",
+        operative_standard="AERDT = substantial factor in an employment decision",
+        regulated_roles=["deployer"],
+        scope_domains=["employment"],
+        enforcement_authority="Connecticut Attorney General",
+        key_obligations=[],
+        effective_dates=[EffectiveDate(date=date(2026, 10, 1), applies_to="employment provisions")],
+    )
+
+
 CO_SCOPE = ScopeResult(
     law_id="co-sb-26-189",
     short_name="CO AI Act",
     jurisdiction="CO",
     in_scope="yes",
     reason="CO nexus + deployer + employment.",
+)
+CT_SCOPE = ScopeResult(
+    law_id="ct-sb-5",
+    short_name="CT AI Act",
+    jurisdiction="CT",
+    in_scope="yes",
+    reason="CT nexus.",
 )
 SIT = Situation(jurisdictions=["CO"], decision_domains=["employment"], roles=["deployer"])
 
@@ -140,3 +165,184 @@ def test_analyst_prompt_isolated_to_its_own_law():
     assert "consumer notice that ADMT is in use" in spy.captured
     assert CT_LEAK_TOKEN not in spy.captured
     assert "CT AI Act" not in spy.captured
+
+
+# ---- fan-out orchestrator (step 5) ----
+
+
+def test_run_analysts_generic_over_n_returns_scope_order():
+    in_scope = [CO_SCOPE, CT_SCOPE]
+    buckets = {"co-sb-26-189": [CO_CHUNK], "ct-sb-5": [CT_CHUNK]}
+    laws = {"co-sb-26-189": _co_law(), "ct-sb-5": _ct_law()}
+    # Distinct copies so parallel analysts never mutate one shared object (in prod each LLM call
+    # returns a fresh object). The queue drains in completion order, but analyze_law re-stamps identity
+    # from each law's own scope/metadata, so the result is correct regardless of who finishes first.
+    llm = StubLLM(
+        structured_by_schema={
+            LawFinding: [RAW_FINDING.model_copy(deep=True), RAW_FINDING.model_copy(deep=True)]
+        }
+    )
+    findings, traces = run_analysts(SIT, in_scope, buckets, laws, llm, "claude-sonnet-5")
+    # Returned in SCOPE order, not completion order (deterministic assembly downstream).
+    assert [f.law_id for f in findings] == ["co-sb-26-189", "ct-sb-5"]
+    assert [t.law_id for t in traces] == ["co-sb-26-189", "ct-sb-5"]
+    assert all(f.in_scope == "yes" for f in findings)
+    # Each finding's dates come from its OWN law's metadata — proof the reorder didn't cross wires.
+    assert findings[0].effective_dates == ["2027-01-01"]  # CO
+    assert findings[1].effective_dates == ["2026-10-01"]  # CT
+
+
+def test_run_analysts_propagates_request_id_into_worker_threads():
+    # Without copy_context(), worker threads would see the ContextVar default (""). The lock guards the
+    # shared list the parallel workers append to (same reason the stub queue needs one).
+    seen: list[str] = []
+    lock = threading.Lock()
+
+    class _RidLLM:
+        def complete_structured(self, system, messages, schema, max_tokens=16000):
+            with lock:
+                seen.append(obs.get_request_id())
+            return RAW_FINDING.model_copy(deep=True)
+
+    in_scope = [CO_SCOPE, CT_SCOPE]
+    buckets = {"co-sb-26-189": [CO_CHUNK], "ct-sb-5": [CT_CHUNK]}
+    laws = {"co-sb-26-189": _co_law(), "ct-sb-5": _ct_law()}
+    token = obs.set_request_id("rid-abc")
+    try:
+        run_analysts(SIT, in_scope, buckets, laws, _RidLLM(), "m")
+    finally:
+        obs.reset_request_id(token)
+    assert len(seen) == 2
+    assert all(rid == "rid-abc" for rid in seen)  # propagated into both worker threads
+
+
+# ---- reviewer agent (step 6) ----
+
+SECTION_TEXTS = {
+    "Colorado": {
+        "6-1-1704": (
+            "A deployer of a high-risk artificial intelligence system shall provide a consumer a "
+            "notice that the system is in use in making a consequential decision."
+        )
+    }
+}
+GROUNDED_OB = MemoObligation(
+    text="The statute requires a deployer to provide consumers a notice that the system is in use.",
+    citation="Colorado § 6-1-1704",
+)
+FABRICATED_OB = MemoObligation(
+    text="A deployer must register the system annually with the state.",
+    citation="Colorado § 6-1-9999",  # resolves to no real section
+)
+OVERCLAIM_OB = MemoObligation(
+    text="This guarantees you are compliant once you send the notice.",
+    citation="Colorado § 6-1-1704",
+)
+
+
+def _finding(obligations):
+    return LawFinding(
+        law_id="co-sb-26-189",
+        short_name="CO AI Act",
+        in_scope="yes",
+        why="Likely applies: deployer using ADMT in employment.",
+        obligations=obligations,
+    )
+
+
+class _CountingReviewer:
+    """Counts groundedness-judge calls, so we can prove the free pre-filter never spends one."""
+
+    def __init__(self):
+        self.judge_calls = 0
+
+    def complete_structured(self, system, messages, schema, max_tokens=16000):
+        if schema is JudgeVerdict:
+            self.judge_calls += 1
+            return JudgeVerdict(grounded="yes", reason="")
+        return GROUNDED_OB
+
+    def complete(self, system, messages, max_tokens=16000):
+        return "This educational summary is hedged."
+
+
+def test_fabricated_citation_dropped_without_an_llm_call():
+    rev = _CountingReviewer()
+    reviewed, _, events = review_findings(
+        [_finding([FABRICATED_OB])], SIT, SECTION_TEXTS, rev, "claude-opus-4-8"
+    )
+    assert rev.judge_calls == 0  # dropped for free by the deterministic pre-filter
+    assert reviewed[0].obligations == []
+    assert any(e.kind == "review_verdict" and "fabricated" in e.detail for e in events)
+
+
+def test_grounded_obligation_kept():
+    llm = StubLLM(
+        text="This educational summary is hedged.",
+        structured_by_schema={JudgeVerdict: JudgeVerdict(grounded="yes", reason="ok")},
+    )
+    reviewed, summary, _ = review_findings(
+        [_finding([GROUNDED_OB])], SIT, SECTION_TEXTS, llm, "claude-opus-4-8"
+    )
+    assert len(reviewed[0].obligations) == 1
+    assert summary == "This educational summary is hedged."
+
+
+def test_unsupported_obligation_dropped():
+    llm = StubLLM(structured_by_schema={JudgeVerdict: JudgeVerdict(grounded="no", reason="x")})
+    reviewed, _, events = review_findings(
+        [_finding([GROUNDED_OB])], SIT, SECTION_TEXTS, llm, "claude-opus-4-8", max_revisions=0
+    )
+    assert reviewed[0].obligations == []
+    assert any("unsupported" in e.detail for e in events)
+
+
+def test_partial_obligation_flagged_but_kept():
+    llm = StubLLM(structured_by_schema={JudgeVerdict: JudgeVerdict(grounded="partial", reason="x")})
+    reviewed, _, events = review_findings(
+        [_finding([GROUNDED_OB])], SIT, SECTION_TEXTS, llm, "claude-opus-4-8", max_revisions=0
+    )
+    assert len(reviewed[0].obligations) == 1  # kept
+    assert any(e.kind == "review_verdict" and "flagged" in e.detail for e in events)
+
+
+def test_partial_obligation_revised_then_grounded():
+    fixed = MemoObligation(
+        text="The statute requires the deployer to notify consumers.", citation="x"
+    )
+    llm = StubLLM(
+        structured_by_schema={
+            JudgeVerdict: [  # first judge = partial (triggers revise), second = yes
+                JudgeVerdict(grounded="partial", reason="overstated"),
+                JudgeVerdict(grounded="yes", reason="ok"),
+            ],
+            MemoObligation: fixed,
+        }
+    )
+    reviewed, _, events = review_findings(
+        [_finding([GROUNDED_OB])], SIT, SECTION_TEXTS, llm, "claude-opus-4-8", max_revisions=1
+    )
+    assert len(reviewed[0].obligations) == 1
+    assert reviewed[0].obligations[0].text == fixed.text  # the revised prose
+    assert reviewed[0].obligations[0].citation == "Colorado § 6-1-1704"  # citation preserved
+    assert any("revised" in e.detail for e in events)
+
+
+def test_overclaiming_obligation_dropped():
+    llm = StubLLM(structured_by_schema={JudgeVerdict: JudgeVerdict(grounded="yes", reason="ok")})
+    reviewed, _, events = review_findings(
+        [_finding([OVERCLAIM_OB])], SIT, SECTION_TEXTS, llm, "claude-opus-4-8", max_revisions=0
+    )
+    assert reviewed[0].obligations == []  # dropped for over-claiming language
+    assert any("over-claiming" in e.detail for e in events)
+
+
+def test_summary_falls_back_when_it_trips_the_language_guard():
+    llm = StubLLM(
+        text="We guarantee you are compliant.",  # prohibited -> summary must fall back to ""
+        structured_by_schema={JudgeVerdict: JudgeVerdict(grounded="yes", reason="ok")},
+    )
+    _, summary, _ = review_findings(
+        [_finding([GROUNDED_OB])], SIT, SECTION_TEXTS, llm, "claude-opus-4-8"
+    )
+    assert summary == ""
