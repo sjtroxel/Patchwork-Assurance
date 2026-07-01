@@ -1,7 +1,7 @@
 """Per-token pricing in one place — rates churn, so this is the single spot to update
 (Phase 7 IMPLEMENTATION §3).
 
-Rates verified 2026-06-23 via the `claude-api` skill (cached 2026-06-04). Re-verify at build.
+Rates verified 2026-07-01 via the `claude-api` skill. Re-verify at build.
 
 The four Anthropic `usage` fields are **additive**: total prompt tokens =
 `input_tokens + cache_read_input_tokens + cache_creation_input_tokens`, where `input_tokens` is only the
@@ -12,7 +12,10 @@ prompt (that under-bills a cached request and overstates the cache win).
 # model -> (input $/1M tokens, output $/1M tokens)
 RATES: dict[str, tuple[float, float]] = {
     "claude-haiku-4-5": (1.0, 5.0),
-    "claude-sonnet-4-6": (3.0, 15.0),
+    # Sonnet 5 intro pricing $2/$10 per Mtok through 2026-08-31, then $3/$15 (verify + bump
+    # this entry on/after that date, or the spend gate under-reports the ~7x analyst fan-out).
+    "claude-sonnet-5": (2.0, 10.0),
+    "claude-sonnet-4-6": (3.0, 15.0),  # prior memo model; kept for the Phase 6 baseline record
     "claude-opus-4-8": (5.0, 25.0),
 }
 

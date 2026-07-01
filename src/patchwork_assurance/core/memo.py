@@ -1,5 +1,6 @@
 from datetime import date
 
+from patchwork_assurance.config import settings
 from patchwork_assurance.core.contracts import (
     ComplianceMemo,
     DeadlineItem,
@@ -35,7 +36,27 @@ def generate_memo(
     llm,
     laws: list[LawMetadata] | None = None,
 ) -> ComplianceMemo:
+    """The one public entry point (the keystone: api/, ui/, eval/, mcp/ all call this name). Phase 12
+    splits the middle GENERATION step behind a config flag; the deterministic overlays and the output
+    contract are unchanged either way, so both paths emit the same ComplianceMemo."""
     laws_by_id = {law.law_id: law for law in (laws or [])}
+    if settings.memo_pipeline == "multi_agent":
+        memo = _generate_multi_agent(situation, scope, retriever, llm, laws_by_id)
+    else:
+        memo = _generate_single(situation, scope, retriever, llm, laws_by_id)
+    _apply_deterministic_overlays(memo, situation, scope, laws_by_id)
+    return memo
+
+
+def _generate_single(
+    situation: Situation,
+    scope: list[ScopeResult],
+    retriever,
+    llm,
+    laws_by_id: dict[str, LawMetadata],
+) -> ComplianceMemo:
+    """Today's path: retrieve every in-scope law's chunks into one list and generate the whole memo
+    in a single complete_structured call."""
     chunks = []
     for s in scope:
         if s.in_scope in _IN_SCOPE:
@@ -48,11 +69,33 @@ def generate_memo(
                 k=MEMO_RETRIEVAL_K,
             )
     user = render_memo_user(situation, scope, chunks, list(laws_by_id.values()))
-    memo = llm.complete_structured(MEMO_SYSTEM, [Msg(role="user", content=user)], ComplianceMemo)
+    return llm.complete_structured(MEMO_SYSTEM, [Msg(role="user", content=user)], ComplianceMemo)
 
-    # Deadlines, the dated stamps, and orientation are facts/templates, not LLM guesses — set them
-    # deterministically so CT's staggered dates, the trustworthy "as of" stamp, and the
-    # not-legal-advice-shaped "next steps" stay correct and controlled (Phase 4.6, Phase 11).
+
+def _generate_multi_agent(
+    situation: Situation,
+    scope: list[ScopeResult],
+    retriever,
+    llm,
+    laws_by_id: dict[str, LawMetadata],
+) -> ComplianceMemo:
+    """Phase 12: per-law analyst fan-out + grounding/hedge reviewer. Built in steps 4-6; the
+    orchestrator lands in core/agents/. Until then the flag is inert (default is "single")."""
+    raise NotImplementedError(
+        "MEMO_PIPELINE=multi_agent is not built yet (Phase 12 step 5); use the default 'single'."
+    )
+
+
+def _apply_deterministic_overlays(
+    memo: ComplianceMemo,
+    situation: Situation,
+    scope: list[ScopeResult],
+    laws_by_id: dict[str, LawMetadata],
+) -> None:
+    """The controlled facts/advice scaffolding both pipelines share. Deadlines, the dated stamps, and
+    orientation are facts/templates, not LLM guesses — set them deterministically so CT's staggered
+    dates, the trustworthy "as of" stamp, and the not-legal-advice-shaped "next steps" stay correct
+    and controlled (Phase 4.6, Phase 11). Byte-identical for single vs multi-agent (the DoD)."""
     memo.generated_on = date.today().isoformat()
     # The corpus's currency = the latest statute-retrieval date across the laws considered. Set
     # unconditionally (None when no metadata) so the stamp is always fully determined here, never
@@ -65,7 +108,6 @@ def generate_memo(
     if laws_by_id:
         memo.deadline_checklist = _deadlines(scope, laws_by_id)
     memo.next_steps = _next_steps(situation, scope, laws_by_id)
-    return memo
 
 
 def _focus(situation: Situation) -> str:

@@ -1,14 +1,13 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 412 64" width="412" height="64">
   <!-- Patchwork Assurance logo lockup — mark (stitched pinwheel, pieced corners) + serif wordmark.
        Palette C. Wordmark font may be finalized in M1.3 (type); Georgia stack for now. -->
-  <!-- The wordmark is outlined paths, so it can't inherit the app theme's text color. st.logo serves
-       this file as an <img>, so external CSS can't reach inside it either. An internal media query is
-       the only lever: swap the wordmark fill to paper-cream when the OS is in dark mode, matching the
-       app's OS-synced dark theme (Phase 11 "Deep Ink Navy"). The mark's strokes are already cream, so
-       only the wordmark needs this. -->
+  <!-- The wordmark is outlined paths shown via st.logo as an <img>, so it can't inherit the app's
+       text color and external CSS can't reach inside it. The prefers-color-scheme media query we
+       tried keys off the OS, not Streamlit's in-app Light/Dark selector — so toggling dark in-app
+       left dark-on-dark text. Fix: one mode-independent wordmark color that reads on BOTH the light
+       paper (#f3ece1) and Deep Ink Navy (#111a26) backgrounds — brand rose, see-it-to-pick-it. -->
   <style>
-    .pa-wordmark { fill: #15191e; }
-    @media (prefers-color-scheme: dark) { .pa-wordmark { fill: #f3ece1; } }
+    .pa-wordmark { fill: #b5566b; }
   </style>
   <g>
     <path d="M0 0 L32 32 L0 32 Z" fill="#f3ece1"/><path d="M32 0 L64 0 L32 32 Z" fill="#f3ece1"/>

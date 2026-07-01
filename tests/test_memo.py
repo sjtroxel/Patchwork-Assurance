@@ -2,6 +2,8 @@
 
 from datetime import date
 
+import pytest
+
 from patchwork_assurance.core.contracts import (
     ComplianceMemo,
     LawFinding,
@@ -264,3 +266,22 @@ def test_next_steps_out_of_scope_single_message():
     )
     assert len(memo.next_steps) == 1
     assert "appears to reach you" in memo.next_steps[0].lower()
+
+
+# ---- Phase 12: generate_memo dispatch on the memo_pipeline flag ----
+
+
+def test_default_pipeline_is_single_and_generates(monkeypatch):
+    # Default flag = "single": the one-call path runs and returns a full memo (no flag change needed,
+    # but assert it explicitly so a default flip can't slip through unnoticed).
+    monkeypatch.setattr("patchwork_assurance.core.memo.settings.memo_pipeline", "single")
+    memo = generate_memo(SITUATION, SCOPE, _StubRetriever([CHUNK]), StubLLM(structured=CANNED_MEMO))
+    assert isinstance(memo, ComplianceMemo)
+
+
+def test_multi_agent_pipeline_not_built_yet(monkeypatch):
+    # The flag dispatches: multi_agent routes to the (not-yet-built) orchestrator, which raises rather
+    # than silently falling back to single. This test flips to the real path in Phase 12 step 5.
+    monkeypatch.setattr("patchwork_assurance.core.memo.settings.memo_pipeline", "multi_agent")
+    with pytest.raises(NotImplementedError):
+        generate_memo(SITUATION, SCOPE, _StubRetriever([CHUNK]), StubLLM(structured=CANNED_MEMO))

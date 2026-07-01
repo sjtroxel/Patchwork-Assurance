@@ -33,7 +33,7 @@ class Settings(BaseSettings):
     # Two-model split (Phase 5): chat gets fast/cheap Haiku (unlimited); the memo gets Sonnet's higher
     # reasoning (rate-limited, see api memo_rate_limit). Re-verify IDs/pricing at build (standing rule).
     chat_model: str = "claude-haiku-4-5"
-    memo_model: str = "claude-sonnet-4-6"
+    memo_model: str = "claude-sonnet-5"
     anthropic_api_key: str | None = None  # read from env ANTHROPIC_API_KEY; never commit
     # OpenRouter (Phase 8 interlude): one OpenAI-compatible key fronts ~315 models incl. free ones.
     # Set llm_provider=openrouter, OPENROUTER_API_KEY, and override chat/memo/judge_model with
@@ -58,6 +58,16 @@ class Settings(BaseSettings):
     # Hard cap (circuit breaker): a single judged eval run may not generate more than this many
     # memos, no matter how it was invoked. Raise it deliberately if the gold set grows past it.
     eval_max_judged_cases: int = 50
+    # Multi-agent memo (Phase 12). memo_pipeline dispatches generate_memo: "single" is today's one
+    # complete_structured call; "multi_agent" is the per-law analyst fan-out + reviewer. Default stays
+    # "single" until the Phase 6 eval clears the multi-agent path (groundedness >= the single-call
+    # baseline). analyst_model/reviewer_model default empty and fall back to memo_model/judge_model, so
+    # the pipeline gets Sonnet-5 analysts + an Opus reviewer with no caller change (judge != judged).
+    memo_pipeline: str = "single"  # "single" | "multi_agent"
+    analyst_model: str = ""  # per-law analyst; "" -> memo_model
+    reviewer_model: str = ""  # reviewer/judge; "" -> judge_model
+    reviewer_max_revisions: int = 1  # bounded revise-loop; no infinite debate
+    analyst_max_workers: int = 8  # threadpool cap for the analyst fan-out (Missouri worst case = 7)
     # Observability (Phase 7). Structured JSON logs to stdout; metadata only, never user content.
     log_level: str = "INFO"
     enable_tracing: bool = True
@@ -92,7 +102,7 @@ class Settings(BaseSettings):
     hash_store_path: str = ".agent_hashes.json"
     staging_path: str = "corpus/_staging"
     classify_model: str = "claude-haiku-4-5"
-    draft_model: str = "claude-sonnet-4-6"
+    draft_model: str = "claude-sonnet-5"
     # Provenance allowlist (Phase 9 Batch 5). The agent rejects any draft whose source_url
     # domain is not in this list. Adding a jurisdiction = adding its official domain here.
     # Env override: ALLOWED_SOURCE_DOMAINS as a JSON array of domain strings.

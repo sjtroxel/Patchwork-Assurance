@@ -357,9 +357,16 @@ emits, through the real `core/` path. So:
 
 ## 14. Build order (the checklist the implementer follows — teach each primitive as it lands)
 
-1. [ ] **Lift the judge into `core/judge.py`** (§3) + re-point `eval/judge.py`; `pytest` green (pure move).
-2. [ ] **Config flag + settings** (§2); `generate_memo` refactor: extract `_generate_single` +
+1. [x] **Lift the judge into `core/judge.py`** (§3) + re-point `eval/judge.py`; `pytest` green (pure move).
+       *Done 2026-07-01. `JUDGE_SYSTEM`/`JudgeVerdict`/`judge_groundedness` moved verbatim to `core/judge.py`;
+       `eval/judge.py` re-imports them (kept `score_groundedness`/`GroundednessOutcome`). 327 tests green,
+       `test_eval_harness.py` still imports `JudgeVerdict` from `eval.judge` via the re-export.*
+2. [x] **Config flag + settings** (§2); `generate_memo` refactor: extract `_generate_single` +
        `_apply_deterministic_overlays`, dispatch on `memo_pipeline` (default `single` → nothing changes yet).
+       *Done 2026-07-01. Added `memo_pipeline`/`analyst_model`/`reviewer_model`/`reviewer_max_revisions`/
+       `analyst_max_workers` to `Settings`. `generate_memo` now dispatches on `settings.memo_pipeline`;
+       `_generate_multi_agent` raises `NotImplementedError` until step 5. Overlays extracted verbatim
+       (byte-identical). Two dispatch tests added to `test_memo.py`; 329 green.*
 3. [ ] **Stub extension** (§12) — per-schema/queued structured returns, so the rest is testable offline.
 4. [ ] **One analyst** (`analyze_law`, single law) → `LawFinding` + `AgentTrace`; stub-test. *(Teach: a
        constrained structured call; why IDs are set deterministically after.)*
@@ -398,7 +405,17 @@ independently committable (single short one-liner, no attribution; sjtroxel runs
 
 ## 16. As-built notes (fill in during the build)
 
-- Judge lifted to `core/judge.py` — `eval/judge.py` re-pointed, tests green? `__________`
+- Judge lifted to `core/judge.py` — `eval/judge.py` re-pointed, tests green? **Yes, 2026-07-01 (327 green).**
+- **Model config swapped to Sonnet 5 everywhere (sjtroxel, 2026-07-01):** `config.py` `memo_model` and
+  `draft_model` → `claude-sonnet-5`; `pricing.py` gains a `claude-sonnet-5` entry ($2/$10 intro → $3/$15
+  after 2026-08-31, comment flags the bump); `.env.example` example updated. `claude-sonnet-4-6` stays in
+  `RATES` (still-valid rate + `test_obs.py` asserts it + it's the Phase 6 baseline model). **Consequence:**
+  the single-call path now generates on Sonnet 5, so the §11 eval baseline must be **re-measured on Sonnet 5**
+  (the archived 86.5% was on `claude-sonnet-4-6`); both single and multi-agent analysts then share Sonnet 5.
+  **Sonnet 5 caveats still open for the paid path (VERIFY-AT-BUILD):** adaptive thinking is ON when `thinking`
+  is omitted — `AnthropicLLM.complete_structured` passes no `thinking`, so every live memo call now spends
+  thinking tokens until we decide to pass `{"type":"disabled"}`; and the ~30% heavier tokenizer means
+  `est_cost` / spend-gate math should be re-baselined with `count_tokens` before any live fan-out.
 - Model IDs/pricing re-verified (analyst / reviewer / cheap-analyst): **analyst `claude-sonnet-5`
   ($2/$10 intro→$3/$15 after 2026-08-31), reviewer `claude-opus-4-8` ($5/$25), cheap-analyst fallback
   `claude-haiku-4-5` ($1/$5); re-verified 2026-07-01 via `claude-api` skill + anthropic.com/news/claude-sonnet-5.
