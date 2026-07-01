@@ -488,9 +488,13 @@ All tests run on the **stub provider, offline, zero spend** — same posture as 
        `weasyprint==69.0`; `ui/pdf.py` (`memo_pdf_bytes` lazy-imports WeasyPrint, `memo_filename`);
        download wired via `_render_pdf_button` in `_render_memo`; Dockerfile + CI gained the Pango libs;
        `test_pdf.py` locks valid-PDF + disclaimer + dated stamps. Two extra fixes fell out (§14). 325 passed.
-7. [ ] Dark mode: `[theme.light]`/`[theme.dark]` split; finalize the dark palette via see-it-to-pick-it;
+7. [x] Dark mode: `[theme.light]`/`[theme.dark]` split; finalize the dark palette via see-it-to-pick-it;
        confirm the selector is reachable under `toolbarMode="minimal"`; chrome legibility; landing untouched.
-8. [ ] `ruff check . && ruff format --check . && pytest` green; running-app visual QA recorded in §14.
+       **DONE 2026-06-30** — kept the light `[theme]` unchanged and ADDED `[theme.dark]` "Deep Ink Navy"
+       (simpler than a `.light` split, zero light-theme risk); **`toolbarMode` minimal→viewer** so the
+       2026 theme selector (now in the ⋮ menu) is reachable; config smoke tests (`test_theme_config.py`).
+8. [x] `ruff check . && ruff format --check . && pytest` green; running-app visual QA recorded in §14.
+       **DONE 2026-06-30** — all three gates green (327 passed); live `make dev` QA passed (§14).
 
 Ship **1–4 first** (free, low-risk, immediately improve the launch demo); **5–7** are the heavier, more
 visible wins. Each step is independently committable.
@@ -534,11 +538,25 @@ visible wins. Each step is independently committable.
   added to `.github/workflows/ci.yml` so `test_pdf.py` renders a real PDF in CI.
 - `POST /memo/pdf` endpoint built or deferred: **DEFERRED** (UI-only this phase, §13; clean MCP-reusable
   add later).
-- Streamlit theming confirmed (1.58 `[theme.dark]` keys; selector reachable under `toolbarMode`): `__________`
-- Dark palette finalized (chosen hexes / preview picked): `__________`
+- Streamlit theming confirmed (1.58 `[theme.dark]` keys; selector reachable under `toolbarMode`):
+  **1.58.0 registers full `[theme.dark]` keys** (probed `config`: backgroundColor/primaryColor/linkColor/
+  borderColor + semantic alert + code/dataframe colors). **Selector-reachability risk RESOLVED:** in 2026
+  Streamlit the theme selector moved to the ⋮ main menu, and `toolbarMode="minimal"` hides that menu —
+  changed to **`"viewer"`** (keeps the menu + selector, still hides Deploy/dev options). Live confirm = §8 QA.
+- Dark palette finalized (chosen hexes / preview picked): **"Deep Ink Navy"** — `backgroundColor #111a26`
+  (darkened from the §9 `#16202e` proposal at sjtroxel's request), `secondaryBackgroundColor #1b2736`,
+  `textColor #f3ece1`, `primaryColor #6f93a6`, `linkColor #e0b659`, `borderColor #2f3d52`. The fixed hero
+  gradient (`#2f4b5e`→`#21304c`) is now lighter than the page, so it floats forward. Chosen via the
+  see-it-to-pick-it loop (3 dark mockups + light reference, scratchpad `phase11-darkmode/`).
 - Eval dump format change (`.md` → `.html`) — confirmed? `__________`
 - `POST /memo/pdf` endpoint built or deferred: `__________`
-- Running-app visual QA (PDF look, dark mode, expanders, chrome legibility): `__________`
+- Running-app visual QA (PDF look, dark mode, expanders, chrome legibility): **PASSED 2026-06-30**
+  (`make dev`, stub provider). Dark/light toggle works and is reachable (the `viewer` fix); PDF exports,
+  **the memo stays on screen** (session_state fix confirmed live), opens in a new tab, "looks excellent".
+  Draft-notice expander: the first pass showed the notice as one non-wrapping line — fixed with
+  `st.code(..., wrap_lines=True)` and re-confirmed it wraps in the grey body with the copy button.
+  (QA needed two throwaway local tweaks that were NOT committed: forcing `LLM_PROVIDER=stub` via a
+  scratch env file so memos are instant, and a temporary stub draft notice so there was one to expand.)
 - Deviations from this plan:
   1. §4's snippet set `corpus_as_of` only inside `if laws_by_id:`. Changed to set it **unconditionally**
      (None when no metadata) — the stamp test exposed that `StubLLM` returns a shared memo object, so a

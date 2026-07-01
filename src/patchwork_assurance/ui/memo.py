@@ -205,9 +205,10 @@ def _render_memo(memo: dict, situation: dict) -> None:
         st.subheader("Draft notice language")
         for n in notices:
             # Expander → a scannable list collapsed by default; st.code stays INSIDE so Streamlit's
-            # built-in copy button is preserved (Phase 11 §6).
+            # built-in copy button is preserved (Phase 11 §6). wrap_lines wraps the notice prose (one
+            # long paragraph) to multiple lines instead of a single horizontally-scrolling line.
             with st.expander(f"{n.get('kind', '')} ({n.get('jurisdiction', '')})"):
-                st.code(n.get("text", ""), language=None)
+                st.code(n.get("text", ""), language=None, wrap_lines=True)
 
     deadlines = memo.get("deadline_checklist", [])
     if deadlines:

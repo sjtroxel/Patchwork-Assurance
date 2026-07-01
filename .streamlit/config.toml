@@ -13,7 +13,21 @@ borderColor = "#d9cdb8"                # cream-tan, matches the landing card bor
 font = "Work Sans:https://fonts.googleapis.com/css2?family=Work+Sans:wght@400;500;600&display=swap"
 headingFont = "Bricolage Grotesque:https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@600;700;800&display=swap"
 
+# Dark variant of the quilt brand (Phase 11, "Deep Ink Navy" — chosen via see-it-to-pick-it). The
+# top-level [theme] above stays the light default unchanged; this sub-table only overrides colors for
+# dark mode (fonts inherit). Background is darker than the fixed hero gradient (#2f4b5e -> #21304c) so
+# the hero floats forward. Light stays the default; the user toggles via the built-in selector.
+[theme.dark]
+base = "dark"
+primaryColor = "#6f93a6"               # lifted teal, reads on dark
+backgroundColor = "#111a26"            # deep ink navy
+secondaryBackgroundColor = "#1b2736"   # panels: expander headers, widgets, code, dataframes
+textColor = "#f3ece1"                  # the brand paper-cream, now as text (continuity)
+linkColor = "#e0b659"                  # lifted gold accent (the hero eyebrow color)
+borderColor = "#2f3d52"
+
 [client]
-# Hide Streamlit's built-in top-right toolbar (the "Deploy" button + dev menu) for a
-# clean end-user surface. Use "viewer" instead if you want the menu but not Deploy.
-toolbarMode = "minimal"
+# "viewer" keeps the main (⋮) menu but hides developer options (Deploy, Rerun, Clear cache). Phase 11:
+# the Light/Dark/Auto theme selector lives in that menu in 2026 Streamlit, so dark mode needs it
+# reachable — "minimal" hides the menu entirely (and with it the theme toggle), so it can't be used here.
+toolbarMode = "viewer"
