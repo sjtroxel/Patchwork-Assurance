@@ -36,7 +36,8 @@ eval/results/
 
 # Raw statute source PDFs — provenance only, reproducible from source_url in metadata.
 # The cleaned corpus/*.md (and *.meta.yaml) ARE committed; the heavy binaries are not.
-corpus/sources/
+# The folder's README.md IS committed; only the .pdf scans are ignored.
+corpus/ocr-source-pdfs/*.pdf
 
 # Downloaded CI run logs (e.g. logs_<run-id>.zip from the GitHub Actions UI)
 logs_*.zip

@@ -11,6 +11,7 @@ from pathlib import Path
 import pytest
 
 import patchwork_assurance.mcp.server as server
+from patchwork_assurance.config import settings
 from patchwork_assurance.core.contracts import Situation
 from patchwork_assurance.core.corpus.metadata import LawMetadata
 from patchwork_assurance.core.llm import StubLLM
@@ -46,6 +47,9 @@ def _fake_laws() -> list[LawMetadata]:
 @pytest.fixture()
 def test_deps(monkeypatch):
     """Inject a minimal Deps with StubLLM and the fake-law fixture; no corpus load."""
+    # The multi_agent memo default builds its reviewer LLM from settings, which reads llm_provider
+    # from .env; pin it to 'stub' or generate_memo fires live OpenRouter calls. Offline discipline.
+    monkeypatch.setattr(settings, "llm_provider", "stub")
     laws = _fake_laws()
     deps = Deps(
         retriever=_StubRetriever(),
@@ -60,6 +64,7 @@ def test_deps(monkeypatch):
 @pytest.fixture()
 def meta_test_deps(monkeypatch):
     """Deps where the LLM returns a valid MetadataIntent so query_metadata succeeds."""
+    monkeypatch.setattr(settings, "llm_provider", "stub")
     laws = _fake_laws()
     deps = Deps(
         retriever=_StubRetriever(),

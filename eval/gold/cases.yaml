@@ -88,6 +88,7 @@
     scope:
       co-sb26-189: "yes"
       ct-sb5-pa26-15: "no"
+      ct-ctdpa: "no"
       il-hb3773: "no"
       nyc-ll144: "no"
       ca-feha-ads: "no"
@@ -114,6 +115,7 @@
     scope:
       co-sb26-189: "no"
       ct-sb5-pa26-15: "yes"
+      ct-ctdpa: "no"
       il-hb3773: "no"
       nyc-ll144: "no"
       ca-feha-ads: "no"
@@ -141,6 +143,7 @@
     scope:
       co-sb26-189: "yes"
       ct-sb5-pa26-15: "yes"
+      ct-ctdpa: "no"
       il-hb3773: "no"
       nyc-ll144: "no"
       ca-feha-ads: "no"
@@ -174,6 +177,7 @@
     scope:
       co-sb26-189: "yes"
       ct-sb5-pa26-15: "no"
+      ct-ctdpa: "no"
       il-hb3773: "no"
       nyc-ll144: "no"
       ca-feha-ads: "no"
@@ -201,6 +205,7 @@
     scope:
       co-sb26-189: "no"       # no Colorado nexus
       ct-sb5-pa26-15: "no"    # Connecticut's AI law does not cover housing
+      ct-ctdpa: "yes"
       il-hb3773: "no"
       nyc-ll144: "no"
       ca-feha-ads: "no"
@@ -224,6 +229,7 @@
     scope:
       co-sb26-189: "uncertain"
       ct-sb5-pa26-15: "no"
+      ct-ctdpa: "no"
       il-hb3773: "no"
       nyc-ll144: "no"
       ca-feha-ads: "no"
@@ -250,6 +256,7 @@
     scope:
       co-sb26-189: "no"
       ct-sb5-pa26-15: "no"
+      ct-ctdpa: "no"
       il-hb3773: "no"
       nyc-ll144: "no"
       ca-feha-ads: "no"
@@ -274,6 +281,7 @@
     scope:
       co-sb26-189: "no"
       ct-sb5-pa26-15: "no"
+      ct-ctdpa: "no"
       il-hb3773: "no"
       nyc-ll144: "no"
       ca-feha-ads: "no"
@@ -299,6 +307,7 @@
     scope:
       co-sb26-189: "yes"
       ct-sb5-pa26-15: "yes"
+      ct-ctdpa: "no"
       il-hb3773: "no"
       nyc-ll144: "no"
       ca-feha-ads: "no"
@@ -326,6 +335,7 @@
     scope:
       co-sb26-189: "yes"
       ct-sb5-pa26-15: "no"
+      ct-ctdpa: "no"
       il-hb3773: "no"
       nyc-ll144: "no"
       ca-feha-ads: "no"
@@ -352,6 +362,7 @@
     scope:
       co-sb26-189: "uncertain"
       ct-sb5-pa26-15: "uncertain"
+      ct-ctdpa: "no"
       il-hb3773: "uncertain"
       nyc-ll144: "uncertain"
       ca-feha-ads: "uncertain"
@@ -384,6 +395,7 @@
     scope:
       co-sb26-189: "no"        # ai_companion is not a Colorado covered domain
       ct-sb5-pa26-15: "yes"
+      ct-ctdpa: "no"
       il-hb3773: "no"
       nyc-ll144: "no"
       ca-feha-ads: "no"
@@ -409,6 +421,7 @@
     scope:
       co-sb26-189: "uncertain"
       ct-sb5-pa26-15: "no"
+      ct-ctdpa: "no"
       il-hb3773: "no"
       nyc-ll144: "no"
       ca-feha-ads: "no"
@@ -438,6 +451,7 @@
     scope:
       co-sb26-189: "no"        # no Colorado nexus
       ct-sb5-pa26-15: "yes"    # in scope via employment; housing is not CT-covered but doesn't defeat scope
+      ct-ctdpa: "yes"
       il-hb3773: "no"
       nyc-ll144: "no"
       ca-feha-ads: "no"
@@ -466,6 +480,7 @@
     scope:
       co-sb26-189: "no"
       ct-sb5-pa26-15: "no"
+      ct-ctdpa: "no"
       il-hb3773: "yes"
       nyc-ll144: "no"
       ca-feha-ads: "no"
@@ -493,6 +508,7 @@
     scope:
       co-sb26-189: "yes"
       ct-sb5-pa26-15: "no"
+      ct-ctdpa: "no"
       il-hb3773: "yes"
       nyc-ll144: "no"
       ca-feha-ads: "no"
@@ -522,6 +538,7 @@
     scope:
       co-sb26-189: "no"
       ct-sb5-pa26-15: "no"
+      ct-ctdpa: "no"
       il-hb3773: "yes"
       nyc-ll144: "no"
       ca-feha-ads: "no"
@@ -549,6 +566,7 @@
     scope:
       co-sb26-189: "no"       # no Colorado nexus
       ct-sb5-pa26-15: "no"    # no Connecticut nexus
+      ct-ctdpa: "no"
       il-hb3773: "no"         # Illinois HB 3773 covers employment, not housing
       nyc-ll144: "no"         # no New York City nexus
       ca-feha-ads: "no"
@@ -574,6 +592,7 @@
     scope:
       co-sb26-189: "no"
       ct-sb5-pa26-15: "no"
+      ct-ctdpa: "no"
       il-hb3773: "no"
       nyc-ll144: "yes"
       ca-feha-ads: "no"
@@ -602,6 +621,7 @@
     scope:
       co-sb26-189: "no"
       ct-sb5-pa26-15: "no"
+      ct-ctdpa: "no"
       il-hb3773: "yes"
       nyc-ll144: "yes"
       ca-feha-ads: "no"
@@ -630,6 +650,7 @@
     scope:
       co-sb26-189: "no"
       ct-sb5-pa26-15: "no"
+      ct-ctdpa: "no"
       il-hb3773: "no"
       nyc-ll144: "no"
       ca-feha-ads: "no"
@@ -653,6 +674,7 @@
     scope:
       co-sb26-189: "no"
       ct-sb5-pa26-15: "no"
+      ct-ctdpa: "no"
       il-hb3773: "no"
       nyc-ll144: "no"         # LL144 covers employment, not housing
       ca-feha-ads: "no"
@@ -678,6 +700,7 @@
     scope:
       co-sb26-189: "no"
       ct-sb5-pa26-15: "no"
+      ct-ctdpa: "no"
       il-hb3773: "no"
       nyc-ll144: "no"
       ca-feha-ads: "yes"
@@ -706,6 +729,7 @@
     scope:
       co-sb26-189: "no"
       ct-sb5-pa26-15: "no"
+      ct-ctdpa: "no"
       il-hb3773: "yes"
       nyc-ll144: "no"
       ca-feha-ads: "yes"
@@ -735,6 +759,7 @@
     scope:
       co-sb26-189: "no"
       ct-sb5-pa26-15: "no"
+      ct-ctdpa: "no"
       il-hb3773: "no"
       nyc-ll144: "no"
       ca-feha-ads: "yes"
@@ -764,6 +789,7 @@
     scope:
       co-sb26-189: "no"
       ct-sb5-pa26-15: "no"
+      ct-ctdpa: "no"
       il-hb3773: "no"
       nyc-ll144: "no"
       ca-feha-ads: "no"
@@ -789,6 +815,7 @@
     scope:
       co-sb26-189: "no"
       ct-sb5-pa26-15: "no"
+      ct-ctdpa: "no"
       il-hb3773: "no"
       nyc-ll144: "no"
       ca-feha-ads: "no"         # FEHA ADS regs cover employment, not government services
@@ -814,6 +841,7 @@
     scope:
       co-sb26-189: "no"
       ct-sb5-pa26-15: "no"
+      ct-ctdpa: "no"
       il-hb3773: "no"
       nyc-ll144: "no"
       ca-feha-ads: "no"         # FEHA ADS regs cover employment, not housing
@@ -841,6 +869,7 @@
     scope:
       co-sb26-189: "no"
       ct-sb5-pa26-15: "no"
+      ct-ctdpa: "no"
       il-hb3773: "no"
       nyc-ll144: "no"
       ca-feha-ads: "no"         # FEHA ADS regs cover employment, not lending
@@ -867,6 +896,7 @@
     scope:
       co-sb26-189: "no"
       ct-sb5-pa26-15: "no"
+      ct-ctdpa: "no"
       il-hb3773: "no"
       nyc-ll144: "no"
       ca-feha-ads: "no"
@@ -892,6 +922,7 @@
     scope:
       co-sb26-189: "no"
       ct-sb5-pa26-15: "no"        # CT law is employment-only
+      ct-ctdpa: "no"
       il-hb3773: "no"            # IL law is employment-only
       nyc-ll144: "no"            # LL144 is employment-only
       ca-feha-ads: "no"
@@ -917,6 +948,7 @@
     scope:
       co-sb26-189: "no"
       ct-sb5-pa26-15: "no"
+      ct-ctdpa: "no"
       il-hb3773: "yes"
       nyc-ll144: "no"
       ca-feha-ads: "no"
@@ -945,6 +977,7 @@
     scope:
       co-sb26-189: "no"
       ct-sb5-pa26-15: "no"
+      ct-ctdpa: "no"
       il-hb3773: "no"
       nyc-ll144: "no"
       ca-feha-ads: "no"
@@ -965,6 +998,7 @@
     scope:
       co-sb26-189: "no"
       ct-sb5-pa26-15: "no"
+      ct-ctdpa: "no"
       il-hb3773: "no"
       nyc-ll144: "no"
       ca-feha-ads: "no"
@@ -974,3 +1008,87 @@
       - "13:16-3.2"   # pre-employment practices incl. automated employment decision tools (the on-point operative section)
     obligations:
       - "New Jersey: an AI-assisted employment practice with a disparate impact on a protected class is prohibited unless job related and consistent with business necessity, with no less discriminatory alternative (N.J.A.C. 13:16-3.2)."
+
+- id: ct-ctdpa-lending-deployer
+  rationale: >
+    A lender that uses profiling to make AI-assisted FINANCIAL/LENDING decisions about Connecticut
+    consumers, acting as the controller (deployer). The CTDPA profiling opt-out reaches "profiling in
+    furtherance of any automated decision that produces a legal or similarly significant effect" (as
+    amended by SB 1295 / P.A. 25-113, effective July 1, 2026), so CTDPA is in scope. Connecticut SB 5
+    is NOT — it is employment-only, and CTDPA's "consumer" excludes the employment context, so the two
+    Connecticut laws divide cleanly (SB 5 = employees/applicants; CTDPA = consumers).
+  situation:
+    jurisdictions: [Connecticut]
+    decision_domains: [financial_lending]
+    roles: [deployer]
+    ai_use: "yes"
+  expect:
+    scope:
+      co-sb26-189: "no"
+      ct-sb5-pa26-15: "no"      # SB 5 is employment-only; a consumer-lending decision is outside it
+      ct-ctdpa: "yes"
+      il-hb3773: "no"
+      nyc-ll144: "no"
+      ca-feha-ads: "no"
+      ca-ccpa-admt: "no"
+      nj-njac-13-16: "no"
+    grounding_sections:
+      - "42-518"   # consumer right to opt out of profiling in furtherance of any automated decision
+      - "42-520"   # controller duty to provide and honor the opt-out mechanism
+      - "42-522"   # data protection / impact assessment for high-risk profiling
+    obligations:
+      - "Honor a consumer's request to opt out of profiling in furtherance of any automated decision that produces a legal or similarly significant effect concerning the consumer (Connecticut 42-518, as amended by SB 1295 effective July 1, 2026)."
+      - "Provide one or more secure and reliable methods for consumers to submit requests to exercise their rights, including opt-out of profiling-based automated decisions (Connecticut 42-520)."
+      - "Conduct and document a data protection assessment for profiling that presents a heightened risk of harm to consumers, and make it available to the Attorney General on request (Connecticut 42-522, effective August 1, 2026)."
+
+- id: ct-ctdpa-developer-only
+  rationale: >
+    A vendor that only BUILDS profiling / automated-decision technology for Connecticut consumer
+    contexts but does not itself determine the purpose and means of processing. CTDPA's profiling
+    duties bind the CONTROLLER (mapped to deployer); a build-only vendor is not the controller, so
+    CTDPA does not reach it. Mirror of nyc-developer-only / ca-developer-only for the privacy regime.
+  situation:
+    jurisdictions: [Connecticut]
+    decision_domains: [financial_lending]
+    roles: [developer]
+    ai_use: "yes"
+  expect:
+    scope:
+      co-sb26-189: "no"
+      ct-sb5-pa26-15: "no"
+      ct-ctdpa: "no"            # CTDPA binds the controller/deployer, not a build-only vendor
+      il-hb3773: "no"
+      nyc-ll144: "no"
+      ca-feha-ads: "no"
+      ca-ccpa-admt: "no"
+      nj-njac-13-16: "no"
+
+- id: ct-ctdpa-ca-multistate
+  rationale: >
+    A lender using profiling/ADMT for consumer lending decisions with BOTH Connecticut and California
+    consumers. Two distinct consumer-privacy regimes apply at once: CTDPA (profiling opt-out) and the
+    California CPPA ADMT rules (lending is a "significant decision"). The parallel to the multistate
+    employment cases, but on the consumer-privacy axis.
+  situation:
+    jurisdictions: [Connecticut, California]
+    decision_domains: [financial_lending]
+    roles: [deployer]
+    ai_use: "yes"
+  expect:
+    scope:
+      co-sb26-189: "no"
+      ct-sb5-pa26-15: "no"
+      ct-ctdpa: "yes"
+      il-hb3773: "no"
+      nyc-ll144: "no"
+      ca-feha-ads: "no"         # FEHA ADS regs cover employment, not lending
+      ca-ccpa-admt: "yes"       # CPPA: financial/lending is a "significant decision"
+      nj-njac-13-16: "no"
+    grounding_sections:
+      - "42-518"   # CTDPA consumer profiling opt-out
+      - "42-520"   # CTDPA controller opt-out duty
+      - "7200"     # CCPA ADMT-for-significant-decision scope trigger
+      - "7220"     # CCPA pre-use notice
+    obligations:
+      - "Connecticut: honor a consumer's request to opt out of profiling in furtherance of any automated decision that produces a legal or similarly significant effect (Connecticut 42-518, as amended by SB 1295 effective July 1, 2026), and provide a method to submit that request (Connecticut 42-520)."
+      - "California: a business using ADMT to make a significant lending decision must give a Pre-use Notice (11 CCR 7220), honor opt-out (11 CCR 7221) and access (11 CCR 7222) requests, and conduct a risk assessment before use (11 CCR 7150(b)(3)); compliance required by Jan 1, 2027 (11 CCR 7200(b))."

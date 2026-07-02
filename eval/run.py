@@ -30,6 +30,7 @@ from eval.safety import confirm_spend
 from patchwork_assurance.config import settings
 from patchwork_assurance.core.llm import LLMError, build_llm
 from patchwork_assurance.core.memo import MEMO_RETRIEVAL_K, generate_memo
+from patchwork_assurance.core.obs import cost_summary
 from patchwork_assurance.core.render import memo_to_html
 from patchwork_assurance.core.scope import applicable_laws
 
@@ -162,6 +163,13 @@ def run_judged(
     if errors:
         print(f"\n  ({errors}/{len(in_scope_cases)} case(s) skipped on LLM errors)")
     print(f"\n  memos written to {memo_dir}  (one .html per case — open them, not just the scores)")
+    # Self-report spend so a run never depends on a captured tee log (obs tracks the running total).
+    totals = cost_summary()
+    print(
+        f"\n  run cost:  ${totals['cost_usd']:.4f}  "
+        f"({totals['llm_calls']} LLM calls, "
+        f"{totals['input_tokens']:,} in / {totals['output_tokens']:,} out tokens)"
+    )
 
 
 def _retrieval(core, cases, k: int, mode: str) -> tuple[float, int, list[str]]:

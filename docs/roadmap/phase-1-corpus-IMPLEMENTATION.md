@@ -143,7 +143,7 @@ staggered dates, signed May 27 2026).
 ## Step 4 — clean the statutes → `corpus/*.md` (the hands-on integrity task)
 
 **This is the one genuinely manual, iterative step**, and the integrity rule is absolute (Phase 1 §5):
-the text comes from the **official PDFs** (`corpus/sources/`), cleaned — never LLM-authored.
+the text comes from the **official PDFs** (`corpus/ocr-source-pdfs/`), cleaned — never LLM-authored.
 
 **Define the cleaned-`.md` convention** (the chunker in Step 5 depends on it): each statute **section** is
 a Markdown H2 whose heading starts with the section number, e.g.
@@ -163,7 +163,7 @@ For CT, use its section markers (`## Sec. 10. ...`) and include **only Sec. 7–
 1. Extract raw text per PDF (a throwaway script):
    ```python
    import pypdf
-   reader = pypdf.PdfReader("corpus/sources/co-sb26-189-signed-act.pdf")
+   reader = pypdf.PdfReader("corpus/ocr-source-pdfs/co-sb26-189-signed-act.pdf")
    raw = "\n".join((p.extract_text() or "") for p in reader.pages)
    open("/tmp/co_raw.txt", "w").write(raw)
    ```
@@ -507,7 +507,7 @@ statutory nesting is **strictly sequential** (`(1)`→`(a)`→`(I)`→`(A)`), ev
 with certainty from sequence position and corrected: **18 enumerator fixes + 9 text-glyph fixes**, all
 applied as unique, asserted, context-anchored replacements (each must match exactly once). These are
 OCR *corrections* (faithful to the statute's own structure), **not** LLM authoring — auditable against
-the page images at `corpus/sources/co-sb26-189-signed-act.pdf`. Post-fix verification: all enumerator
+the page images at `corpus/ocr-source-pdfs/co-sb26-189-signed-act.pdf`. Post-fix verification: all enumerator
 sequences valid, zero non-ASCII, all 11 section headings intact, key operative text spot-checked.
 
 > Reproduction (throwaway scripts not retained): render each PDF page at 400 DPI via PyMuPDF

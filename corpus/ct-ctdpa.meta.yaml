@@ -1,0 +1,31 @@
+law_id: ct-ctdpa
+jurisdiction: Connecticut
+short_name: CT CTDPA (Data Privacy Act)
+law_name: "Connecticut Data Privacy Act (Act Concerning Personal Data Privacy and Online Monitoring), as amended by Public Act 25-113 (Substitute Senate Bill No. 1295)"
+citation: "Conn. Gen. Stat. §§ 42-515 to 42-525 (Chapter 743jj); scoped to the profiling / automated-decision provisions §§ 42-515 (definitions, excerpt), 42-518, 42-520, 42-522. Other CTDPA sections (42-516 applicability/thresholds, 42-517 exemptions, 42-519, 42-521, 42-523 to 42-525) omitted as out of the automated-decision scope."
+also_known_as:
+  - "CTDPA"
+  - "Connecticut Data Privacy Act"
+  - "P.A. 22-15 (original), as amended by P.A. 25-113 / SB 1295 (2025)"
+status: effective
+signed_date: 2022-05-10  # VERIFY: original CTDPA (P.A. 22-15) signature; the controlling amendment here is P.A. 25-113 (SB 1295), signed 2025-06 (see effective_dates)
+effective_dates:
+  - { date: 2023-07-01, applies_to: "CTDPA takes effect (original P.A. 22-15)" }
+  - { date: 2026-07-01, applies_to: "P.A. 25-113 (SB 1295) core amendments: the profiling opt-out reaches profiling in furtherance of ANY automated decision (removing the prior 'solely automated decisions' limit), plus expanded automated-decision transparency/appeal rights (§§ 42-518, 42-520)" }
+  - { date: 2026-08-01, applies_to: "Controllers' data protection and impact-assessment duty for profiling presenting a heightened risk of harm (§ 42-522); not retroactive" }
+operative_standard: 'A consumer-privacy regime, NOT a discrimination-liability rule and NOT a tech decision-influence trigger — do NOT harmonize with Colorado "materially influence" (ADMT), Connecticut SB 5 "substantial factor" (AERDT), or California CCPA "ADMT / significant decision". The automated-decision hook is CTDPA''s PROFILING OPT-OUT: a consumer may opt out of "profiling in furtherance of any automated decision that produces any legal or similarly significant effect concerning the consumer" (§ 42-518(a)(5)(C)). As amended by P.A. 25-113 (SB 1295), effective July 1, 2026, the qualifier "SOLELY automated decisions" was replaced by "ANY automated decision" — so the opt-out and the associated transparency/appeal rights now reach automated decisions that involve some human element, not only fully automated ones. "Profiling" (§ 42-515) = "any form of automated processing performed on personal data to evaluate, analyze or predict personal aspects related to an identified or identifiable individual''s economic situation, health, personal preferences, interests, reliability, behavior, location or movements." CTDPA does NOT separately define "automated decision" or "legal or similarly significant effect"; those terms are used in the operative text only. The duties bind the CONTROLLER (the person who determines the purpose and means of processing); the "consumer" excludes individuals acting in a commercial or employment context, so CTDPA does not reach employee/applicant screening (contrast CT SB 5, which does).'
+regulated_tech_term: "Profiling (§ 42-515) — any form of automated processing of personal data to evaluate, analyze or predict personal aspects of an individual. The regulated automated-decision activity is profiling in furtherance of any automated decision producing a legal or similarly significant effect (§ 42-518(a)(5)(C), as amended by SB 1295)."
+regulated_roles: [deployer]  # CTDPA uses controller/processor terminology; the profiling opt-out + transparency + impact-assessment duties fall on the CONTROLLER, mapped to 'deployer' in this taxonomy (the party that uses profiling). Processors (§ 42-521) act on a controller's behalf and are not directly subject to the opt-out.
+scope_domains: [financial_lending, housing, insurance, health_care, education]  # the consumer-facing 'legal or similarly significant effect' domains; NOT employment (CTDPA's 'consumer' definition excludes the employment context)
+enforcement_authority: "Connecticut Attorney General"
+enforcement_mechanism: "A violation is an unfair trade practice under the Connecticut Unfair Trade Practices Act (CUTPA), Conn. Gen. Stat. § 42-110b, and is enforced SOLELY by the Attorney General (no CUTPA private-action or class-action remedy for CTDPA violations)."
+cure_period: "A 60-day right-to-cure existed only through December 31, 2024 (§ 42-525 sunset); since January 1, 2025 the Attorney General MAY, but is not required to, grant a cure opportunity, considering statutory factors. VERIFY against § 42-525."
+private_right_of_action: false
+key_obligations:
+  - { section: "42-515", label: "Definitions — 'profiling' (any form of automated processing to evaluate/analyze/predict personal aspects), 'controller', 'consumer' (excludes employment context), 'sensitive data'" }
+  - { section: "42-518", label: "Consumer right to opt out of profiling in furtherance of ANY automated decision that produces a legal or similarly significant effect (as amended by SB 1295, eff. 7/1/2026), plus rights to question the basis of and to be informed about such automated decisions" }
+  - { section: "42-520", label: "Controller duties: provide and honor the opt-out mechanism (including a universal opt-out signal) for profiling-based automated decisions; notice and disclosure to consumers" }
+  - { section: "42-522", label: "Controller data protection / impact assessment for profiling that presents a heightened risk of harm to consumers; disclosure to the Attorney General on request (eff. 8/1/2026, not retroactive)" }
+source_url: "https://www.cga.ct.gov/current/pub/chap_743jj.htm"  # VERIFY exact URL: text taken from the Chapter 743jj 2026 Supplement (revised to Jan. 1, 2026), which reflects the P.A. 25-113 amendments; the base "current" page still shows the pre-amendment "solely" text
+source_page: "https://www.cga.ct.gov/2025/act/pa/pdf/2025PA-00113-R00SB-01295-PA.pdf"  # VERIFY: P.A. 25-113 (SB 1295) public act — the definitive amendment
+retrieved_on: 2026-07-02

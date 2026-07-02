@@ -55,7 +55,8 @@ def locate_section(citation: str, sections: dict[str, set[str]]) -> tuple[str, s
 # this tuple; the validity check (`locate_section`) stays generic over the real corpus.
 _CITATION_PATTERNS = (
     r"\d+-\d+-\d{4}",  # Colorado, e.g. 6-1-1704
-    r"Sec\.\s*\d+",  # Connecticut, e.g. Sec. 9
+    r"Sec\.\s*\d+",  # Connecticut SB 5 (PA 26-15), e.g. Sec. 9
+    r"42-5\d{2}[a-z]?",  # Connecticut CTDPA, e.g. 42-518 or 42-529a (Gen. Stat. Chapter 743jj)
     r"\d+ ILCS \d+/\d+-\d+",  # Illinois, e.g. 775 ILCS 5/2-102
     r"20-\d{3}",  # NYC, e.g. 20-871 (Admin. Code Title 20, Subchapter 25)
     r"110\d{2}(?:\.\d)?",  # California FEHA ADS, e.g. 11009 or 11008.1 (2 CCR tit. 2)
