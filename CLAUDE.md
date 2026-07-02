@@ -6,7 +6,9 @@ invariants. Depth lives in `docs/ROADMAP.md`. Contracts live in `docs/SPEC_V1.md
 ## What this is
 
 An AI-native tool for understanding how the state-by-state patchwork of US AI-regulation law applies to
-a business's situation. The corpus currently covers Colorado SB 26-189, Connecticut SB 5, Connecticut's
+a business's situation. The corpus currently covers Colorado SB 26-189, the Colorado Privacy Act (CPA,
+§§ 6-1-1301 et seq., Part 13 — a consumer-privacy profiling opt-out, distinct from the AI Act at Part 17;
+do not harmonize their operative terms), Connecticut SB 5, Connecticut's
 Data Privacy Act (CTDPA, §§ 42-515 et seq., as amended by SB 1295 — a consumer-privacy profiling
 opt-out, distinct from SB 5's employment scope; do not harmonize their operative terms), Illinois
 HB 3773, California's two regimes (the FEHA automated-decision-system employment regulations,

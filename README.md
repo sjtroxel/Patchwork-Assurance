@@ -18,7 +18,8 @@ certainty. Consult a licensed attorney for any actual compliance decision.
 
 ## The problem
 
-AI regulation in the US is arriving state by state, not from Washington. Colorado (SB 26-189),
+AI regulation in the US is arriving state by state, not from Washington. Colorado (SB 26-189,
+and the Colorado Privacy Act / CPA profiling opt-out),
 Connecticut (SB 5 / PA 26-15, and the Data Privacy Act / CTDPA as amended by SB 1295),
 Illinois (HB 3773), California (the Civil Rights Council's
 automated-decision-system employment regulations), and New Jersey (the Division on Civil Rights'
@@ -71,7 +72,11 @@ The design choices are the point of the project. A few are load-bearing:
   consumer-privacy law — its Data Privacy Act (CTDPA), whose profiling opt-out, as amended by
   SB 1295 (effective July 1, 2026), reaches "profiling in furtherance of any automated decision"
   that produces a legal or similarly significant effect (broadened from the prior "solely automated"
-  limit), a distinct trigger that is not harmonized with the employment-focused statutes.
+  limit), a distinct trigger that is not harmonized with the employment-focused statutes. Colorado
+  likewise contributes a second law — the Colorado Privacy Act (CPA), whose profiling opt-out reaches
+  "profiling in furtherance of decisions that produce legal or similarly significant effects" with no
+  "solely/any automated" qualifier at all (the trigger is the nature of the decision, not the degree of
+  automation) — yet another distinct formulation held apart from the others.
   The tool reads each statute's own language from metadata rather than
   flattening them into a
   single test.
@@ -155,16 +160,24 @@ docs/          ROADMAP, per-phase design + as-built docs, SPEC (data/API contrac
 ## Status
 
 v1 is deployed and works end to end over the shared retrieval core, exposed as the memo and chat
-surfaces, hosted on Railway. The corpus currently covers Colorado SB 26-189, Connecticut SB 5 (PA 26-15),
-Connecticut's Data Privacy Act (CTDPA, Conn. Gen. Stat. §§ 42-515 et seq., as amended by SB 1295 / P.A. 25-113),
-Illinois HB 3773 (PA 103-0804), and California's two regimes — the FEHA automated-decision-system
-employment regulations (2 CCR §§ 11008 et seq.) and the CCPA ADMT consumer-privacy regulations
-(11 CCR §§ 7200 et seq.) — New York City Local Law 144 (the AEDT bias-audit law), included
-as a notable non-state jurisdiction whose population rivals many states and whose AI-employment law sits
-naturally beside them, and New Jersey's Division on Civil Rights disparate-impact rules
-(N.J.A.C. §§ 13:16-1.1 to 13:16-6.2). The corpus is designed to grow as the patchwork grows. Post-v1 work
-(evaluation, observability, hybrid retrieval, a corpus-monitoring agent, MCP) is intentionally gated
-behind a working v1 rather than built up front.
+surfaces, hosted on Railway. The corpus currently covers nine laws across seven jurisdictions, each
+kept in its own operative terms (never harmonized):
+
+| Jurisdiction | Law | Citation | Operative trigger |
+|---|---|---|---|
+| Colorado | AI Act (SB 26-189) | C.R.S. §§ 6-1-1701 et seq. (Part 17) | covered ADMT "materially influences" a consequential decision |
+| Colorado | Privacy Act (CPA) | C.R.S. §§ 6-1-1301 et seq. (Part 13) | profiling in furtherance of decisions with legal/similarly significant effects |
+| Connecticut | SB 5 (PA 26-15) | Conn. Pub. Act 26-15 | AERDT is a "substantial factor" in an employment decision |
+| Connecticut | Data Privacy Act (CTDPA) | Conn. Gen. Stat. §§ 42-515 et seq. | profiling → "any automated decision" (as amended by SB 1295) |
+| Illinois | HB 3773 (PA 103-0804) | 775 ILCS 5/2-101 et seq. | AI use that results in employment discrimination |
+| California | FEHA ADS regs | 2 CCR §§ 11008 et seq. | automated-decision system that discriminates (employment) |
+| California | CCPA ADMT regs | 11 CCR §§ 7200 et seq. | ADMT used to make a "significant decision" |
+| New York City | Local Law 144 | N.Y.C. Admin. Code §§ 20-870 et seq. | AEDT bias-audit + candidate notice |
+| New Jersey | DCR rules | N.J.A.C. §§ 13:16-1.1 to 13:16-6.2 | disparate impact (effect-based, reaches AEDTs) |
+
+The corpus is designed to grow as the patchwork grows. Post-v1 work (evaluation, observability, hybrid
+retrieval, a corpus-monitoring agent, MCP) is intentionally gated behind a working v1 rather than built
+up front.
 
 ## A note on the author's angle
 

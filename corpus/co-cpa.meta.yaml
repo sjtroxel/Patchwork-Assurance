@@ -1,0 +1,29 @@
+law_id: co-cpa
+jurisdiction: Colorado
+short_name: CO CPA (Privacy Act)
+law_name: "Colorado Privacy Act (Colorado Revised Statutes Title 6, Article 1, Part 13)"
+citation: "Colo. Rev. Stat. §§ 6-1-1301 to 6-1-1314 (Part 13 of the Colorado Consumer Protection Act); scoped to the profiling / automated-decision provisions §§ 6-1-1303 (definitions, excerpt) and 6-1-1306 (consumer personal data rights). This is NOT the Colorado AI Act, which is Part 17 (§§ 6-1-1701 et seq., corpus id co-sb26-189). Other CPA sections (6-1-1301/1302 short title + declaration, 6-1-1304 applicability, 6-1-1305/1307-1314 duties/enforcement) omitted as out of the automated-decision scope."
+also_known_as:
+  - "CPA"
+  - "Colorado Privacy Act"
+  - "SB 21-190 (2021), as amended"
+status: effective
+signed_date: 2021-07-07  # VERIFY: original CPA (SB 21-190) signature; the Part 13 text here is the 2025 C.R.S. edition (current through the amendments in force as of the 2025 edition)
+effective_dates:
+  - { date: 2023-07-01, applies_to: "Colorado Privacy Act takes effect (original SB 21-190)" }
+  - { date: 2024-07-01, applies_to: "Controllers must recognize a user-selected universal opt-out mechanism for the opt-out rights, including profiling (§ 6-1-1306)" }
+  - { date: 2025-10-01, applies_to: "SB 24-041 definition amendments (biometric/minors-related terms in § 6-1-1303) take effect; the in-force versions are used here" }
+operative_standard: 'A consumer-privacy regime, NOT a discrimination-liability rule and NOT a tech decision-influence trigger — do NOT harmonize with the Colorado AI Act''s "materially influence" (co-sb26-189, Part 17), Connecticut SB 5 "substantial factor", or California CCPA "significant decision". The automated-decision hook is the CPA''s PROFILING OPT-OUT: a consumer has the right to opt out of "profiling in furtherance of decisions that produce legal or similarly significant effects concerning a consumer" (§ 6-1-1306(1)(a)(I)(C)). Unlike Connecticut''s CTDPA (which after SB 1295 turns on "any automated decision") and unlike the Colorado AI Act, Colorado''s CPA uses NO "solely/any automated" qualifier at all — the trigger is the nature of the DECISION, not the degree of automation. "Profiling" (§ 6-1-1303(20)) = "any form of automated processing of personal data to evaluate, analyze, or predict personal aspects concerning an identified or identifiable individual." Colorado, unlike CTDPA, DEFINES the effect term: "decisions that produce legal or similarly significant effects" (§ 6-1-1303(10)) = a decision resulting in the provision or denial of financial or lending services, housing, insurance, education enrollment or opportunity, criminal justice, employment opportunities, health-care services, or access to essential goods or services. The duties bind the CONTROLLER; the "consumer" (§ 6-1-1303(6)) excludes an individual acting in a commercial or employment context, as a job applicant, or as an employee — so CPA does not reach employer/applicant screening (that is the Colorado AI Act''s and other employment laws'' domain).'
+regulated_tech_term: "Profiling (§ 6-1-1303(20)) — any form of automated processing of personal data to evaluate, analyze, or predict personal aspects of an individual. The regulated automated-decision activity is profiling in furtherance of decisions that produce legal or similarly significant effects (§ 6-1-1306(1)(a)(I)(C))."
+regulated_roles: [deployer]  # the CPA's opt-out + universal-opt-out duties fall on the CONTROLLER, mapped to 'deployer' in this taxonomy (the party that uses profiling). Processors (§ 6-1-1305) act on a controller's behalf and are not directly subject to the opt-out.
+scope_domains: [financial_lending, housing, insurance, health_care, education]  # the consumer-facing 'significant effect' domains from § 6-1-1303(10) that map to the corpus taxonomy; the full statutory list also names criminal justice, employment opportunities, and essential goods/services. NOT modeled as employment: the CPA 'consumer' definition excludes the employment/job-applicant context (employment ADM is the Colorado AI Act's domain, co-sb26-189)
+enforcement_authority: "Colorado Attorney General and district attorneys"
+enforcement_mechanism: "A violation is a deceptive trade practice under the Colorado Consumer Protection Act; enforced exclusively by the Attorney General and district attorneys (§ 6-1-1311). No local-government enforcement and no private right of action."
+cure_period: "A 60-day right-to-cure existed only until January 1, 2025 (§ 6-1-1311(1)(d) sunset); since then the Attorney General/district attorney is not required to grant a cure opportunity. VERIFY against § 6-1-1311."
+private_right_of_action: false
+key_obligations:
+  - { section: "6-1-1303", label: "Definitions — 'profiling', 'decisions that produce legal or similarly significant effects' (defined), 'controller', 'consumer' (excludes employment/job-applicant context), 'sensitive data'" }
+  - { section: "6-1-1306", label: "Consumer right to opt out of profiling in furtherance of decisions that produce legal or similarly significant effects, exercisable directly or through a user-selected universal opt-out mechanism (§ 6-1-1306(1)(a))" }
+source_url: "https://leg.colorado.gov/agencies/office-legislative-legal-services/colorado-revised-statutes"  # VERIFY exact URL: text taken from the official Colorado Revised Statutes 2025, Title 6 (OLLS), Part 13; in-force (post-Oct-1-2025) versions used where subsections are effective-date-staggered
+source_page: "https://content.leg.colorado.gov/agencies/office-legislative-legal-services/2025-crs-titles-download"
+retrieved_on: 2026-07-02

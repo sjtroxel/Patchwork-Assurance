@@ -181,6 +181,16 @@ section .lede { font-size: 1.1rem; max-width: 44rem; }
   color: var(--c-teal); margin-bottom: 0.35rem;
 }
 .corpus-list-note { display: block; margin-top: 0.45rem; font-size: 0.78rem; color: #6b6256; }
+.corpus-table { width: 100%; border-collapse: collapse; margin-top: 0.5rem; }
+.corpus-table td {
+  padding: 0.5rem 0.6rem; border-top: 1px solid rgba(47, 75, 94, 0.18);
+  vertical-align: top; line-height: 1.5;
+}
+.corpus-table tr:first-child td { border-top: none; }
+.corpus-table td:first-child {
+  font-family: var(--font-display); font-weight: 700; color: var(--primary); white-space: nowrap;
+}
+[data-theme="dark"] .corpus-table td { border-top-color: rgba(111, 147, 166, 0.22); }
 
 /* closing CTA — same video background as the hero */
 .closing {

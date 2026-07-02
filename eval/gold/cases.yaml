@@ -87,6 +87,7 @@
   expect:
     scope:
       co-sb26-189: "yes"
+      co-cpa: "no"
       ct-sb5-pa26-15: "no"
       ct-ctdpa: "no"
       il-hb3773: "no"
@@ -114,6 +115,7 @@
   expect:
     scope:
       co-sb26-189: "no"
+      co-cpa: "no"
       ct-sb5-pa26-15: "yes"
       ct-ctdpa: "no"
       il-hb3773: "no"
@@ -142,6 +144,7 @@
   expect:
     scope:
       co-sb26-189: "yes"
+      co-cpa: "no"
       ct-sb5-pa26-15: "yes"
       ct-ctdpa: "no"
       il-hb3773: "no"
@@ -176,6 +179,7 @@
   expect:
     scope:
       co-sb26-189: "yes"
+      co-cpa: "no"
       ct-sb5-pa26-15: "no"
       ct-ctdpa: "no"
       il-hb3773: "no"
@@ -204,6 +208,7 @@
   expect:
     scope:
       co-sb26-189: "no"       # no Colorado nexus
+      co-cpa: "no"
       ct-sb5-pa26-15: "no"    # Connecticut's AI law does not cover housing
       ct-ctdpa: "yes"
       il-hb3773: "no"
@@ -228,6 +233,7 @@
   expect:
     scope:
       co-sb26-189: "uncertain"
+      co-cpa: "no"
       ct-sb5-pa26-15: "no"
       ct-ctdpa: "no"
       il-hb3773: "no"
@@ -255,6 +261,7 @@
   expect:
     scope:
       co-sb26-189: "no"
+      co-cpa: "no"
       ct-sb5-pa26-15: "no"
       ct-ctdpa: "no"
       il-hb3773: "no"
@@ -280,6 +287,7 @@
   expect:
     scope:
       co-sb26-189: "no"
+      co-cpa: "no"
       ct-sb5-pa26-15: "no"
       ct-ctdpa: "no"
       il-hb3773: "no"
@@ -306,6 +314,7 @@
   expect:
     scope:
       co-sb26-189: "yes"
+      co-cpa: "no"
       ct-sb5-pa26-15: "yes"
       ct-ctdpa: "no"
       il-hb3773: "no"
@@ -334,6 +343,7 @@
   expect:
     scope:
       co-sb26-189: "yes"
+      co-cpa: "no"
       ct-sb5-pa26-15: "no"
       ct-ctdpa: "no"
       il-hb3773: "no"
@@ -361,6 +371,7 @@
   expect:
     scope:
       co-sb26-189: "uncertain"
+      co-cpa: "no"
       ct-sb5-pa26-15: "uncertain"
       ct-ctdpa: "no"
       il-hb3773: "uncertain"
@@ -394,6 +405,7 @@
   expect:
     scope:
       co-sb26-189: "no"        # ai_companion is not a Colorado covered domain
+      co-cpa: "no"
       ct-sb5-pa26-15: "yes"
       ct-ctdpa: "no"
       il-hb3773: "no"
@@ -420,6 +432,7 @@
   expect:
     scope:
       co-sb26-189: "uncertain"
+      co-cpa: "uncertain"
       ct-sb5-pa26-15: "no"
       ct-ctdpa: "no"
       il-hb3773: "no"
@@ -450,6 +463,7 @@
   expect:
     scope:
       co-sb26-189: "no"        # no Colorado nexus
+      co-cpa: "no"
       ct-sb5-pa26-15: "yes"    # in scope via employment; housing is not CT-covered but doesn't defeat scope
       ct-ctdpa: "yes"
       il-hb3773: "no"
@@ -479,6 +493,7 @@
   expect:
     scope:
       co-sb26-189: "no"
+      co-cpa: "no"
       ct-sb5-pa26-15: "no"
       ct-ctdpa: "no"
       il-hb3773: "yes"
@@ -507,6 +522,7 @@
   expect:
     scope:
       co-sb26-189: "yes"
+      co-cpa: "no"
       ct-sb5-pa26-15: "no"
       ct-ctdpa: "no"
       il-hb3773: "yes"
@@ -537,6 +553,7 @@
   expect:
     scope:
       co-sb26-189: "no"
+      co-cpa: "no"
       ct-sb5-pa26-15: "no"
       ct-ctdpa: "no"
       il-hb3773: "yes"
@@ -565,6 +582,7 @@
   expect:
     scope:
       co-sb26-189: "no"       # no Colorado nexus
+      co-cpa: "no"
       ct-sb5-pa26-15: "no"    # no Connecticut nexus
       ct-ctdpa: "no"
       il-hb3773: "no"         # Illinois HB 3773 covers employment, not housing
@@ -591,6 +609,7 @@
   expect:
     scope:
       co-sb26-189: "no"
+      co-cpa: "no"
       ct-sb5-pa26-15: "no"
       ct-ctdpa: "no"
       il-hb3773: "no"
@@ -620,6 +639,7 @@
   expect:
     scope:
       co-sb26-189: "no"
+      co-cpa: "no"
       ct-sb5-pa26-15: "no"
       ct-ctdpa: "no"
       il-hb3773: "yes"
@@ -649,6 +669,7 @@
   expect:
     scope:
       co-sb26-189: "no"
+      co-cpa: "no"
       ct-sb5-pa26-15: "no"
       ct-ctdpa: "no"
       il-hb3773: "no"
@@ -673,6 +694,7 @@
   expect:
     scope:
       co-sb26-189: "no"
+      co-cpa: "no"
       ct-sb5-pa26-15: "no"
       ct-ctdpa: "no"
       il-hb3773: "no"
@@ -699,6 +721,7 @@
   expect:
     scope:
       co-sb26-189: "no"
+      co-cpa: "no"
       ct-sb5-pa26-15: "no"
       ct-ctdpa: "no"
       il-hb3773: "no"
@@ -728,6 +751,7 @@
   expect:
     scope:
       co-sb26-189: "no"
+      co-cpa: "no"
       ct-sb5-pa26-15: "no"
       ct-ctdpa: "no"
       il-hb3773: "yes"
@@ -758,6 +782,7 @@
   expect:
     scope:
       co-sb26-189: "no"
+      co-cpa: "no"
       ct-sb5-pa26-15: "no"
       ct-ctdpa: "no"
       il-hb3773: "no"
@@ -788,6 +813,7 @@
   expect:
     scope:
       co-sb26-189: "no"
+      co-cpa: "no"
       ct-sb5-pa26-15: "no"
       ct-ctdpa: "no"
       il-hb3773: "no"
@@ -814,6 +840,7 @@
   expect:
     scope:
       co-sb26-189: "no"
+      co-cpa: "no"
       ct-sb5-pa26-15: "no"
       ct-ctdpa: "no"
       il-hb3773: "no"
@@ -840,6 +867,7 @@
   expect:
     scope:
       co-sb26-189: "no"
+      co-cpa: "no"
       ct-sb5-pa26-15: "no"
       ct-ctdpa: "no"
       il-hb3773: "no"
@@ -868,6 +896,7 @@
   expect:
     scope:
       co-sb26-189: "no"
+      co-cpa: "no"
       ct-sb5-pa26-15: "no"
       ct-ctdpa: "no"
       il-hb3773: "no"
@@ -895,6 +924,7 @@
   expect:
     scope:
       co-sb26-189: "no"
+      co-cpa: "no"
       ct-sb5-pa26-15: "no"
       ct-ctdpa: "no"
       il-hb3773: "no"
@@ -921,6 +951,7 @@
   expect:
     scope:
       co-sb26-189: "no"
+      co-cpa: "no"
       ct-sb5-pa26-15: "no"        # CT law is employment-only
       ct-ctdpa: "no"
       il-hb3773: "no"            # IL law is employment-only
@@ -947,6 +978,7 @@
   expect:
     scope:
       co-sb26-189: "no"
+      co-cpa: "no"
       ct-sb5-pa26-15: "no"
       ct-ctdpa: "no"
       il-hb3773: "yes"
@@ -976,6 +1008,7 @@
   expect:
     scope:
       co-sb26-189: "no"
+      co-cpa: "no"
       ct-sb5-pa26-15: "no"
       ct-ctdpa: "no"
       il-hb3773: "no"
@@ -997,6 +1030,7 @@
   expect:
     scope:
       co-sb26-189: "no"
+      co-cpa: "no"
       ct-sb5-pa26-15: "no"
       ct-ctdpa: "no"
       il-hb3773: "no"
@@ -1025,6 +1059,7 @@
   expect:
     scope:
       co-sb26-189: "no"
+      co-cpa: "no"
       ct-sb5-pa26-15: "no"      # SB 5 is employment-only; a consumer-lending decision is outside it
       ct-ctdpa: "yes"
       il-hb3773: "no"
@@ -1055,6 +1090,7 @@
   expect:
     scope:
       co-sb26-189: "no"
+      co-cpa: "no"
       ct-sb5-pa26-15: "no"
       ct-ctdpa: "no"            # CTDPA binds the controller/deployer, not a build-only vendor
       il-hb3773: "no"
@@ -1077,6 +1113,7 @@
   expect:
     scope:
       co-sb26-189: "no"
+      co-cpa: "no"
       ct-sb5-pa26-15: "no"
       ct-ctdpa: "yes"
       il-hb3773: "no"
@@ -1092,3 +1129,61 @@
     obligations:
       - "Connecticut: honor a consumer's request to opt out of profiling in furtherance of any automated decision that produces a legal or similarly significant effect (Connecticut 42-518, as amended by SB 1295 effective July 1, 2026), and provide a method to submit that request (Connecticut 42-520)."
       - "California: a business using ADMT to make a significant lending decision must give a Pre-use Notice (11 CCR 7220), honor opt-out (11 CCR 7221) and access (11 CCR 7222) requests, and conduct a risk assessment before use (11 CCR 7150(b)(3)); compliance required by Jan 1, 2027 (11 CCR 7200(b))."
+
+- id: co-cpa-lending-deployer
+  rationale: >
+    A lender using profiling to make AI-assisted consumer FINANCIAL/LENDING decisions about Colorado
+    residents, as the controller (deployer). Two Colorado regimes apply at once: the Colorado AI Act
+    (SB 26-189, materially-influencing a consequential decision) AND the Colorado Privacy Act's profiling
+    opt-out (a decision producing a legal or similarly significant effect). Shows Colorado's two laws
+    stacking on a consumer decision — the CO analogue of California's FEHA+CCPA and Connecticut's SB5+CTDPA.
+  situation:
+    jurisdictions: [Colorado]
+    decision_domains: [financial_lending]
+    roles: [deployer]
+    ai_use: "yes"
+  expect:
+    scope:
+      co-sb26-189: "yes"
+      co-cpa: "yes"
+      ct-sb5-pa26-15: "no"
+      ct-ctdpa: "no"
+      il-hb3773: "no"
+      nyc-ll144: "no"
+      ca-feha-ads: "no"
+      ca-ccpa-admt: "no"
+      nj-njac-13-16: "no"
+    grounding_sections:
+      - "6-1-1704"   # CO AI Act: point-of-interaction notice
+      - "6-1-1705"   # CO AI Act: human review / reconsideration
+      - "6-1-1306"   # CO CPA: consumer right to opt out of profiling
+    obligations:
+      - "Colorado AI Act: before using a covered ADMT to materially influence a consequential lending decision, give the consumer a clear notice that a covered ADMT is in use, and on an adverse outcome provide an opportunity for human review (Colorado 6-1-1704, 6-1-1705)."
+      - "Colorado Privacy Act: honor a consumer's request to opt out of profiling in furtherance of decisions that produce legal or similarly significant effects, including through a user-selected universal opt-out mechanism (Colorado 6-1-1306)."
+
+- id: co-cpa-developer-only
+  rationale: >
+    A vendor that only BUILDS profiling / automated-decision technology used in Colorado consumer
+    contexts but does not determine the purpose and means of processing. The Colorado AI Act regulates
+    developers, so SB 26-189 is in scope; the Colorado Privacy Act binds the CONTROLLER (deployer) only,
+    so the CPA is not. Distinguishes the two Colorado regimes by regulated role.
+  situation:
+    jurisdictions: [Colorado]
+    decision_domains: [financial_lending]
+    roles: [developer]
+    ai_use: "yes"
+  expect:
+    scope:
+      co-sb26-189: "yes"
+      co-cpa: "no"
+      ct-sb5-pa26-15: "no"
+      ct-ctdpa: "no"
+      il-hb3773: "no"
+      nyc-ll144: "no"
+      ca-feha-ads: "no"
+      ca-ccpa-admt: "no"
+      nj-njac-13-16: "no"
+    grounding_sections:
+      - "6-1-1702"   # CO AI Act: developer duties
+    obligations:
+      - "Colorado AI Act: a developer of a high-risk AI system must provide deployers the documentation needed to complete an impact assessment and to understand the system's reasonably foreseeable uses and known harms (Colorado 6-1-1702)."
