@@ -2,6 +2,9 @@
 
 from datetime import date
 
+import pytest
+
+from patchwork_assurance.config import Settings
 from patchwork_assurance.core.contracts import (
     ComplianceMemo,
     LawFinding,
@@ -14,6 +17,15 @@ from patchwork_assurance.core.corpus.metadata import EffectiveDate, LawMetadata
 from patchwork_assurance.core.llm import StubLLM
 from patchwork_assurance.core.memo import generate_memo
 from patchwork_assurance.core.prompts import DISCLAIMER
+
+
+@pytest.fixture(autouse=True)
+def _pin_single_pipeline(monkeypatch):
+    # The product default is now multi_agent (Phase 12 eval cleared it, 2026-07-02). The tests in this
+    # module exercise the single-call generation path + the shared deterministic overlays (identical in
+    # both pipelines), so pin single here. The multi_agent dispatch test overrides this in its own body.
+    monkeypatch.setattr("patchwork_assurance.core.memo.settings.memo_pipeline", "single")
+
 
 # ---- stub helpers ----
 
@@ -269,9 +281,15 @@ def test_next_steps_out_of_scope_single_message():
 # ---- Phase 12: generate_memo dispatch on the memo_pipeline flag ----
 
 
-def test_default_pipeline_is_single_and_generates(monkeypatch):
-    # Default flag = "single": the one-call path runs and returns a full memo (no flag change needed,
-    # but assert it explicitly so a default flip can't slip through unnoticed).
+def test_product_default_pipeline_is_multi_agent():
+    # The shipped default (Phase 12 eval, 2026-07-02) is multi_agent. Assert the config field default
+    # directly (immune to env/.env overrides and to the autouse single pin) so a flip-back can't slip
+    # through unnoticed.
+    assert Settings.model_fields["memo_pipeline"].default == "multi_agent"
+
+
+def test_single_pipeline_generates(monkeypatch):
+    # The one-call path still runs and returns a full memo when single is selected.
     monkeypatch.setattr("patchwork_assurance.core.memo.settings.memo_pipeline", "single")
     memo = generate_memo(SITUATION, SCOPE, _StubRetriever([CHUNK]), StubLLM(structured=CANNED_MEMO))
     assert isinstance(memo, ComplianceMemo)

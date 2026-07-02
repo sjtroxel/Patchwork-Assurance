@@ -58,12 +58,13 @@ class Settings(BaseSettings):
     # Hard cap (circuit breaker): a single judged eval run may not generate more than this many
     # memos, no matter how it was invoked. Raise it deliberately if the gold set grows past it.
     eval_max_judged_cases: int = 50
-    # Multi-agent memo (Phase 12). memo_pipeline dispatches generate_memo: "single" is today's one
-    # complete_structured call; "multi_agent" is the per-law analyst fan-out + reviewer. Default stays
-    # "single" until the Phase 6 eval clears the multi-agent path (groundedness >= the single-call
-    # baseline). analyst_model/reviewer_model default empty and fall back to memo_model/judge_model, so
-    # the pipeline gets Sonnet-5 analysts + an Opus reviewer with no caller change (judge != judged).
-    memo_pipeline: str = "single"  # "single" | "multi_agent"
+    # Multi-agent memo (Phase 12). memo_pipeline dispatches generate_memo: "single" is the one
+    # complete_structured call; "multi_agent" is the per-law analyst fan-out + reviewer. Default is
+    # "multi_agent" as of 2026-07-02: the paid eval gate cleared it (grounded 97.9% vs single 95.9%,
+    # citations-resolve 100% vs 97.7%, coverage tied 78.4% — §16 of the Phase 12 IMPLEMENTATION doc).
+    # analyst_model/reviewer_model default empty and fall back to memo_model/judge_model, so the
+    # pipeline gets Sonnet-5 analysts + an Opus reviewer with no caller change (judge != judged).
+    memo_pipeline: str = "multi_agent"  # "single" | "multi_agent"
     analyst_model: str = ""  # per-law analyst; "" -> memo_model
     reviewer_model: str = ""  # reviewer/judge; "" -> judge_model
     reviewer_max_revisions: int = 1  # bounded revise-loop; no infinite debate

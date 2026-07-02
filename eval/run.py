@@ -61,7 +61,9 @@ def _memo_to_html(memo, case_id, cite, grounded, coverage) -> str:
     `core.render.memo_to_html` the export uses (no second layout to drift, Phase 11 §8). Only the
     eval-specific wrapper is added here: a scores banner at the top and the raw model JSON at the
     bottom (so nothing is lost). Deterministic — no API calls."""
-    doc = memo_to_html(memo)
+    # Pass the memo's own deterministic corpus_as_of stamp (like ui/pdf.py does) — otherwise
+    # memo_to_html falls back to today's date and the dump misreports corpus currency.
+    doc = memo_to_html(memo, corpus_as_of=memo.corpus_as_of)
     scores = (
         '<div style="font-family:monospace;background:#ece2d3;border-radius:6px;'
         'padding:8px 12px;margin:0 0 14px;font-size:9pt">'
@@ -77,7 +79,9 @@ def _memo_to_html(memo, case_id, cite, grounded, coverage) -> str:
     return doc.replace("<body>", f"<body>{scores}", 1).replace("</body>", f"{raw}</body>", 1)
 
 
-def run_judged(core, cases, limit: int | None = None, stamp: str | None = None) -> None:
+def run_judged(
+    core, cases, limit: int | None = None, offset: int = 0, stamp: str | None = None
+) -> None:
     """Tier B: generate a real memo per in-scope case and judge it. Paid on Anthropic / non-free
     OpenRouter; $0 on OpenRouter `:free` models. `limit` caps the cases run — useful on a free model
     whose shared upstream rate-limits a full 14-case burst (run a few at a time). `stamp` pairs the
@@ -94,6 +98,10 @@ def run_judged(core, cases, limit: int | None = None, stamp: str | None = None) 
         for case in cases
         if any(s.in_scope in _IN_SCOPE for s in applicable_laws(case.situation, core.laws))
     ]
+    # offset + limit carve out a disjoint batch (e.g. --offset 5 --limit 5 = cases 6–10), so a paid
+    # run can be split into cheap chunks whose per-obligation scores pool exactly like one full run.
+    if offset:
+        in_scope_cases = in_scope_cases[offset:]
     if limit is not None:
         in_scope_cases = in_scope_cases[:limit]
 
@@ -199,6 +207,12 @@ def main() -> int:
         default=None,
         help="cap judged-tier cases (helps under a free model's upstream rate limit)",
     )
+    parser.add_argument(
+        "--offset",
+        type=int,
+        default=0,
+        help="skip the first N in-scope cases; with --limit, carves out a disjoint paid batch",
+    )
     args = parser.parse_args()
 
     core = build_core()
@@ -277,7 +291,7 @@ def main() -> int:
     print(f"  wrote {out.relative_to(Path.cwd())}\n")
 
     if args.judge or settings.eval_use_judge:
-        run_judged(core, cases, limit=args.limit, stamp=stamp)
+        run_judged(core, cases, limit=args.limit, offset=args.offset, stamp=stamp)
 
     if args.strict and scope_correct < scope_total:
         return 1

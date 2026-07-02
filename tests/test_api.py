@@ -42,6 +42,14 @@ def _reset_memo_rate_limit():
     yield
 
 
+@pytest.fixture(autouse=True)
+def _pin_single_pipeline(monkeypatch):
+    # Product default is now multi_agent (Phase 12 eval, 2026-07-02). Most API tests exercise pipeline-
+    # independent mechanics (error mapping, SSE framing, rate limit) via the simple single-call stub, so
+    # pin single here; the multi_agent tests override this in their own bodies.
+    monkeypatch.setattr(settings, "memo_pipeline", "single")
+
+
 @pytest.fixture
 def analyze_client():
     app.dependency_overrides[get_retriever] = lambda: _StubRetriever()
@@ -145,12 +153,22 @@ def test_analyze_422_on_bad_domain(analyze_client):
     assert "decision_domains" in r.text
 
 
-def test_analyze_default_stub_is_valid_chrome_complete_memo():
-    """The DEFAULT stub (what `make dev` uses with no key) must return a valid ComplianceMemo
-    with the disclaimer present — invariant #4. Guards the partial-memo regression."""
+def test_analyze_default_stub_is_valid_chrome_complete_memo(monkeypatch):
+    """The DEFAULT pipeline (multi_agent, what `make dev` uses with no key) must return a valid
+    ComplianceMemo with the disclaimer present — invariant #4. Guards the partial-memo regression on
+    the shipped default path. Fully offline: bare StubLLM analysts + the internally-built stub reviewer
+    (llm_provider pinned to 'stub' so the reviewer doesn't hit the network), real corpus laws so the
+    fan-out has something in scope."""
+    from pathlib import Path
+
+    from patchwork_assurance.core.scope import load_law_metadata
+
+    monkeypatch.setattr(settings, "memo_pipeline", "multi_agent")
+    monkeypatch.setattr(settings, "llm_provider", "stub")
+    laws = load_law_metadata(Path(settings.corpus_path))
     app.dependency_overrides[get_retriever] = lambda: _StubRetriever()
-    app.dependency_overrides[get_laws] = lambda: []
-    app.dependency_overrides[get_memo_llm] = lambda: StubLLM()  # no structured= → default path
+    app.dependency_overrides[get_laws] = lambda: laws
+    app.dependency_overrides[get_memo_llm] = lambda: StubLLM()  # analyst; reviewer built internally
     try:
         r = TestClient(app).post("/analyze", json=SITUATION)
         assert r.status_code == 200

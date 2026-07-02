@@ -439,8 +439,12 @@ emits, through the real `core/` path. So:
        Tests: 5 API SSE tests (single memo frame / multi_agent agent-then-memo / terminal error frame /
        rate-limit), 5 client tests, 4 AppTest UI tests (incl. panel model-name assertions + terminal
        error). Same offline gotcha as step 7: the multi_agent API test pins `settings.llm_provider="stub"`.*
-9. [ ] **The eval gate** (§11): `make eval-judge` single vs multi on the Phase 6 gold set; record the
+9. [x] **The eval gate** (§11): `make eval-judge` single vs multi on the Phase 6 gold set; record the
        before/after in §16; flip the default **only** if groundedness/citations hold or improve.
+       *RAN 2026-07-02 (paid, human-run, $10.55 total). Result in §16: multi MET the criterion
+       (grounded 97.9% vs 95.9%, citations 100% vs 97.7%, coverage tied 78.4%). Default flip-or-flag
+       decision PENDING sjtroxel's call (product/cost tradeoff). Numbers recovered from disk after a
+       lost tee log; run was batched 5+5+15 via the new `--offset` flag.*
        **TURNKEY RUNBOOK (paid, human-run, 2026-07-02 AM):**
        1. **Point config at the paid Anthropic models** (the live `.env` is on OpenRouter free models):
           set `LLM_PROVIDER=anthropic`, ensure `ANTHROPIC_API_KEY=…`, and **remove/comment the
@@ -462,7 +466,10 @@ emits, through the real `core/` path. So:
           Ties → keep behind the flag as the showcase/observability path (tell the honest "measured;
           it held" story). Regresses → not default, full stop. Then flip `LLM_PROVIDER` back to
           `openrouter` (restore the `.env` `:free` overrides) so day-to-day dev stays $0.
-10. [ ] `ruff check . && ruff format --check . && pytest` green; running-app QA of the panel recorded in §16.
+10. [x] `ruff check . && ruff format --check . && pytest` green; running-app QA of the panel recorded in §16.
+       *2026-07-02: ruff clean + pytest 356 green after the default flip to multi_agent (test fallout fixed;
+       see §16). Panel QA stands from step 8 (the flip changes only which pipeline is default, not the
+       panel's behavior, which was already verified on the multi path). **Phase 12 COMPLETE.***
        *ruff + pytest green (355) at step-8 close 2026-07-01. Panel QA: stub run confirmed the fold-out
        renders (config-driven Sonnet 5 / Opus 4.8 labels, ✓/⚠/✗ lines, memo + chrome, `(stub)` summary
        via the typed.summary seam) AND the terminal-error path fired gracefully against a real OpenRouter
@@ -518,8 +525,52 @@ independently committable (single short one-liner, no attribution; sjtroxel runs
   an asyncio.Queue (verified on a real loop: agent frames precede the memo frame). Panel = st.status
   fold-out naming the model per line (MODEL_LABELS dict, raw-id fallback) + analyst/reviewer header.
   Chrome (banner / we-don't-store / footer) unchanged on the memo page. UI now prefers typed.summary.**
-- **Eval gate (the number that decides it): single vs multi-agent groundedness / citations-resolve:** `__________`
-- Default flipped to multi_agent, or kept behind the flag (and why)? `__________`
-- Cost/latency measured (per-memo, Missouri 7-law): `__________`
-- Deviations from this plan: `__________`
+- **Eval gate (the number that decides it): single vs multi-agent groundedness / citations-resolve:**
+  **RAN 2026-07-02 (paid, human-run), fresh on Sonnet 5, same 25 in-scope gold cases. Multi run
+  batched (5 + 5 + 15) via the new `--offset` flag and pooled (per-obligation counts pool identically
+  to one run).**
+
+  | Metric | Single (Sonnet 5) | Multi-agent (Sonnet 5 analysts + Opus 4.8 reviewer) |
+  |---|---|---|
+  | Groundedness (yes) | 95.9% (162/169) | **97.9% (191/195)** |
+  | Citations-resolve | 97.7% (169/173) | **100.0% (195/195)** |
+  | Coverage | 78.4% (29/37) | 78.4% (29/37) |
+
+  **Verdict vs the §11 criterion (grounded ≥ single AND citations-resolve ≥ 99%): MET.** Multi beats
+  single on groundedness (+2.0) and citations-resolve (+2.3, clearing the 99% bar single missed), and
+  **ties exactly on coverage** — the un-gameable metric (gold-obligation recall the reviewer's drop
+  step can't inflate). Honest read: multi doesn't catch *more* required obligations (coverage tie), but
+  its emitted set is *cleaner* — every citation resolves and grounding is higher — because the reviewer
+  drops obligations whose citations don't resolve / that fail the groundedness judge (same Opus judge
+  the eval scores with, so grounded/citations gains are partly structural, not pure generation quality;
+  coverage is the honest tiebreak and it held). Baseline note: the archived 86.5% was Sonnet 4.6; single
+  on Sonnet 5 jumped to 95.9%, so the live bar was already high.
+- Default flipped to multi_agent, or kept behind the flag (and why)? **FLIPPED to `multi_agent`
+  (sjtroxel's call, 2026-07-02). `config.py` default `memo_pipeline = "multi_agent"`. Rationale: the
+  §11 criterion was MET, and the audience that actually runs a memo (a former instructor, a recruiter)
+  is precisely who should see the cleaner output — 100% citation-resolution matters for a compliance
+  memo. Cost (~1.6× at eval scale, more per wide memo) is acceptable at this app's low expected volume;
+  re-confirm the Phase 5 memo rate limit before any real traffic. Test fallout: legacy single-path
+  tests in `test_memo.py`/`test_api.py` now pin `single` via an autouse fixture (they exercise the
+  single-call path + shared overlays); the "default is single" guard was replaced with a
+  "default is multi_agent" guard + a converted `/analyze` multi-default chrome test. 356 green.**
+- Cost/latency measured (per-memo, Missouri 7-law): **Paid gate 2026-07-02, from console.anthropic.com.
+  SINGLE full 25 = $4.07 ($1.83 Sonnet gen + $2.25 Opus eval-judge). MULTI full 25 = $6.48
+  (batch1 5-case $1.22 + batch2 5-case $2.19 + final 15-case $3.07). Multi ≈ 1.6× single at eval scale;
+  per-memo the multiplier is larger where a case spans many laws (Opus reviewer judges every obligation
+  serially — `location-unknown`'s 28 obligations made batch 2 the cost peak). Cost tracks obligation
+  count at ~$0.044/obligation; Opus reviewer + eval-judge dominate (~85% of multi spend). Full Phase 12
+  gate cost (both runs) = $10.55. Latency: multi's parallel analyst fan-out is faster per case than the
+  single monolithic memo call on wide cases, but the serial Opus reviewer is the tail (location-unknown
+  was minutes). NOTE: est_cost gate figure is single-calibrated ($0.18/case) and understates multi;
+  the hard cap (50) is the real circuit breaker there.**
+- Deviations from this plan: **(1) The paid run's `tee` log was lost to a wrapped-path typo, but the
+  judged tier persists every memo HTML with its score banner, so all numbers were reconstructed from
+  disk — logged as a resilience win. (2) Added `eval/run.py --offset` (disjoint paid batches) so the
+  25-case multi run could be split into cheap chunks (5+5+15) with pooled scoring — not in the original
+  plan, earned its keep for "soft sticker shock" + a stop-and-fix checkpoint after each batch.
+  (3) Fixed `eval/run.py` memo dump to pass `corpus_as_of=memo.corpus_as_of` (was falling back to
+  today's date — cosmetic, eval-dump-only; app/PDF path was already correct). Both edits pending commit.
+  (4) STILL TODO: the cost-summary print (`obs.cost_summary()` at end of judged run) so runs self-report
+  spend and never depend on `tee` again — deferred, not yet built.**
 ```
