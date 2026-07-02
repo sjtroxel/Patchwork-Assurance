@@ -414,11 +414,59 @@ emits, through the real `core/` path. So:
        an offline test must force `llm_provider="stub"` or it hits the real provider from .env (caught: a test
        fired ~2min of OpenRouter :free calls, $0 but a real isolation bug). 345 green, full suite back to ~8s.
        **STILL TODO in step 8:** ui/memo.py should also prefer `typed.summary` (done with the panel).*
-8. [ ] **Observability** (§9): `AgentEvent`, `/analyze/stream` SSE, `analyze_stream()`, the `st.status`
+8. [x] **Observability** (§9): `AgentEvent`, `/analyze/stream` SSE, `analyze_stream()`, the `st.status`
        fold-out. *(Teach: the SSE progress protocol, why streaming is required here.)*
+       *Done 2026-07-01, 355 green. `generate_memo` gained an optional keyword-only `on_event` hook
+       threaded to `_generate_multi_agent`→`run_multi_agent_memo` (single path ignores it; keystone
+       signature stays backward-compatible for eval/MCP/curl). `POST /analyze/stream` mirrors `/chat`'s
+       `EventSourceResponse`. **The bridge (the teaching bit): `generate_memo` is synchronous and the
+       orchestrator fans analysts on its own ThreadPoolExecutor, so `on_event` fires from a WORKER
+       thread — an `asyncio.Queue` is not thread-safe to `put` from another thread, so the callback hops
+       each event back onto the loop with `loop.call_soon_threadsafe(queue.put_nowait, ...)`. A coroutine
+       (`run_pipeline`) runs `generate_memo` via `run_in_threadpool`, then puts `("memo", memo)` /
+       `("error", detail)`; the async `events()` generator drains the queue into SSE frames (`agent`,
+       then `memo` or `error`).** Same grounding guard + memo rate limit as `/analyze`. Verified on a
+       real event loop (not just TestClient): agent frames stream BEFORE the memo frame, request_id
+       contextvar propagates into the workers. `ui/client.py:analyze_stream()` mirrors `stream_chat`
+       (long MEMO_TIMEOUT; 429 read as a plain JSON body since the limiter rejects before the stream
+       opens). `ui/memo.py`: `st.status` fold-out via `_run_streaming_memo` — a `MODEL_LABELS` dict maps
+       `claude-sonnet-5`→"Sonnet 5" / `claude-opus-4-8`→"Opus 4.8" / `claude-haiku-4-5`→"Haiku 4.5" with
+       raw-id fallback (UI hardcodes no model; ids flow from config through the events), a one-line
+       "Analysts: … / Reviewer: …" header, per-step lines with ✓/⚠/✗ marks + timing. **Also done in
+       step 8: `ui/memo.py` now prefers `typed.summary or executive_summary(...)`** (the UI half of the
+       §7 summary seam; render.py half was done in step 7). Cost/tokens shown best-effort — the analyst
+       trace leaves them None today, so the panel degrades to model + timing (per §9's guidance).
+       Tests: 5 API SSE tests (single memo frame / multi_agent agent-then-memo / terminal error frame /
+       rate-limit), 5 client tests, 4 AppTest UI tests (incl. panel model-name assertions + terminal
+       error). Same offline gotcha as step 7: the multi_agent API test pins `settings.llm_provider="stub"`.*
 9. [ ] **The eval gate** (§11): `make eval-judge` single vs multi on the Phase 6 gold set; record the
        before/after in §16; flip the default **only** if groundedness/citations hold or improve.
+       **TURNKEY RUNBOOK (paid, human-run, 2026-07-02 AM):**
+       1. **Point config at the paid Anthropic models** (the live `.env` is on OpenRouter free models):
+          set `LLM_PROVIDER=anthropic`, ensure `ANTHROPIC_API_KEY=…`, and **remove/comment the
+          `CHAT_MODEL` / `MEMO_MODEL` / `JUDGE_MODEL` `:free` overrides** so the config defaults apply
+          (`memo_model=claude-sonnet-5`, `judge_model=claude-opus-4-8`; multi_agent's `analyst_model`/
+          `reviewer_model` fall back to those). Confirm with `make eval` (free) first — it should still
+          be green — before spending.
+       2. **Run twice, same gold set, through the spend gate:**
+          `MEMO_PIPELINE=single make eval-judge` then `MEMO_PIPELINE=multi_agent make eval-judge`.
+          Each stops at `confirm_spend` (typed confirmation + hard cap `eval_max_judged_cases`).
+       3. **Cost honesty:** the `est_cost` shown at the gate is calibrated for the SINGLE path
+          (1 memo + 1 judge/case). Multi_agent fires N analyst calls + a per-obligation Opus reviewer,
+          so the real bill runs ABOVE that estimate; the hard cap is the circuit breaker, not the
+          estimate. Expect multi_agent to cost a few× single.
+       4. **The comparison is single-on-Sonnet-5 vs multi-on-Sonnet-5+Opus, BOTH measured fresh
+          tomorrow** — the archived 86.5% baseline was on Sonnet 4.6, so it's a historical reference,
+          not the live bar. Record both runs' groundedness(yes)/citations-resolve/coverage in §16.
+       5. **Ship-as-default only if** groundedness ≥ single's fresh number AND citations-resolve ≥ 99%.
+          Ties → keep behind the flag as the showcase/observability path (tell the honest "measured;
+          it held" story). Regresses → not default, full stop. Then flip `LLM_PROVIDER` back to
+          `openrouter` (restore the `.env` `:free` overrides) so day-to-day dev stays $0.
 10. [ ] `ruff check . && ruff format --check . && pytest` green; running-app QA of the panel recorded in §16.
+       *ruff + pytest green (355) at step-8 close 2026-07-01. Panel QA: stub run confirmed the fold-out
+       renders (config-driven Sonnet 5 / Opus 4.8 labels, ✓/⚠/✗ lines, memo + chrome, `(stub)` summary
+       via the typed.summary seam) AND the terminal-error path fired gracefully against a real OpenRouter
+       429 ("Memo failed" + st.error, no hang). Live-latency observation deferred to the step-9 paid run.*
 
 Steps 1-7 are **free/offline** (stub); 8 is UI; 9 is the one paid, human-run, gated step. Each step is
 independently committable (single short one-liner, no attribution; sjtroxel runs git).
@@ -465,7 +513,11 @@ independently committable (single short one-liner, no attribution; sjtroxel runs
 - Threadpool `request_id` propagation — how handled + tested: `__________`
 - Reviewer: per-obligation vs batched (and why): `__________`
 - `summary` field added + renderer prefers it + SPEC §8.4 updated? `__________`
-- `/analyze/stream` SSE + panel — built, chrome present? `__________`
+- `/analyze/stream` SSE + panel — built, chrome present? **Yes, 2026-07-01 (355 green). SSE mirrors
+  /chat; the sync-orchestrator on_event is bridged to the async SSE via loop.call_soon_threadsafe onto
+  an asyncio.Queue (verified on a real loop: agent frames precede the memo frame). Panel = st.status
+  fold-out naming the model per line (MODEL_LABELS dict, raw-id fallback) + analyst/reviewer header.
+  Chrome (banner / we-don't-store / footer) unchanged on the memo page. UI now prefers typed.summary.**
 - **Eval gate (the number that decides it): single vs multi-agent groundedness / citations-resolve:** `__________`
 - Default flipped to multi_agent, or kept behind the flag (and why)? `__________`
 - Cost/latency measured (per-memo, Missouri 7-law): `__________`

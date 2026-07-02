@@ -53,6 +53,50 @@ def _mock_stream(messages, **_):
     yield ("sources", SOURCES_JSON)
 
 
+def _mock_analyze_stream(memo_dict, *, with_agent=True):
+    """Build a stand-in for client.analyze_stream: optional per-agent progress frames (which drive the
+    observability fold-out), then the final 'memo' frame."""
+
+    def _gen(situation, **_):
+        if with_agent:
+            yield (
+                "agent",
+                json.dumps(
+                    {
+                        "kind": "analyst_start",
+                        "model": "claude-sonnet-5",
+                        "law_id": "co-sb26-189",
+                        "detail": "CO SB 26-189",
+                    }
+                ),
+            )
+            yield (
+                "agent",
+                json.dumps(
+                    {
+                        "kind": "analyst_done",
+                        "model": "claude-sonnet-5",
+                        "law_id": "co-sb26-189",
+                        "ms": 12.3,
+                    }
+                ),
+            )
+            yield (
+                "agent",
+                json.dumps(
+                    {
+                        "kind": "review_verdict",
+                        "model": "claude-opus-4-8",
+                        "law_id": "co-sb26-189",
+                        "detail": "grounded: Colorado § 6-1-1704",
+                    }
+                ),
+            )
+        yield ("memo", json.dumps(memo_dict))
+
+    return _gen
+
+
 # ---------------------------------------------------------------------------
 # Memo page (app.py)
 # ---------------------------------------------------------------------------
@@ -86,7 +130,10 @@ def test_memo_page_renders_memo_on_submit():
     # Patch the SOURCE symbol (ui.pdf) — AppTest runs the page in a fresh namespace, so patching
     # ui.memo would not apply. The real PDF render is locked in test_pdf.py.
     with (
-        patch("patchwork_assurance.ui.client.analyze", return_value=SAMPLE_MEMO),
+        patch(
+            "patchwork_assurance.ui.client.analyze_stream",
+            side_effect=_mock_analyze_stream(SAMPLE_MEMO),
+        ),
         patch("patchwork_assurance.ui.pdf.memo_pdf_bytes", side_effect=RuntimeError("no libs")),
     ):
         at.button[0].click().run()
@@ -101,6 +148,10 @@ def test_memo_page_renders_memo_on_submit():
     assert any("appear to be in scope" in i for i in infos)
     # ...and the PDF export is wired into the memo render (degraded to its caption here, no libs in test).
     assert any("unavailable" in c.value for c in at.caption)
+    # Phase 12: the observability fold-out named the models behind the steps.
+    md = [m.value for m in at.markdown]
+    assert any("Sonnet 5" in m for m in md)
+    assert any("Opus 4.8" in m for m in md)
 
 
 def test_memo_page_draft_notices_render_as_expanders():
@@ -116,7 +167,10 @@ def test_memo_page_draft_notices_render_as_expanders():
     at.multiselect[1].set_value(["employment"])
 
     with (
-        patch("patchwork_assurance.ui.client.analyze", return_value=memo),
+        patch(
+            "patchwork_assurance.ui.client.analyze_stream",
+            side_effect=_mock_analyze_stream(memo, with_agent=False),
+        ),
         # degrade the PDF path so no download widget renders (AppTest nested-form false-positive)
         patch("patchwork_assurance.ui.pdf.memo_pdf_bytes", side_effect=RuntimeError("no libs")),
     ):
@@ -135,7 +189,7 @@ def test_memo_page_shows_error_when_api_down():
     # role + AI-use radios keep their defaults (deployer / "Yes")
 
     with patch(
-        "patchwork_assurance.ui.client.analyze",
+        "patchwork_assurance.ui.client.analyze_stream",
         side_effect=APIError("Could not reach the analysis service."),
     ):
         at.button[0].click().run()
@@ -143,6 +197,26 @@ def test_memo_page_shows_error_when_api_down():
     assert not at.exception
     errors = [e.value for e in at.error]
     assert any("Could not reach" in e for e in errors)
+
+
+def test_memo_page_shows_error_on_terminal_stream_event():
+    """A mid-stream failure arrives as a terminal 'error' SSE frame (not a raised APIError); the panel
+    surfaces it as st.error and no memo renders."""
+
+    def _error_stream(situation, **_):
+        yield ("agent", json.dumps({"kind": "analyst_start", "model": "claude-sonnet-5"}))
+        yield ("error", json.dumps({"detail": "Upstream LLM error: boom"}))
+
+    at = AppTest.from_file("src/patchwork_assurance/ui/memo.py").run()
+    at.multiselect[0].set_value(["Colorado"])
+    at.multiselect[1].set_value(["employment"])
+
+    with patch("patchwork_assurance.ui.client.analyze_stream", side_effect=_error_stream):
+        at.button[0].click().run()
+
+    assert not at.exception
+    assert any("Upstream LLM error" in e.value for e in at.error)
+    assert "CO SB 26-189" not in [e.label for e in at.expander]  # no memo rendered
 
 
 # ---------------------------------------------------------------------------

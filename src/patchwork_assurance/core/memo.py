@@ -1,3 +1,4 @@
+from collections.abc import Callable
 from datetime import date
 
 from patchwork_assurance.config import settings
@@ -35,13 +36,21 @@ def generate_memo(
     retriever,
     llm,
     laws: list[LawMetadata] | None = None,
+    *,
+    on_event: Callable | None = None,
 ) -> ComplianceMemo:
     """The one public entry point (the keystone: api/, ui/, eval/, mcp/ all call this name). Phase 12
     splits the middle GENERATION step behind a config flag; the deterministic overlays and the output
-    contract are unchanged either way, so both paths emit the same ComplianceMemo."""
+    contract are unchanged either way, so both paths emit the same ComplianceMemo.
+
+    `on_event` is an optional progress hook (an AgentEvent callback) the streaming surface
+    (`/analyze/stream`, Phase 12 §9) drives the live panel with. Only the multi_agent pipeline emits
+    events; the single path ignores it. None everywhere else (eval/MCP/CLI/the non-streaming /analyze)."""
     laws_by_id = {law.law_id: law for law in (laws or [])}
     if settings.memo_pipeline == "multi_agent":
-        memo = _generate_multi_agent(situation, scope, retriever, llm, laws_by_id)
+        memo = _generate_multi_agent(
+            situation, scope, retriever, llm, laws_by_id, on_event=on_event
+        )
     else:
         memo = _generate_single(situation, scope, retriever, llm, laws_by_id)
     _apply_deterministic_overlays(memo, situation, scope, laws_by_id)
@@ -90,6 +99,8 @@ def _generate_multi_agent(
     retriever,
     llm,
     laws_by_id: dict[str, LawMetadata],
+    *,
+    on_event: Callable | None = None,
 ) -> ComplianceMemo:
     """Phase 12: per-law analyst fan-out + grounding/hedge reviewer. The passed `llm` is the analyst
     model (Sonnet); the reviewer model is built from settings internally so the two-model pipeline
@@ -117,6 +128,7 @@ def _generate_multi_agent(
         reviewer_model=reviewer_model,
         section_texts=section_texts,
         max_revisions=settings.reviewer_max_revisions,
+        on_event=on_event,
     )
 
 

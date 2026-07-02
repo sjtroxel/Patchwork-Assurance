@@ -187,6 +187,90 @@ def test_analyze_llm_error_maps_to_502():
         app.dependency_overrides.clear()
 
 
+# ---- /analyze/stream SSE (Phase 12 observability) ----
+
+
+def test_analyze_stream_single_pipeline_emits_memo_event(analyze_client):
+    """The streaming twin of /analyze. In the default single pipeline there are no per-agent events,
+    but the SSE still delivers the final ComplianceMemo as a 'memo' frame with the chrome intact."""
+    r = analyze_client.post("/analyze/stream", json=SITUATION)
+    assert r.status_code == 200
+    assert r.headers["content-type"].startswith("text/event-stream")
+    events = parse_sse(r.text)
+    memo_events = [e for e in events if e.get("event") == "memo"]
+    assert len(memo_events) == 1
+    body = json.loads(memo_events[0]["data"])
+    assert "per_law" in body
+    assert body["disclaimer"] == MINIMAL_MEMO.disclaimer
+
+
+def test_analyze_stream_multi_agent_emits_agent_events_then_memo(monkeypatch):
+    """With the multi_agent pipeline the on_event hook must reach the SSE: at least one analyst_start
+    'agent' frame (naming the model), then the final memo. Fully offline on the bare StubLLM — the
+    logged gotcha is that _generate_multi_agent builds the reviewer via build_llm(settings, ...), which
+    reads llm_provider from .env, so pin it to 'stub' or it fires live OpenRouter calls."""
+    from pathlib import Path
+
+    from patchwork_assurance.core.scope import load_law_metadata
+
+    monkeypatch.setattr(settings, "memo_pipeline", "multi_agent")
+    monkeypatch.setattr(settings, "llm_provider", "stub")
+    laws = load_law_metadata(Path(settings.corpus_path))
+    app.dependency_overrides[get_retriever] = lambda: _StubRetriever()
+    app.dependency_overrides[get_laws] = lambda: laws
+    app.dependency_overrides[get_memo_llm] = lambda: StubLLM()  # analyst; reviewer built internally
+    try:
+        r = TestClient(app).post(
+            "/analyze/stream",
+            json={
+                "jurisdictions": ["Colorado"],
+                "decision_domains": ["employment"],
+                "roles": ["deployer"],
+            },
+        )
+        assert r.status_code == 200
+        events = parse_sse(r.text)
+        agent_events = [json.loads(e["data"]) for e in events if e.get("event") == "agent"]
+        assert any(e["kind"] == "analyst_start" for e in agent_events)
+        # The model id flows from config through the event so the panel can label it.
+        starts = [e for e in agent_events if e["kind"] == "analyst_start"]
+        assert all(e["model"] for e in starts)
+        assert [e for e in events if e.get("event") == "memo"]
+    finally:
+        app.dependency_overrides.clear()
+
+
+def test_analyze_stream_llm_error_emits_error_event(monkeypatch):
+    """A provider failure mid-pipeline can't be an HTTP error code once streaming has started, so it
+    surfaces as a terminal SSE 'error' frame (mirroring /chat)."""
+    app.dependency_overrides[get_retriever] = lambda: _StubRetriever()
+    app.dependency_overrides[get_laws] = lambda: []
+    app.dependency_overrides[get_memo_llm] = lambda: _RaisingLLM()
+    try:
+        r = TestClient(app).post("/analyze/stream", json=SITUATION)
+        assert r.status_code == 200  # stream opened before the failure
+        events = parse_sse(r.text)
+        error_events = [e for e in events if e.get("event") == "error"]
+        assert error_events
+        assert "Upstream LLM error" in json.loads(error_events[0]["data"])["detail"]
+    finally:
+        app.dependency_overrides.clear()
+
+
+def test_analyze_stream_respects_rate_limit():
+    """The Sonnet cost cap applies to the streaming path too (it rejects before the stream opens)."""
+    app.dependency_overrides[get_retriever] = lambda: _StubRetriever()
+    app.dependency_overrides[get_laws] = lambda: []
+    app.dependency_overrides[get_memo_llm] = lambda: StubLLM(structured=MINIMAL_MEMO)
+    try:
+        client = TestClient(app)
+        assert client.post("/analyze/stream", json=SITUATION).status_code == 200
+        assert client.post("/analyze/stream", json=SITUATION).status_code == 200
+        assert client.post("/analyze/stream", json=SITUATION).status_code == 429
+    finally:
+        app.dependency_overrides.clear()
+
+
 # ---- memo rate limit ----
 
 

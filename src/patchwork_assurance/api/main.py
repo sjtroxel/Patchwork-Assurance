@@ -1,6 +1,8 @@
+import asyncio
 import json
 import uuid
 from contextlib import asynccontextmanager
+from dataclasses import asdict
 from datetime import UTC, datetime
 from pathlib import Path
 
@@ -222,6 +224,77 @@ def analyze(
                 "grounding_guard", surface="memo", unresolved=len(unresolved), citations=unresolved
             )
     return memo
+
+
+@app.post("/analyze/stream")
+async def analyze_stream(
+    situation: Situation,
+    retriever=Depends(get_retriever),
+    laws=Depends(get_laws),
+    llm=Depends(get_memo_llm),
+    sections=Depends(get_sections),
+    _rl: None = Depends(memo_rate_limit),
+):
+    # Streaming twin of /analyze (§9): same scope + generate_memo, but the multi-agent pipeline's
+    # per-agent progress is pushed to the client live so the observability panel can show which model
+    # produced each contribution. Plain /analyze stays the single-response path for MCP/eval/curl.
+    #
+    # The bridge worth understanding: generate_memo is fully SYNCHRONOUS and the orchestrator runs its
+    # analysts on its own ThreadPoolExecutor, so its `on_event` callback fires from a worker thread, not
+    # the event loop. An asyncio.Queue is NOT thread-safe to put onto from another thread, so the
+    # callback hands each event across the thread boundary with loop.call_soon_threadsafe(put_nowait).
+    # The async generator below then drains that queue and yields SSE frames. This is why streaming is
+    # required here at all: a single POST can't reveal the intermediate agent work as it happens.
+    scope = applicable_laws(situation, laws)
+    loop = asyncio.get_running_loop()
+    queue: asyncio.Queue = asyncio.Queue()
+
+    def on_event(event) -> None:
+        # Called from the orchestrator's (worker) thread — hop back onto the loop thread safely.
+        loop.call_soon_threadsafe(queue.put_nowait, ("agent", event))
+
+    async def run_pipeline() -> None:
+        # A coroutine on the loop thread, so it may put onto the queue directly (no threadsafe hop).
+        try:
+            memo = await run_in_threadpool(
+                generate_memo, situation, scope, retriever, llm, laws, on_event=on_event
+            )
+            # Same grounding guard as /analyze: flag any cited section that isn't a real corpus section.
+            if sections:
+                cited = [ob.citation for finding in memo.per_law for ob in finding.obligations]
+                unresolved = grounding.unresolved_citations(cited, sections)
+                if unresolved:
+                    obs.log_event(
+                        "grounding_guard",
+                        surface="memo",
+                        unresolved=len(unresolved),
+                        citations=unresolved,
+                    )
+            queue.put_nowait(("memo", memo))
+        except LLMError as exc:
+            queue.put_nowait(("error", f"Upstream LLM error: {exc}"))
+        except ValueError as exc:
+            queue.put_nowait(("error", str(exc)))
+        finally:
+            queue.put_nowait(("end", None))
+
+    async def events():
+        task = asyncio.ensure_future(run_pipeline())
+        try:
+            while True:
+                kind, payload = await queue.get()
+                if kind == "end":
+                    break
+                if kind == "agent":
+                    yield {"event": "agent", "data": json.dumps(asdict(payload))}
+                elif kind == "memo":
+                    yield {"event": "memo", "data": payload.model_dump_json()}
+                elif kind == "error":
+                    yield {"event": "error", "data": json.dumps({"detail": payload})}
+        finally:
+            await task  # surface any pipeline exception; never leak the task
+
+    return EventSourceResponse(events())
 
 
 @app.post("/chat")

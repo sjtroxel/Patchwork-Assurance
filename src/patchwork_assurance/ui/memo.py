@@ -1,3 +1,5 @@
+import json
+
 import streamlit as st
 
 from patchwork_assurance.core.contracts import ComplianceMemo, Situation
@@ -44,6 +46,77 @@ ROLE_OPTIONS = {
 }
 
 AI_USE_OPTIONS = {"Yes": "yes", "No": "no", "Not sure": "unsure"}
+
+# Friendly labels for the model ids that flow through the observability panel (Phase 12 §9). The panel
+# names which model produced each contribution; the ids arrive from config via the AgentEvents, so the
+# UI hardcodes no model — an unmapped id falls back to its raw string so a future model still shows
+# something truthful.
+MODEL_LABELS = {
+    "claude-sonnet-5": "Sonnet 5",
+    "claude-opus-4-8": "Opus 4.8",
+    "claude-haiku-4-5": "Haiku 4.5",
+}
+_VERDICT_MARK = {"grounded": "✓", "flagged": "⚠", "dropped": "✗"}
+
+
+def _model_label(model_id: str) -> str:
+    return MODEL_LABELS.get(model_id, model_id or "model")
+
+
+def _agent_line(ev: dict, names: dict[str, str]) -> str | None:
+    """One human-readable panel line for an AgentEvent (a dict from the SSE JSON). None when there is
+    nothing to show (the terminal 'done')."""
+    kind = ev.get("kind", "")
+    model = _model_label(ev.get("model", ""))
+    law_id = ev.get("law_id", "")
+    detail = ev.get("detail", "")
+    if kind == "analyst_start":
+        names[law_id] = detail or law_id  # remember the short_name for the matching done line
+        return f"Analyzing {detail or law_id} · {model}…"
+    if kind == "analyst_done":
+        ms = ev.get("ms")
+        suffix = f" ({ms:.0f} ms)" if isinstance(ms, int | float) else ""
+        return f"✓ {names.get(law_id, law_id)} analyzed{suffix}"
+    if kind == "review_verdict":
+        # detail is e.g. "grounded: Colorado § 6-1-1704" or "dropped (fabricated citation): …".
+        verdict = detail.split()[0].rstrip(":") if detail else ""
+        return f"{_VERDICT_MARK.get(verdict, '·')} {detail} (reviewed by {model})"
+    if kind == "review_summary":
+        return f"Executive summary written by {model}"
+    return None
+
+
+def _run_streaming_memo(situation: dict, client_ip: str) -> dict | None:
+    """Drive POST /analyze/stream, showing a live fold-out that names the model behind each step (this
+    is what makes the multi-agent latency legible — the answer Phase 11 deferred to here). Returns the
+    ComplianceMemo dict, or None if the stream ended in a terminal error event. Raises client.APIError
+    if the connection fails before streaming starts (surfaced by the caller)."""
+    memo: dict | None = None
+    names: dict[str, str] = {}
+    header = {"analyst": False, "reviewer": False}
+    with st.status("Generating your memo…", expanded=True) as status:
+        for ev_name, data in client.analyze_stream(situation, client_ip=client_ip):
+            if ev_name == "agent":
+                ev = json.loads(data)
+                kind = ev.get("kind", "")
+                if kind == "analyst_start" and not header["analyst"]:
+                    st.caption(f"Analysts: {_model_label(ev.get('model', ''))}")
+                    header["analyst"] = True
+                if kind.startswith("review") and not header["reviewer"]:
+                    st.caption(f"Reviewer: {_model_label(ev.get('model', ''))}")
+                    header["reviewer"] = True
+                line = _agent_line(ev, names)
+                if line:
+                    st.write(line)
+            elif ev_name == "memo":
+                memo = json.loads(data)
+            elif ev_name == "error":
+                status.update(label="Memo failed", state="error", expanded=True)
+                st.error(json.loads(data).get("detail", "The memo could not be completed."))
+                return None
+        status.update(label="Memo ready", state="complete", expanded=False)
+    return memo
+
 
 # US states (+ DC) for the home-state field. Full names so a regulating home state (e.g. "Colorado")
 # matches the corpus jurisdiction and auto-counts as a nexus (handled in core/scope.py).
@@ -185,7 +258,9 @@ def _render_memo(memo: dict, situation: dict) -> None:
     # as a dict; reconstruct the typed pair so there's one typed path, no dict-vs-object drift.
     typed = ComplianceMemo.model_validate(memo)
     typed_situation = Situation.model_validate(situation)
-    st.info(executive_summary(typed, typed_situation))
+    # Phase 12 seam (UI half): prefer the reviewer's natural-language summary when present (multi_agent
+    # mode) and fall back to the deterministic Phase 11 line otherwise — same precedence as render.py.
+    st.info(typed.summary or executive_summary(typed, typed_situation))
     _render_pdf_button(typed, typed_situation)
 
     render_seam()
@@ -274,14 +349,17 @@ if submitted:
         "notes": notes,
     }
     try:
-        with st.spinner("Analyzing against the statute text…"):
-            # Hold the in-session result in session_state (ephemeral, discarded with the session — the
-            # same pattern already used for `meta`; no DB, no saved history, statelessness intact). This
-            # is what lets the PDF download button work: st.download_button reruns the page on click
-            # (streamlit#3832), and persisting the memo means that rerun re-renders it instead of wiping
-            # it back to the empty form.
-            st.session_state.memo = client.analyze(situation, client_ip=client_ip)
-        st.session_state.memo_situation = situation
+        # Stream the multi-agent pipeline so the observability fold-out shows per-agent progress live.
+        # Hold the in-session result in session_state (ephemeral, discarded with the session — the same
+        # pattern already used for `meta`; no DB, no saved history, statelessness intact). This is what
+        # lets the PDF download button work: st.download_button reruns the page on click (streamlit#3832),
+        # and persisting the memo means that rerun re-renders it instead of wiping it back to the form.
+        memo = _run_streaming_memo(situation, client_ip)
+        if memo is not None:
+            st.session_state.memo = memo
+            st.session_state.memo_situation = situation
+        else:
+            st.session_state.pop("memo", None)  # terminal stream error already shown in the panel
     except client.APIError as exc:
         st.session_state.pop("memo", None)
         st.error(str(exc))

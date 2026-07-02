@@ -1,3 +1,4 @@
+import json
 from collections.abc import Iterator
 
 import httpx
@@ -133,4 +134,51 @@ def stream_chat(
             _client.close()
 
 
-__all__ = ["APIError", "analyze", "get_memo_quota", "get_meta", "iter_sse_events", "stream_chat"]
+def analyze_stream(
+    situation: dict,
+    *,
+    client: httpx.Client | None = None,
+    client_ip: str | None = None,
+) -> Iterator[tuple[str, str]]:
+    """POST /analyze/stream and yield (event, data) pairs: ('agent', json) per pipeline step, then
+    ('memo', json) with the final ComplianceMemo, or ('error', json). Raises APIError if the
+    connection fails before streaming starts. Mirrors stream_chat; uses the long memo read budget
+    (the multi-agent fan-out + reviewer runs well past 60s)."""
+    _client = client or httpx.Client()
+    _owned = client is None  # close only the client we created, never a caller-injected one
+    try:
+        with _client.stream(
+            "POST",
+            f"{settings.api_base_url}/analyze/stream",
+            json=situation,
+            timeout=MEMO_TIMEOUT,
+            headers=_ip_headers(client_ip),
+        ) as r:
+            if r.status_code == 429:
+                # The rate-limit dependency rejects BEFORE streaming starts, so this is a normal JSON
+                # error body (not an SSE frame). Read it to surface the server's friendly message.
+                try:
+                    detail = json.loads(r.read()).get("detail", "")
+                except Exception:
+                    detail = ""
+                raise APIError(detail or "You've reached today's memo limit. Chat is unlimited.")
+            if r.status_code >= 500:
+                raise APIError("The analysis service is temporarily unavailable. Please try again.")
+            r.raise_for_status()
+            yield from iter_sse_events(r.iter_lines())
+    except httpx.HTTPError as exc:
+        raise APIError(f"Could not reach the analysis service at {settings.api_base_url}.") from exc
+    finally:
+        if _owned:
+            _client.close()
+
+
+__all__ = [
+    "APIError",
+    "analyze",
+    "analyze_stream",
+    "get_memo_quota",
+    "get_meta",
+    "iter_sse_events",
+    "stream_chat",
+]

@@ -8,6 +8,7 @@ import pytest
 from patchwork_assurance.ui.client import (
     APIError,
     analyze,
+    analyze_stream,
     get_memo_quota,
     get_meta,
     iter_sse_events,
@@ -264,3 +265,57 @@ def test_stream_chat_connection_error_raises_api_error():
 
     with pytest.raises(APIError, match="Could not reach"):
         list(stream_chat([{"role": "user", "content": "Hi"}], client=_mock_client(handler)))
+
+
+# ---------------------------------------------------------------------------
+# analyze_stream() — the Phase 12 observability SSE (agent events, then memo)
+# ---------------------------------------------------------------------------
+
+
+def test_analyze_stream_yields_agent_events_then_memo():
+    agent = json.dumps(
+        {"kind": "analyst_start", "model": "claude-sonnet-5", "law_id": "co", "detail": "CO SB"}
+    )
+    body = _sse_body(("agent", agent), ("memo", json.dumps(SAMPLE_MEMO)))
+
+    def handler(request):
+        assert request.url.path == "/analyze/stream"
+        return httpx.Response(200, content=body)
+
+    events = list(analyze_stream(SAMPLE_SITUATION, client=_mock_client(handler)))
+    assert events[0][0] == "agent"
+    assert json.loads(events[0][1])["model"] == "claude-sonnet-5"
+    assert events[1][0] == "memo"
+    assert json.loads(events[1][1])["per_law"][0]["law_id"] == "co-sb26-189"
+
+
+def test_analyze_stream_forwards_client_ip_header():
+    def handler(request):
+        assert request.headers.get("x-client-ip") == "203.0.113.7"
+        return httpx.Response(200, content=_sse_body(("memo", json.dumps(SAMPLE_MEMO))))
+
+    list(analyze_stream(SAMPLE_SITUATION, client=_mock_client(handler), client_ip="203.0.113.7"))
+
+
+def test_analyze_stream_429_surfaces_rate_limit_message():
+    def handler(request):
+        return httpx.Response(429, json={"detail": "You've reached today's limit of 2 memos."})
+
+    with pytest.raises(APIError, match="today's limit"):
+        list(analyze_stream(SAMPLE_SITUATION, client=_mock_client(handler)))
+
+
+def test_analyze_stream_500_raises_api_error():
+    def handler(request):
+        return httpx.Response(503)
+
+    with pytest.raises(APIError, match="temporarily unavailable"):
+        list(analyze_stream(SAMPLE_SITUATION, client=_mock_client(handler)))
+
+
+def test_analyze_stream_connection_error_raises_api_error():
+    def handler(request):
+        raise httpx.ConnectError("refused")
+
+    with pytest.raises(APIError, match="Could not reach"):
+        list(analyze_stream(SAMPLE_SITUATION, client=_mock_client(handler)))
