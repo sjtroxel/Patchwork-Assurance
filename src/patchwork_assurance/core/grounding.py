@@ -61,6 +61,7 @@ _CITATION_PATTERNS = (
     r"20-\d{3}",  # NYC, e.g. 20-871 (Admin. Code Title 20, Subchapter 25)
     r"110\d{2}(?:\.\d)?",  # California FEHA ADS, e.g. 11009 or 11008.1 (2 CCR tit. 2)
     r"7[0-2]\d{2}(?:\.\d+)?",  # California CCPA ADMT, e.g. 7200 or 7221 (11 CCR tit. 11)
+    r"55[1-4]\.\d{3}",  # Texas TRAIGA, e.g. 552.056 (Tex. Bus. & Com. Code Ch. 551-554)
 )
 
 

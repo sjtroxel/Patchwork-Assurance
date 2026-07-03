@@ -3,7 +3,7 @@ import json
 import streamlit as st
 
 from patchwork_assurance.core.contracts import ComplianceMemo, Situation
-from patchwork_assurance.core.render import executive_summary
+from patchwork_assurance.core.render import VERDICT_LABEL, executive_summary
 from patchwork_assurance.ui import client
 from patchwork_assurance.ui.chrome import (
     inject_brand_css,
@@ -183,6 +183,7 @@ _FALLBACK_META = {
         "Illinois",
         "New Jersey",
         "New York City",
+        "Texas",
     ],
     "decision_domains": list(DOMAIN_LABELS),
     "roles": ["deployer", "developer"],
@@ -251,7 +252,11 @@ def _render_pdf_button(typed: ComplianceMemo, typed_situation: Situation) -> Non
 
 
 def _render_memo(memo: dict, situation: dict) -> None:
-    SCOPE_BOX = {"yes": st.success, "uncertain": st.info, "no": st.warning}
+    # Box color carries emotional truth for an anxious non-expert, not the raw enum: a law that does
+    # NOT reach them is relief (success/green), an uncertain one is caution (warning/amber), and one
+    # that DOES reach them is attention, not celebration (info/blue). The label text is the same hedged
+    # VERDICT_LABEL the PDF uses (core/render.py), so the screen and the export read identically.
+    SCOPE_BOX = {"no": st.success, "uncertain": st.warning, "yes": st.info}
 
     # Deterministic, hedged orientation atop the memo (Phase 11) — the same shared helper the PDF
     # uses, so the screen summary and the exported document read identically. The UI holds the memo
@@ -268,7 +273,7 @@ def _render_memo(memo: dict, situation: dict) -> None:
         with st.expander(law.get("short_name", "Law"), expanded=True):
             scope = law.get("in_scope", "")
             box = SCOPE_BOX.get(scope, st.write)
-            box(f"In scope: {scope.upper() if scope else 'UNKNOWN'}")
+            box(VERDICT_LABEL.get(scope, "Status unknown"))
             st.write(law.get("why", ""))
             for ob in law.get("obligations", []):
                 st.markdown(f"- {ob.get('text', '')}  \n  *{ob.get('citation', '')}*")

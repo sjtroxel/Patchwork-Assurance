@@ -14,8 +14,13 @@ opt-out, distinct from SB 5's employment scope; do not harmonize their operative
 HB 3773, California's two regimes (the FEHA automated-decision-system employment regulations,
 2 CCR §§ 11008 et seq., and the CCPA ADMT consumer-privacy regulations, 11 CCR §§ 7200 et seq.),
 New York City Local Law 144 (the AEDT bias-audit law — a notable non-state jurisdiction
-large enough to sit beside the states), and New Jersey's Division on Civil Rights disparate-impact
-rules (N.J.A.C. 13:16 — an effect-based, multi-domain framework expressly reaching AEDTs), over one shared
+large enough to sit beside the states), New Jersey's Division on Civil Rights disparate-impact
+rules (N.J.A.C. 13:16 — an effect-based, multi-domain framework expressly reaching AEDTs), and Texas's
+TRAIGA (HB 149, Tex. Bus. & Com. Code §§ 551–554 — the enacted, pared-back "2.0"; an INTENT-based
+prohibition on AI used to unlawfully discriminate, where disparate impact alone is expressly not
+enough, plus government/healthcare disclosure and narrow prohibited-use bans, with almost no
+affirmative private-sector duty-stack — do not harmonize its intent test with NJ/IL effect-based tests
+or with the CO/CT/CA decision-influence triggers), over one shared
 retrieval core, exposed as two surfaces: a structured compliance memo generator and a chatbot. Full
 Python stack. It is an **educational / portfolio tool, not legal advice** (see below).
 

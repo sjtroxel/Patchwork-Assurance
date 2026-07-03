@@ -72,6 +72,17 @@ canonical metadata is each record's `.meta.yaml`, not these summaries.
   Adopted and effective Dec 15, 2025 (no phase-in). DCR / NJ AG; administrative complaint or Superior
   Court suit. Official text:
   https://www.njoag.gov/wp-content/uploads/2025/12/N.J.A.C.-13-16-Disparate-Impact-Discrimination.pdf
+- **`tx-traiga`** — Texas **Responsible Artificial Intelligence Governance Act (TRAIGA)**, HB 149,
+  Tex. Bus. & Com. Code §§ 551.001 to 554.103 (Subtitle D). The **enacted, pared-back "2.0"**: an
+  **intent-based** prohibition on developing/deploying AI to unlawfully discriminate against a
+  protected class, where **a disparate impact alone is expressly not sufficient** (§ 552.056) — the
+  opposite pole from NJ/IL effect-based tests, and NOT a decision-influence trigger (do not harmonize
+  with CO "materially influence" or CT "substantial factor"). Affirmative disclosure duties fall only
+  on government agencies and health-care providers (§ 552.051); the rest are narrow prohibited-use
+  bans. AG-exclusive enforcement, 60-day cure, NIST AI-RMF safe harbor, no private right of action.
+  Effective Jan 1, 2026. Added (un-parked) 2026-07-03 for coverage of the second-largest state economy
+  and its reassurance value — most private employers have no affirmative TRAIGA duties. Official text:
+  https://statutes.capitol.texas.gov/Docs/BC/pdf/BC.552.pdf
 
 Statute text is always sourced from the official site above and only formatting-cleaned — never
 authored or paraphrased by an LLM (`../.claude/rules/corpus.md`). The J.D. edge makes the
@@ -100,9 +111,12 @@ Also on the watch list, not yet ingestible:
 
 - **Virginia HB 2094** — a Colorado-style consequential-decisions deployer law, **vetoed March 2025**;
   watch for a 2026 reintroduction (re-verify the session outcome before any action).
-- **Texas TRAIGA (HB 149)** — enacted, but imposes almost no private-sector obligations (intentional
-  discrimination only, no audits or notices, government-use focus); parked as an optional later
-  completeness add, not a headline.
+
+(**Texas TRAIGA (HB 149)** was on this watch list — "enacted, but imposes almost no private-sector
+obligations" — and was **un-parked and added to the corpus on 2026-07-03** as `tx-traiga` above. The
+reasons: the second-largest state economy reads as a conspicuous omission, and the narrow reach is
+itself the value — a Texas business learns, grounded in the statute, that it has essentially no
+affirmative AI-compliance duties. See the decision log in `../docs/CORPUS_TRACKER.md`.)
 
 Anything added here follows the same rule as everything above: primary statute text at ingest, a human
 gates the change, and the file-pair-plus-loader path does the rest — zero code change.

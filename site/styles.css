@@ -191,6 +191,25 @@ section .lede { font-size: 1.1rem; max-width: 44rem; }
   font-family: var(--font-display); font-weight: 700; color: var(--primary); white-space: nowrap;
 }
 [data-theme="dark"] .corpus-table td { border-top-color: rgba(111, 147, 166, 0.22); }
+/* owner-language gloss under the lawyer-language citation, so a non-expert can scan for their own
+   situation while the citation stays legible for the attorney half of the audience */
+.corpus-gloss { display: block; margin-top: 0.2rem; font-size: 0.85rem; color: #6b6256; }
+[data-theme="dark"] .corpus-gloss { color: #9fb0c0; }
+
+/* three-step "how it works" block — the article reader's journey, completed */
+.how-steps {
+  margin: 2rem auto 0; max-width: 52rem;
+  padding: 1.25rem 1.5rem; border: 1px solid rgba(47, 75, 94, 0.25);
+  border-radius: 12px; background: rgba(47, 75, 94, 0.05); color: var(--text);
+}
+.how-steps-label {
+  display: block; font-family: var(--font-display); font-weight: 700;
+  font-size: 0.78rem; letter-spacing: 0.08em; text-transform: uppercase;
+  color: var(--c-teal); margin-bottom: 0.6rem;
+}
+.how-steps-list { margin: 0; padding-left: 1.4rem; line-height: 1.6; }
+.how-steps-list li { margin-bottom: 0.5rem; }
+.how-steps-list li:last-child { margin-bottom: 0; }
 
 /* closing CTA — same video background as the hero */
 .closing {

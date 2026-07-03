@@ -22,8 +22,9 @@ AI regulation in the US is arriving state by state, not from Washington. Colorad
 and the Colorado Privacy Act / CPA profiling opt-out),
 Connecticut (SB 5 / PA 26-15, and the Data Privacy Act / CTDPA as amended by SB 1295),
 Illinois (HB 3773), California (the Civil Rights Council's
-automated-decision-system employment regulations), and New Jersey (the Division on Civil Rights'
-disparate-impact rules, N.J.A.C. 13:16) have already passed laws or rules, each with its own
+automated-decision-system employment regulations), New Jersey (the Division on Civil Rights'
+disparate-impact rules, N.J.A.C. 13:16), and Texas (TRAIGA / HB 149, an intent-based prohibition on
+AI discrimination) have already passed laws or rules, each with its own
 operative test and its own staggered effective dates, and more states are drafting their own. There is
 no single rulebook, just a
 growing patchwork. The hard part is knowing which pieces touch a given situation, and what the text
@@ -67,8 +68,11 @@ The design choices are the point of the project. A few are load-bearing:
   discriminates, while California's CCPA ADMT rules are a separate consumer-privacy regime (notice,
   opt-out, access) triggered by using ADMT to make a "significant decision"; New York City's AEDT law
   on a bias-audit-and-notice trigger ("substantially assist or replace discretionary decision making");
-  and New Jersey on an effect-based disparate-impact framework (a three-step burden-shifting test
-  expressly reaching automated employment decision tools). Connecticut also contributes a second,
+  New Jersey on an effect-based disparate-impact framework (a three-step burden-shifting test
+  expressly reaching automated employment decision tools); and Texas's TRAIGA (HB 149) on an
+  intent-based trigger (AI developed or deployed "with the intent to unlawfully discriminate," where
+  "a disparate impact is not sufficient by itself" — the opposite pole from the New Jersey and
+  Illinois effect-based tests, and not a decision-influence trigger at all). Connecticut also contributes a second,
   consumer-privacy law — its Data Privacy Act (CTDPA), whose profiling opt-out, as amended by
   SB 1295 (effective July 1, 2026), reaches "profiling in furtherance of any automated decision"
   that produces a legal or similarly significant effect (broadened from the prior "solely automated"
@@ -160,7 +164,7 @@ docs/          ROADMAP, per-phase design + as-built docs, SPEC (data/API contrac
 ## Status
 
 v1 is deployed and works end to end over the shared retrieval core, exposed as the memo and chat
-surfaces, hosted on Railway. The corpus currently covers nine laws across seven jurisdictions, each
+surfaces, hosted on Railway. The corpus currently covers ten laws across seven jurisdictions, each
 kept in its own operative terms (never harmonized):
 
 | Jurisdiction | Law | Citation | Operative trigger |
@@ -174,6 +178,7 @@ kept in its own operative terms (never harmonized):
 | California | CCPA ADMT regs | 11 CCR §§ 7200 et seq. | ADMT used to make a "significant decision" |
 | New York City | Local Law 144 | N.Y.C. Admin. Code §§ 20-870 et seq. | AEDT bias-audit + candidate notice |
 | New Jersey | DCR rules | N.J.A.C. §§ 13:16-1.1 to 13:16-6.2 | disparate impact (effect-based, reaches AEDTs) |
+| Texas | TRAIGA (HB 149) | Tex. Bus. & Com. Code §§ 551–554 | AI used with **intent** to unlawfully discriminate (disparate impact alone not enough) |
 
 The corpus is designed to grow as the patchwork grows. Post-v1 work (evaluation, observability, hybrid
 retrieval, a corpus-monitoring agent, MCP) is intentionally gated behind a working v1 rather than built
