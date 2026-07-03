@@ -82,6 +82,18 @@ canonical metadata is each record's `.meta.yaml`, not these summaries.
   Adopted and effective Dec 15, 2025 (no phase-in). DCR / NJ AG; administrative complaint or Superior
   Court suit. Official text:
   https://www.njoag.gov/wp-content/uploads/2025/12/N.J.A.C.-13-16-Disparate-Impact-Discrimination.pdf
+- **`nj-njdpa`** — New Jersey **Data Privacy Act (NJDPA)**, N.J.S.A. 56:8-166.4 et seq. (P.L. 2023,
+  c.266). New Jersey's **second** law and a different mechanism from 13:16 — a **consumer-privacy
+  profiling opt-out** in the Colorado-CPA / Connecticut-CTDPA cluster (**do not conflate** with 13:16's
+  effect-based employment/housing discrimination rules). A consumer may opt out of "profiling in
+  furtherance of decisions that produce legal or similarly significant effects" (§ 166.10(a)(5)(c));
+  like Colorado CPA and unlike CTDPA, NJDPA both DEFINES that effect term (§ 166.4) and uses NO
+  "solely/any automated" qualifier. Binds the CONTROLLER; the "consumer" excludes the employment
+  context (so NJDPA does not reach employee/applicant screening). Effective Jan 15, 2025; amended by
+  A5017 (eff. Jan 20, 2026) as to exemptions and the de-identified-data definition only — the profiling
+  provisions modeled here are unchanged. Implementing rules proposed (June 2025) but not yet adopted;
+  the in-force statute is modeled. AG-exclusive enforcement, no private right of action (§ 166.19).
+  Official text: https://pub.njleg.state.nj.us/Bills/2022/PL23/266_.HTM
 - **`tx-traiga`** — Texas **Responsible Artificial Intelligence Governance Act (TRAIGA)**, HB 149,
   Tex. Bus. & Com. Code §§ 551.001 to 554.103 (Subtitle D). The **enacted, pared-back "2.0"**: an
   **intent-based** prohibition on developing/deploying AI to unlawfully discriminate against a

@@ -62,6 +62,7 @@ _CITATION_PATTERNS = (
     r"110\d{2}(?:\.\d)?",  # California FEHA ADS, e.g. 11009 or 11008.1 (2 CCR tit. 2)
     r"7[0-2]\d{2}(?:\.\d+)?",  # California CCPA ADMT, e.g. 7200 or 7221 (11 CCR tit. 11)
     r"55[1-4]\.\d{3}",  # Texas TRAIGA, e.g. 552.056 (Tex. Bus. & Com. Code Ch. 551-554)
+    r"\d+:\d+-\d+\.\d+\w*",  # New Jersey: N.J.A.C. 13:16-3.2 (nj-njac-13-16) + NJDPA N.J.S.A. 56:8-166.10
 )
 
 

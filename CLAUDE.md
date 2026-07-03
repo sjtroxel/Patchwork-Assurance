@@ -17,7 +17,10 @@ HB 3773's effect-based standard), California's two regimes (the FEHA automated-d
 2 CCR §§ 11008 et seq., and the CCPA ADMT consumer-privacy regulations, 11 CCR §§ 7200 et seq.),
 New York City Local Law 144 (the AEDT bias-audit law — a notable non-state jurisdiction
 large enough to sit beside the states), New Jersey's Division on Civil Rights disparate-impact
-rules (N.J.A.C. 13:16 — an effect-based, multi-domain framework expressly reaching AEDTs), and Texas's
+rules (N.J.A.C. 13:16 — an effect-based, multi-domain framework expressly reaching AEDTs), New Jersey's
+Data Privacy Act (NJDPA, N.J.S.A. §§ 56:8-166.4 et seq. — a consumer-privacy profiling opt-out in the
+CO CPA / CT CTDPA cluster, distinct from 13:16's employment/housing effect-based test; do not conflate
+the two NJ laws or harmonize their operative terms), and Texas's
 TRAIGA (HB 149, Tex. Bus. & Com. Code §§ 551–554 — the enacted, pared-back "2.0"; an INTENT-based
 prohibition on AI used to unlawfully discriminate, where disparate impact alone is expressly not
 enough, plus government/healthcare disclosure and narrow prohibited-use bans, with almost no

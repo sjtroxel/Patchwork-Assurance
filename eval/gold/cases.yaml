@@ -25,6 +25,11 @@
 #          ca-feha-ads (California — FEHA automated-decision-system employment regs, 2 CCR 11008 et seq.),
 #          ca-ccpa-admt (California — CPPA automated-decisionmaking-technology privacy regs, 11 CCR 7200 et seq.),
 #          nj-njac-13-16 (New Jersey — DCR disparate-impact rules, N.J.A.C. 13:16; effect-based, multi-domain),
+#          nj-njdpa (New Jersey — Data Privacy Act, N.J.S.A. 56:8-166.4 et seq.; CONSUMER-PRIVACY profiling
+#                    opt-out in the CO-CPA/CT-CTDPA cluster. Domains = financial_lending/housing/insurance/
+#                    health_care/education; EXCLUDES employment. Do NOT conflate with NJ 13:16 (the other NJ
+#                    law) and do NOT harmonize its opt-out with 13:16's effect-based test. A NJ housing OR
+#                    lending deployer triggers BOTH NJ laws; a NJ insurance/health_care deployer isolates NJDPA.),
 #          co-cpa (Colorado Privacy Act profiling opt-out), ct-ctdpa (Connecticut Data Privacy Act profiling opt-out),
 #          tx-traiga (Texas TRAIGA / HB 149 — enacted "2.0"; INTENT-based discrimination only, no affirmative duty-stack).
 # Texas cases (below): tx-employment-deployer, tx-developer-only, tx-co-multistate assert tx-traiga "yes";
@@ -106,6 +111,7 @@
       ca-feha-ads: "no"
       ca-ccpa-admt: "no"
       nj-njac-13-16: "no"
+      nj-njdpa: "no"
       tx-traiga: "no"
     grounding_sections:
       - "6-1-1704"   # point-of-interaction notice
@@ -136,6 +142,7 @@
       ca-feha-ads: "no"
       ca-ccpa-admt: "no"
       nj-njac-13-16: "no"
+      nj-njdpa: "no"
       tx-traiga: "no"
     grounding_sections:
       - "Sec. 9"    # interaction disclosure to employee/applicant
@@ -167,6 +174,7 @@
       ca-feha-ads: "no"
       ca-ccpa-admt: "no"
       nj-njac-13-16: "no"
+      nj-njdpa: "no"
       tx-traiga: "no"
     grounding_sections:
       # Union of both laws' employment-deployer sections. The harness retrieves PER in-scope
@@ -204,6 +212,7 @@
       ca-feha-ads: "no"
       ca-ccpa-admt: "no"
       nj-njac-13-16: "no"
+      nj-njdpa: "no"
       tx-traiga: "no"
     grounding_sections:
       - "6-1-1704"
@@ -235,6 +244,7 @@
       ca-feha-ads: "no"
       ca-ccpa-admt: "no"
       nj-njac-13-16: "no"
+      nj-njdpa: "no"
       tx-traiga: "no"
     grounding_sections: []  # out of scope for both — nothing to ground
     obligations: []
@@ -262,6 +272,7 @@
       ca-feha-ads: "no"
       ca-ccpa-admt: "no"
       nj-njac-13-16: "no"
+      nj-njdpa: "no"
       tx-traiga: "no"
     grounding_sections:
       # An uncertain law is still retrieved and explained by the memo (in_scope in {yes, uncertain}).
@@ -292,6 +303,7 @@
       ca-feha-ads: "no"
       ca-ccpa-admt: "no"
       nj-njac-13-16: "no"
+      nj-njdpa: "no"
       tx-traiga: "no"
     grounding_sections: []
     obligations: []
@@ -321,6 +333,7 @@
       ca-feha-ads: "no"
       ca-ccpa-admt: "no"
       nj-njac-13-16: "no"
+      nj-njdpa: "no"
       tx-traiga: "no"
     grounding_sections: []
     obligations: []
@@ -350,6 +363,7 @@
       ca-feha-ads: "no"
       ca-ccpa-admt: "no"
       nj-njac-13-16: "no"
+      nj-njdpa: "no"
       tx-traiga: "no"
     grounding_sections:
       - "6-1-1702"   # CO developer documentation duty
@@ -381,6 +395,7 @@
       ca-feha-ads: "no"
       ca-ccpa-admt: "no"
       nj-njac-13-16: "no"
+      nj-njdpa: "no"
       tx-traiga: "no"
     grounding_sections:
       - "6-1-1704"
@@ -411,6 +426,7 @@
       ca-feha-ads: "uncertain"
       ca-ccpa-admt: "uncertain"
       nj-njac-13-16: "uncertain"
+      nj-njdpa: "no"
       tx-traiga: "uncertain"     # blank jurisdiction + employment/deployer match -> uncertain like the rest
     grounding_sections:
       # Both laws are uncertain, so both are retrieved/explained (in_scope in {yes, uncertain}).
@@ -447,6 +463,7 @@
       ca-feha-ads: "no"
       ca-ccpa-admt: "no"
       nj-njac-13-16: "no"
+      nj-njdpa: "no"
       tx-traiga: "no"
     grounding_sections:
       - "Sec. 5"   # AI companion operator: safety protocol + human-disclosure duties
@@ -476,6 +493,7 @@
       ca-feha-ads: "no"
       ca-ccpa-admt: "no"
       nj-njac-13-16: "no"
+      nj-njdpa: "no"
       tx-traiga: "no"
     grounding_sections:
       - "6-1-1704"
@@ -509,6 +527,7 @@
       ca-feha-ads: "no"
       ca-ccpa-admt: "no"
       nj-njac-13-16: "no"
+      nj-njdpa: "no"
       tx-traiga: "no"
     grounding_sections:
       # Only the employment sections — the part of this business CT actually reaches.
@@ -541,6 +560,7 @@
       ca-feha-ads: "no"
       ca-ccpa-admt: "no"
       nj-njac-13-16: "no"
+      nj-njdpa: "no"
       tx-traiga: "no"
     grounding_sections:
       - "775 ILCS 5/2-102"   # civil rights violation — prohibition + notice
@@ -572,6 +592,7 @@
       ca-feha-ads: "no"
       ca-ccpa-admt: "no"
       nj-njac-13-16: "no"
+      nj-njdpa: "no"
       tx-traiga: "no"
     grounding_sections:
       - "6-1-1704"           # CO point-of-interaction notice
@@ -605,6 +626,7 @@
       ca-feha-ads: "no"
       ca-ccpa-admt: "no"
       nj-njac-13-16: "no"
+      nj-njdpa: "no"
       tx-traiga: "no"
     grounding_sections:
       - "775 ILCS 5/2-102"
@@ -636,6 +658,7 @@
       ca-feha-ads: "no"
       ca-ccpa-admt: "no"
       nj-njac-13-16: "no"
+      nj-njdpa: "no"
       tx-traiga: "no"
     grounding_sections: []
     obligations: []
@@ -665,6 +688,7 @@
       ca-feha-ads: "no"
       ca-ccpa-admt: "no"
       nj-njac-13-16: "no"
+      nj-njdpa: "no"
       tx-traiga: "no"
     grounding_sections:
       - "20-871"   # bias-audit, publication, and notice requirements
@@ -697,6 +721,7 @@
       ca-feha-ads: "no"
       ca-ccpa-admt: "no"
       nj-njac-13-16: "no"
+      nj-njdpa: "no"
       tx-traiga: "no"
     grounding_sections:
       - "20-871"             # NYC bias-audit + notice
@@ -729,6 +754,7 @@
       ca-feha-ads: "no"
       ca-ccpa-admt: "no"
       nj-njac-13-16: "no"
+      nj-njdpa: "no"
       tx-traiga: "no"
     grounding_sections: []
     obligations: []
@@ -756,6 +782,7 @@
       ca-feha-ads: "no"
       ca-ccpa-admt: "no"
       nj-njac-13-16: "no"
+      nj-njdpa: "no"
       tx-traiga: "no"
     grounding_sections: []
     obligations: []
@@ -785,6 +812,7 @@
       ca-feha-ads: "yes"
       ca-ccpa-admt: "yes"
       nj-njac-13-16: "no"
+      nj-njdpa: "no"
       tx-traiga: "no"
     grounding_sections:
       - "11009"   # unlawful to use an ADS / selection criteria that discriminates
@@ -817,6 +845,7 @@
       ca-feha-ads: "yes"
       ca-ccpa-admt: "yes"
       nj-njac-13-16: "no"
+      nj-njdpa: "no"
       tx-traiga: "no"
     grounding_sections:
       - "11009"              # CA unlawful ADS use
@@ -850,6 +879,7 @@
       ca-feha-ads: "yes"
       ca-ccpa-admt: "yes"
       nj-njac-13-16: "no"
+      nj-njdpa: "no"
       tx-traiga: "no"
     grounding_sections:
       - "11009"
@@ -883,6 +913,7 @@
       ca-feha-ads: "no"
       ca-ccpa-admt: "no"
       nj-njac-13-16: "no"
+      nj-njdpa: "no"
       tx-traiga: "no"
     grounding_sections: []
     obligations: []
@@ -912,6 +943,7 @@
       ca-feha-ads: "no"         # FEHA ADS regs cover employment, not government services
       ca-ccpa-admt: "no"        # government services is not a CCPA "significant decision"
       nj-njac-13-16: "no"
+      nj-njdpa: "no"
       tx-traiga: "no"
     grounding_sections: []
     obligations: []
@@ -941,6 +973,7 @@
       ca-feha-ads: "no"         # FEHA ADS regs cover employment, not housing
       ca-ccpa-admt: "yes"       # CPPA: housing is a "significant decision"
       nj-njac-13-16: "no"
+      nj-njdpa: "no"
       tx-traiga: "no"
     grounding_sections:
       - "7200"   # using ADMT to make a significant decision triggers the Article
@@ -972,6 +1005,7 @@
       ca-feha-ads: "no"         # FEHA ADS regs cover employment, not lending
       ca-ccpa-admt: "yes"       # CPPA: financial/lending is a "significant decision"
       nj-njac-13-16: "no"
+      nj-njdpa: "no"
       tx-traiga: "no"
     grounding_sections:
       - "7200"   # ADMT-for-significant-decision scope trigger
@@ -1002,6 +1036,7 @@
       ca-feha-ads: "no"
       ca-ccpa-admt: "no"
       nj-njac-13-16: "yes"
+      nj-njdpa: "no"
       tx-traiga: "no"
     grounding_sections:
       - "13:16-3.2"   # pre-employment practices incl. automated employment decision tools (the on-point operative section)
@@ -1031,6 +1066,7 @@
       ca-feha-ads: "no"
       ca-ccpa-admt: "no"          # CPPA reaches housing but there is no California nexus
       nj-njac-13-16: "yes"
+      nj-njdpa: "yes"           # NJDPA reaches housing profiling; a NJ housing deployer triggers BOTH NJ laws (13:16 disparate-impact + NJDPA privacy opt-out) — do not conflate them
       tx-traiga: "no"
     grounding_sections:
       - "13:16-4.3"   # sale or rental practices: AI/credit-score/criminal-history tenant screening (the on-point operative section)
@@ -1060,6 +1096,7 @@
       ca-feha-ads: "no"
       ca-ccpa-admt: "no"
       nj-njac-13-16: "yes"
+      nj-njdpa: "no"
       tx-traiga: "no"
     grounding_sections:
       - "13:16-3.2"          # NJ automated employment decision tools
@@ -1092,6 +1129,7 @@
       ca-feha-ads: "no"
       ca-ccpa-admt: "no"
       nj-njac-13-16: "no"        # 13:16 regulates the deployer/covered entity, not the tool vendor
+      nj-njdpa: "no"
       tx-traiga: "no"            # no Texas nexus
 
 - id: nj-home-state
@@ -1116,6 +1154,7 @@
       ca-feha-ads: "no"
       ca-ccpa-admt: "no"
       nj-njac-13-16: "yes"
+      nj-njdpa: "no"
       tx-traiga: "no"
     grounding_sections:
       - "13:16-3.2"   # pre-employment practices incl. automated employment decision tools (the on-point operative section)
@@ -1147,6 +1186,7 @@
       ca-feha-ads: "no"
       ca-ccpa-admt: "no"
       nj-njac-13-16: "no"
+      nj-njdpa: "no"
       tx-traiga: "no"
     grounding_sections:
       - "42-518"   # consumer right to opt out of profiling in furtherance of any automated decision
@@ -1180,6 +1220,7 @@
       ca-feha-ads: "no"
       ca-ccpa-admt: "no"
       nj-njac-13-16: "no"
+      nj-njdpa: "no"
       tx-traiga: "no"
 
 - id: ct-ctdpa-ca-multistate
@@ -1205,6 +1246,7 @@
       ca-feha-ads: "no"         # FEHA ADS regs cover employment, not lending
       ca-ccpa-admt: "yes"       # CPPA: financial/lending is a "significant decision"
       nj-njac-13-16: "no"
+      nj-njdpa: "no"
       tx-traiga: "no"
     grounding_sections:
       - "42-518"   # CTDPA consumer profiling opt-out
@@ -1239,6 +1281,7 @@
       ca-feha-ads: "no"
       ca-ccpa-admt: "no"
       nj-njac-13-16: "no"
+      nj-njdpa: "no"
       tx-traiga: "no"
     grounding_sections:
       - "6-1-1704"   # CO AI Act: point-of-interaction notice
@@ -1271,6 +1314,7 @@
       ca-feha-ads: "no"
       ca-ccpa-admt: "no"
       nj-njac-13-16: "no"
+      nj-njdpa: "no"
       tx-traiga: "no"
     grounding_sections:
       - "6-1-1702"   # CO AI Act: developer duties
@@ -1304,6 +1348,7 @@
       ca-feha-ads: "no"
       ca-ccpa-admt: "no"
       nj-njac-13-16: "no"
+      nj-njdpa: "no"
       tx-traiga: "yes"
     grounding_sections:
       - "552.056"   # unlawful discrimination (intent-based; disparate impact insufficient)
@@ -1337,6 +1382,7 @@
       ca-feha-ads: "no"
       ca-ccpa-admt: "no"
       nj-njac-13-16: "no"
+      nj-njdpa: "no"
       tx-traiga: "yes"
     grounding_sections:
       - "552.056"   # binds developers and deployers alike
@@ -1368,6 +1414,7 @@
       ca-feha-ads: "no"
       ca-ccpa-admt: "no"
       nj-njac-13-16: "no"
+      nj-njdpa: "no"
       tx-traiga: "yes"
     grounding_sections:
       - "6-1-1704"   # CO: point-of-interaction notice
@@ -1405,6 +1452,7 @@
       ca-feha-ads: "no"
       ca-ccpa-admt: "no"
       nj-njac-13-16: "no"
+      nj-njdpa: "no"
       tx-traiga: "no"
     grounding_sections:
       - "820 ILCS 42/5"    # AIVIA: notice + explanation + consent before the interview
@@ -1412,3 +1460,38 @@
     obligations:
       - "AIVIA notice/consent: before the interview, notify the applicant that AI may analyze the video, explain how the AI works and what general characteristics it evaluates, and obtain consent; you may not evaluate an applicant who has not consented (Illinois 820 ILCS 42/5)."
       - "AIVIA retention: on an applicant's request, delete the applicant's video interviews within 30 days and instruct any downstream recipients to delete their copies, including backups (Illinois 820 ILCS 42/15)."
+
+- id: nj-njdpa-insurance-deployer
+  rationale: >
+    A New Jersey insurer that uses profiling to make AI-assisted consumer INSURANCE decisions, as the
+    controller (deployer). Insurance is one of the "legal or similarly significant effect" domains NJDPA
+    reaches, and — unlike NJ's OTHER law (N.J.A.C. 13:16, whose disparate-impact rules do not extend to
+    insurance) — it isolates NJDPA: only the consumer-privacy profiling opt-out fires. This is the NJ
+    analogue of the CO CPA and CT CTDPA lending cases, and it exercises the NJDPA grounding path
+    (56:8-166.10 opt-out + 56:8-166.6 disclosure). Do NOT conflate NJDPA (consumer-privacy opt-out) with
+    13:16 (effect-based employment/housing discrimination).
+  situation:
+    jurisdictions: [New Jersey]
+    decision_domains: [insurance]
+    roles: [deployer]
+    ai_use: "yes"
+  expect:
+    scope:
+      co-sb26-189: "no"
+      co-cpa: "no"
+      ct-sb5-pa26-15: "no"
+      ct-ctdpa: "no"
+      il-hb3773: "no"
+      il-aivia: "no"
+      nyc-ll144: "no"
+      ca-feha-ads: "no"
+      ca-ccpa-admt: "no"
+      nj-njac-13-16: "no"        # 13:16's disparate-impact domains do not include insurance
+      nj-njdpa: "yes"
+      tx-traiga: "no"
+    grounding_sections:
+      - "56:8-166.10"   # NJDPA: consumer right to opt out of profiling for significant-effect decisions
+      - "56:8-166.6"    # NJDPA: controller duty to disclose such profiling + the opt-out method
+    obligations:
+      - "NJDPA opt-out: honor a New Jersey consumer's request to opt out of profiling in furtherance of decisions that produce legal or similarly significant effects (including an insurance decision), directly or through a universal opt-out mechanism where such technology exists (New Jersey 56:8-166.10, 56:8-166.11)."
+      - "NJDPA disclosure: clearly and conspicuously disclose profiling in furtherance of such decisions and the manner in which a consumer may exercise the right to opt out (New Jersey 56:8-166.6(b)); do not discriminate against a consumer for opting out (56:8-166.8)."

@@ -23,7 +23,7 @@ and the Colorado Privacy Act / CPA profiling opt-out),
 Connecticut (SB 5 / PA 26-15, and the Data Privacy Act / CTDPA as amended by SB 1295),
 Illinois (HB 3773, and the AI Video Interview Act / AIVIA), California (the Civil Rights Council's
 automated-decision-system employment regulations), New Jersey (the Division on Civil Rights'
-disparate-impact rules, N.J.A.C. 13:16), and Texas (TRAIGA / HB 149, an intent-based prohibition on
+disparate-impact rules, N.J.A.C. 13:16, and the Data Privacy Act / NJDPA profiling opt-out), and Texas (TRAIGA / HB 149, an intent-based prohibition on
 AI discrimination) have already passed laws or rules, each with its own
 operative test and its own staggered effective dates, and more states are drafting their own. There is
 no single rulebook, just a
@@ -86,6 +86,12 @@ The design choices are the point of the project. A few are load-bearing:
   uses AI to analyze applicant video interviews must disclose the use, explain how the AI works, obtain
   consent, limit sharing, and delete videos within 30 days of a request. It is held apart from HB 3773's
   effect-based discrimination standard, not merged into it.
+  New Jersey likewise contributes a second law — the Data Privacy Act (NJDPA), a consumer-privacy
+  profiling opt-out in the same cluster as Colorado's CPA and Connecticut's CTDPA: a consumer may opt
+  out of "profiling in furtherance of decisions that produce legal or similarly significant effects,"
+  and (like Colorado, unlike Connecticut) NJDPA both defines that effect term and uses no
+  "solely/any automated" qualifier. It is held apart from New Jersey's own 13:16 effect-based
+  employment/housing rules, not conflated with them.
   The tool reads each statute's own language from metadata rather than
   flattening them into a
   single test.
@@ -169,7 +175,7 @@ docs/          ROADMAP, per-phase design + as-built docs, SPEC (data/API contrac
 ## Status
 
 v1 is deployed and works end to end over the shared retrieval core, exposed as the memo and chat
-surfaces, hosted on Railway. The corpus currently covers eleven laws across seven jurisdictions, each
+surfaces, hosted on Railway. The corpus currently covers twelve laws across seven jurisdictions, each
 kept in its own operative terms (never harmonized):
 
 | Jurisdiction | Law | Citation | Operative trigger |
@@ -184,6 +190,7 @@ kept in its own operative terms (never harmonized):
 | California | CCPA ADMT regs | 11 CCR §§ 7200 et seq. | ADMT used to make a "significant decision" |
 | New York City | Local Law 144 | N.Y.C. Admin. Code §§ 20-870 et seq. | AEDT bias-audit + candidate notice |
 | New Jersey | DCR rules | N.J.A.C. §§ 13:16-1.1 to 13:16-6.2 | disparate impact (effect-based, reaches AEDTs) |
+| New Jersey | Data Privacy Act (NJDPA) | N.J.S.A. §§ 56:8-166.4 et seq. | profiling in furtherance of decisions with legal/similarly significant effects |
 | Texas | TRAIGA (HB 149) | Tex. Bus. & Com. Code §§ 551–554 | AI used with **intent** to unlawfully discriminate (disparate impact alone not enough) |
 
 The corpus is designed to grow as the patchwork grows. Post-v1 work (evaluation, observability, hybrid
