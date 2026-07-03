@@ -50,7 +50,7 @@ def run_multi_agent_memo(
     this returns, identically to the single-call path — this function owns only the analysis prose."""
     laws_by_id = {law.law_id: law for law in laws}
     in_scope = [s for s in scope if s.in_scope in _IN_SCOPE]
-    buckets = retrieve_per_law(situation, scope, retriever)
+    buckets = retrieve_per_law(situation, scope, retriever, laws_by_id)
     findings: list[LawFinding] = []
     if in_scope:
         findings, _ = run_analysts(

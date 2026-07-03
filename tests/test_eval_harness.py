@@ -56,20 +56,28 @@ def test_scope_accuracy_is_perfect_on_gold():
 
 
 class _Chunk:
-    def __init__(self, section_number: str):
+    def __init__(self, section_number: str, chunk_index: int):
         self.section_number = section_number
+        self.chunk_index = chunk_index
 
 
 class _FakeRetriever:
     """Returns canned section numbers per filter key — no embeddings, no network. The key is the
-    law_id when set (the memo/scope-recall path) else the jurisdiction (the exact-term query path)."""
+    law_id when set (the memo/scope-recall path) else the jurisdiction (the exact-term query path).
+    chunk_index = the section's position in the law's canned list, so it is stable across the top-k
+    call and the key-obligation pin's per-section refetch (dedup by chunk_index then works). Honors
+    filters.section_number so the pin's section-scoped retrieve returns only that section (or nothing
+    when the canned list doesn't hold it — mirroring a section that isn't indexed)."""
 
     def __init__(self, by_key: dict[str, list[str]]):
         self._by = by_key
 
     def retrieve(self, query, filters=None, k=5):
         key = (filters.law_id or filters.jurisdiction) if filters else None
-        return [_Chunk(s) for s in self._by.get(key, [])[:k]]
+        pairs = list(enumerate(self._by.get(key, [])))
+        if filters and filters.section_number:
+            pairs = [(i, s) for i, s in pairs if s == filters.section_number]
+        return [_Chunk(s, i) for i, s in pairs[:k]]
 
     def query(self, query, filters=None, k=5, mode="filtered"):
         # The metric routes through query() (Phase 8); the fake has no lexical index, so filtered

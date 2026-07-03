@@ -11,7 +11,9 @@ a business's situation. The corpus currently covers Colorado SB 26-189, the Colo
 do not harmonize their operative terms), Connecticut SB 5, Connecticut's
 Data Privacy Act (CTDPA, §§ 42-515 et seq., as amended by SB 1295 — a consumer-privacy profiling
 opt-out, distinct from SB 5's employment scope; do not harmonize their operative terms), Illinois
-HB 3773, California's two regimes (the FEHA automated-decision-system employment regulations,
+HB 3773, Illinois's AI Video Interview Act (AIVIA, 820 ILCS 42 — a procedural notice/consent/retention
+rule for AI analysis of applicant video interviews, NOT a discrimination test; do not harmonize it with
+HB 3773's effect-based standard), California's two regimes (the FEHA automated-decision-system employment regulations,
 2 CCR §§ 11008 et seq., and the CCPA ADMT consumer-privacy regulations, 11 CCR §§ 7200 et seq.),
 New York City Local Law 144 (the AEDT bias-audit law — a notable non-state jurisdiction
 large enough to sit beside the states), New Jersey's Division on Civil Rights disparate-impact

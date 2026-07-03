@@ -11,6 +11,7 @@ class RetrievalFilters(BaseModel):
     jurisdiction: str | None = None
     scope_domain: str | None = None  # e.g. "employment" -> matches scope_employment=True
     law_id: str | None = None  # pin retrieval to one law (a jurisdiction can hold >1, e.g. CA)
+    section_number: str | None = None  # pin to one section (the key-obligation pin; see memo.py)
 
 
 def _l2sq_to_cosine(distance: float) -> float:
@@ -31,6 +32,8 @@ def _where(filters: RetrievalFilters | None) -> dict | None:
         clauses.append({"jurisdiction": {"$eq": filters.jurisdiction}})
     if filters.scope_domain:
         clauses.append({f"scope_{filters.scope_domain}": {"$eq": True}})
+    if filters.section_number:
+        clauses.append({"section_number": {"$eq": filters.section_number}})
     if not clauses:
         return None
     return clauses[0] if len(clauses) == 1 else {"$and": clauses}

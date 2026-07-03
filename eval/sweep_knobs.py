@@ -76,7 +76,9 @@ def isolated_core(corpus_path: Path, embed_model: str, max_chars: int, overlap_c
 def _score(core: Core, k: int, mode: str) -> tuple[float, float]:
     """(grounding recall@k, exact-term recall@k) for one Core — the same two metrics the eval prints."""
     g_cases = load_gold()
-    g = [score_retrieval(c, core, k, mode) for c in g_cases]
+    # pin=False: the sweep compares the RAW semantic layer (embedding model / chunk size / top_k).
+    # The production key-obligation pin backstops that layer but would mask config differences here.
+    g = [score_retrieval(c, core, k, mode, pin=False) for c in g_cases]
     g = [o for o in g if o is not None]
     grounding = sum(o.recall for o in g) / len(g) if g else 0.0
 

@@ -16,6 +16,11 @@
 # They are QUOTED on purpose: unquoted yes/no are YAML booleans (True/False), but the
 # scope screen returns the strings "yes"/"no" — quoting keeps the comparison string-vs-string.
 # Law ids: co-sb26-189 (Colorado), ct-sb5-pa26-15 (Connecticut), il-hb3773 (Illinois),
+#          il-aivia (Illinois — AI Video Interview Act, 820 ILCS 42; notice/consent/retention for AI
+#                    analysis of applicant video interviews. Shares Illinois/employment/deployer with
+#                    HB 3773, so its DETERMINISTIC-GATE verdict mirrors il-hb3773 in every case — the
+#                    narrower video-interview trigger lives in the memo prose, not the scope gate.
+#                    Do NOT harmonize with HB 3773's effect-based discrimination standard.),
 #          nyc-ll144 (New York City — non-state jurisdiction, AEDT bias-audit law),
 #          ca-feha-ads (California — FEHA automated-decision-system employment regs, 2 CCR 11008 et seq.),
 #          ca-ccpa-admt (California — CPPA automated-decisionmaking-technology privacy regs, 11 CCR 7200 et seq.),
@@ -96,6 +101,7 @@
       ct-sb5-pa26-15: "no"
       ct-ctdpa: "no"
       il-hb3773: "no"
+      il-aivia: "no"
       nyc-ll144: "no"
       ca-feha-ads: "no"
       ca-ccpa-admt: "no"
@@ -125,6 +131,7 @@
       ct-sb5-pa26-15: "yes"
       ct-ctdpa: "no"
       il-hb3773: "no"
+      il-aivia: "no"
       nyc-ll144: "no"
       ca-feha-ads: "no"
       ca-ccpa-admt: "no"
@@ -155,6 +162,7 @@
       ct-sb5-pa26-15: "yes"
       ct-ctdpa: "no"
       il-hb3773: "no"
+      il-aivia: "no"
       nyc-ll144: "no"
       ca-feha-ads: "no"
       ca-ccpa-admt: "no"
@@ -191,6 +199,7 @@
       ct-sb5-pa26-15: "no"
       ct-ctdpa: "no"
       il-hb3773: "no"
+      il-aivia: "no"
       nyc-ll144: "no"
       ca-feha-ads: "no"
       ca-ccpa-admt: "no"
@@ -221,6 +230,7 @@
       ct-sb5-pa26-15: "no"    # Connecticut's AI law does not cover housing
       ct-ctdpa: "yes"
       il-hb3773: "no"
+      il-aivia: "no"
       nyc-ll144: "no"
       ca-feha-ads: "no"
       ca-ccpa-admt: "no"
@@ -247,6 +257,7 @@
       ct-sb5-pa26-15: "no"
       ct-ctdpa: "no"
       il-hb3773: "no"
+      il-aivia: "no"
       nyc-ll144: "no"
       ca-feha-ads: "no"
       ca-ccpa-admt: "no"
@@ -276,6 +287,7 @@
       ct-sb5-pa26-15: "no"
       ct-ctdpa: "no"
       il-hb3773: "no"
+      il-aivia: "no"
       nyc-ll144: "no"
       ca-feha-ads: "no"
       ca-ccpa-admt: "no"
@@ -304,6 +316,7 @@
       ct-sb5-pa26-15: "no"
       ct-ctdpa: "no"
       il-hb3773: "no"
+      il-aivia: "no"
       nyc-ll144: "no"
       ca-feha-ads: "no"
       ca-ccpa-admt: "no"
@@ -332,6 +345,7 @@
       ct-sb5-pa26-15: "yes"
       ct-ctdpa: "no"
       il-hb3773: "no"
+      il-aivia: "no"
       nyc-ll144: "no"
       ca-feha-ads: "no"
       ca-ccpa-admt: "no"
@@ -362,6 +376,7 @@
       ct-sb5-pa26-15: "no"
       ct-ctdpa: "no"
       il-hb3773: "no"
+      il-aivia: "no"
       nyc-ll144: "no"
       ca-feha-ads: "no"
       ca-ccpa-admt: "no"
@@ -391,6 +406,7 @@
       ct-sb5-pa26-15: "uncertain"
       ct-ctdpa: "no"
       il-hb3773: "uncertain"
+      il-aivia: "uncertain"
       nyc-ll144: "uncertain"
       ca-feha-ads: "uncertain"
       ca-ccpa-admt: "uncertain"
@@ -426,6 +442,7 @@
       ct-sb5-pa26-15: "yes"
       ct-ctdpa: "no"
       il-hb3773: "no"
+      il-aivia: "no"
       nyc-ll144: "no"
       ca-feha-ads: "no"
       ca-ccpa-admt: "no"
@@ -454,6 +471,7 @@
       ct-sb5-pa26-15: "no"
       ct-ctdpa: "no"
       il-hb3773: "no"
+      il-aivia: "no"
       nyc-ll144: "no"
       ca-feha-ads: "no"
       ca-ccpa-admt: "no"
@@ -486,6 +504,7 @@
       ct-sb5-pa26-15: "yes"    # in scope via employment; housing is not CT-covered but doesn't defeat scope
       ct-ctdpa: "yes"
       il-hb3773: "no"
+      il-aivia: "no"
       nyc-ll144: "no"
       ca-feha-ads: "no"
       ca-ccpa-admt: "no"
@@ -517,6 +536,7 @@
       ct-sb5-pa26-15: "no"
       ct-ctdpa: "no"
       il-hb3773: "yes"
+      il-aivia: "yes"
       nyc-ll144: "no"
       ca-feha-ads: "no"
       ca-ccpa-admt: "no"
@@ -547,6 +567,7 @@
       ct-sb5-pa26-15: "no"
       ct-ctdpa: "no"
       il-hb3773: "yes"
+      il-aivia: "yes"
       nyc-ll144: "no"
       ca-feha-ads: "no"
       ca-ccpa-admt: "no"
@@ -579,6 +600,7 @@
       ct-sb5-pa26-15: "no"
       ct-ctdpa: "no"
       il-hb3773: "yes"
+      il-aivia: "yes"
       nyc-ll144: "no"
       ca-feha-ads: "no"
       ca-ccpa-admt: "no"
@@ -609,6 +631,7 @@
       ct-sb5-pa26-15: "no"    # no Connecticut nexus
       ct-ctdpa: "no"
       il-hb3773: "no"         # Illinois HB 3773 covers employment, not housing
+      il-aivia: "no"
       nyc-ll144: "no"         # no New York City nexus
       ca-feha-ads: "no"
       ca-ccpa-admt: "no"
@@ -637,6 +660,7 @@
       ct-sb5-pa26-15: "no"
       ct-ctdpa: "no"
       il-hb3773: "no"
+      il-aivia: "no"
       nyc-ll144: "yes"
       ca-feha-ads: "no"
       ca-ccpa-admt: "no"
@@ -668,6 +692,7 @@
       ct-sb5-pa26-15: "no"
       ct-ctdpa: "no"
       il-hb3773: "yes"
+      il-aivia: "yes"
       nyc-ll144: "yes"
       ca-feha-ads: "no"
       ca-ccpa-admt: "no"
@@ -699,6 +724,7 @@
       ct-sb5-pa26-15: "no"
       ct-ctdpa: "no"
       il-hb3773: "no"
+      il-aivia: "no"
       nyc-ll144: "no"
       ca-feha-ads: "no"
       ca-ccpa-admt: "no"
@@ -725,6 +751,7 @@
       ct-sb5-pa26-15: "no"
       ct-ctdpa: "no"
       il-hb3773: "no"
+      il-aivia: "no"
       nyc-ll144: "no"         # LL144 covers employment, not housing
       ca-feha-ads: "no"
       ca-ccpa-admt: "no"
@@ -753,6 +780,7 @@
       ct-sb5-pa26-15: "no"
       ct-ctdpa: "no"
       il-hb3773: "no"
+      il-aivia: "no"
       nyc-ll144: "no"
       ca-feha-ads: "yes"
       ca-ccpa-admt: "yes"
@@ -784,6 +812,7 @@
       ct-sb5-pa26-15: "no"
       ct-ctdpa: "no"
       il-hb3773: "yes"
+      il-aivia: "yes"
       nyc-ll144: "no"
       ca-feha-ads: "yes"
       ca-ccpa-admt: "yes"
@@ -816,6 +845,7 @@
       ct-sb5-pa26-15: "no"
       ct-ctdpa: "no"
       il-hb3773: "no"
+      il-aivia: "no"
       nyc-ll144: "no"
       ca-feha-ads: "yes"
       ca-ccpa-admt: "yes"
@@ -848,6 +878,7 @@
       ct-sb5-pa26-15: "no"
       ct-ctdpa: "no"
       il-hb3773: "no"
+      il-aivia: "no"
       nyc-ll144: "no"
       ca-feha-ads: "no"
       ca-ccpa-admt: "no"
@@ -876,6 +907,7 @@
       ct-sb5-pa26-15: "no"
       ct-ctdpa: "no"
       il-hb3773: "no"
+      il-aivia: "no"
       nyc-ll144: "no"
       ca-feha-ads: "no"         # FEHA ADS regs cover employment, not government services
       ca-ccpa-admt: "no"        # government services is not a CCPA "significant decision"
@@ -904,6 +936,7 @@
       ct-sb5-pa26-15: "no"
       ct-ctdpa: "no"
       il-hb3773: "no"
+      il-aivia: "no"
       nyc-ll144: "no"
       ca-feha-ads: "no"         # FEHA ADS regs cover employment, not housing
       ca-ccpa-admt: "yes"       # CPPA: housing is a "significant decision"
@@ -934,6 +967,7 @@
       ct-sb5-pa26-15: "no"
       ct-ctdpa: "no"
       il-hb3773: "no"
+      il-aivia: "no"
       nyc-ll144: "no"
       ca-feha-ads: "no"         # FEHA ADS regs cover employment, not lending
       ca-ccpa-admt: "yes"       # CPPA: financial/lending is a "significant decision"
@@ -963,6 +997,7 @@
       ct-sb5-pa26-15: "no"
       ct-ctdpa: "no"
       il-hb3773: "no"
+      il-aivia: "no"
       nyc-ll144: "no"
       ca-feha-ads: "no"
       ca-ccpa-admt: "no"
@@ -991,6 +1026,7 @@
       ct-sb5-pa26-15: "no"        # CT law is employment-only
       ct-ctdpa: "no"
       il-hb3773: "no"            # IL law is employment-only
+      il-aivia: "no"
       nyc-ll144: "no"            # LL144 is employment-only
       ca-feha-ads: "no"
       ca-ccpa-admt: "no"          # CPPA reaches housing but there is no California nexus
@@ -1019,6 +1055,7 @@
       ct-sb5-pa26-15: "no"
       ct-ctdpa: "no"
       il-hb3773: "yes"
+      il-aivia: "yes"
       nyc-ll144: "no"
       ca-feha-ads: "no"
       ca-ccpa-admt: "no"
@@ -1050,6 +1087,7 @@
       ct-sb5-pa26-15: "no"
       ct-ctdpa: "no"
       il-hb3773: "no"
+      il-aivia: "no"
       nyc-ll144: "no"
       ca-feha-ads: "no"
       ca-ccpa-admt: "no"
@@ -1073,6 +1111,7 @@
       ct-sb5-pa26-15: "no"
       ct-ctdpa: "no"
       il-hb3773: "no"
+      il-aivia: "no"
       nyc-ll144: "no"
       ca-feha-ads: "no"
       ca-ccpa-admt: "no"
@@ -1103,6 +1142,7 @@
       ct-sb5-pa26-15: "no"      # SB 5 is employment-only; a consumer-lending decision is outside it
       ct-ctdpa: "yes"
       il-hb3773: "no"
+      il-aivia: "no"
       nyc-ll144: "no"
       ca-feha-ads: "no"
       ca-ccpa-admt: "no"
@@ -1135,6 +1175,7 @@
       ct-sb5-pa26-15: "no"
       ct-ctdpa: "no"            # CTDPA binds the controller/deployer, not a build-only vendor
       il-hb3773: "no"
+      il-aivia: "no"
       nyc-ll144: "no"
       ca-feha-ads: "no"
       ca-ccpa-admt: "no"
@@ -1159,6 +1200,7 @@
       ct-sb5-pa26-15: "no"
       ct-ctdpa: "yes"
       il-hb3773: "no"
+      il-aivia: "no"
       nyc-ll144: "no"
       ca-feha-ads: "no"         # FEHA ADS regs cover employment, not lending
       ca-ccpa-admt: "yes"       # CPPA: financial/lending is a "significant decision"
@@ -1192,6 +1234,7 @@
       ct-sb5-pa26-15: "no"
       ct-ctdpa: "no"
       il-hb3773: "no"
+      il-aivia: "no"
       nyc-ll144: "no"
       ca-feha-ads: "no"
       ca-ccpa-admt: "no"
@@ -1223,6 +1266,7 @@
       ct-sb5-pa26-15: "no"
       ct-ctdpa: "no"
       il-hb3773: "no"
+      il-aivia: "no"
       nyc-ll144: "no"
       ca-feha-ads: "no"
       ca-ccpa-admt: "no"
@@ -1255,6 +1299,7 @@
       ct-sb5-pa26-15: "no"
       ct-ctdpa: "no"
       il-hb3773: "no"
+      il-aivia: "no"
       nyc-ll144: "no"
       ca-feha-ads: "no"
       ca-ccpa-admt: "no"
@@ -1287,6 +1332,7 @@
       ct-sb5-pa26-15: "no"
       ct-ctdpa: "no"
       il-hb3773: "no"
+      il-aivia: "no"
       nyc-ll144: "no"
       ca-feha-ads: "no"
       ca-ccpa-admt: "no"
@@ -1317,6 +1363,7 @@
       ct-sb5-pa26-15: "no"
       ct-ctdpa: "no"
       il-hb3773: "no"
+      il-aivia: "no"
       nyc-ll144: "no"
       ca-feha-ads: "no"
       ca-ccpa-admt: "no"
@@ -1329,3 +1376,39 @@
     obligations:
       - "Colorado AI Act: before using a covered ADMT to materially influence an employment decision, give the consumer clear notice that a covered ADMT is in use and, on an adverse outcome, an opportunity for human review (Colorado 6-1-1704, 6-1-1705)."
       - "Texas TRAIGA: do not deploy an AI system with the intent to unlawfully discriminate against a protected class; disparate impact alone is not sufficient, and no impact-assessment or notice duty applies (Texas 552.056)."
+
+- id: il-aivia-video-interview
+  rationale: >
+    An Illinois employer that asks applicants to record video interviews and uses an AI analysis
+    of those videos to evaluate them. Scope-gate-wise this is identical to the baseline Illinois
+    employment/deployer case (Illinois + employment + deployer), so BOTH Illinois laws fire: HB 3773
+    (effect-based discrimination + notice) and AIVIA (820 ILCS 42 — notice/consent/retention for the
+    video-interview AI practice). The two are NOT harmonized: HB 3773 is a discrimination standard,
+    AIVIA is a procedural notice/consent/deletion rule tied to the video-interview technology. This
+    case exists to exercise the AIVIA grounding path (820 ILCS 42/5, 42/15); the deterministic gate
+    cannot see AIVIA's narrower real-world trigger (that lives in the memo prose), so at the gate the
+    verdict tracks HB 3773.
+  situation:
+    jurisdictions: [Illinois]
+    decision_domains: [employment]
+    roles: [deployer]
+    ai_use: "yes"
+  expect:
+    scope:
+      co-sb26-189: "no"
+      co-cpa: "no"
+      ct-sb5-pa26-15: "no"
+      ct-ctdpa: "no"
+      il-hb3773: "yes"
+      il-aivia: "yes"
+      nyc-ll144: "no"
+      ca-feha-ads: "no"
+      ca-ccpa-admt: "no"
+      nj-njac-13-16: "no"
+      tx-traiga: "no"
+    grounding_sections:
+      - "820 ILCS 42/5"    # AIVIA: notice + explanation + consent before the interview
+      - "820 ILCS 42/15"   # AIVIA: delete applicant videos within 30 days of request
+    obligations:
+      - "AIVIA notice/consent: before the interview, notify the applicant that AI may analyze the video, explain how the AI works and what general characteristics it evaluates, and obtain consent; you may not evaluate an applicant who has not consented (Illinois 820 ILCS 42/5)."
+      - "AIVIA retention: on an applicant's request, delete the applicant's video interviews within 30 days and instruct any downstream recipients to delete their copies, including backups (Illinois 820 ILCS 42/15)."

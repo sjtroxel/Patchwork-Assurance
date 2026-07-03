@@ -50,6 +50,16 @@ canonical metadata is each record's `.meta.yaml`, not these summaries.
   adds an employee-notice duty. Effective Jan 1, 2026. Enforced by IDHR / IHRC (individual complaint
   process, no AG-exclusive enforcement). Official text:
   https://www.ilga.gov/documents/legislation/publicacts/103/103-0804.htm
+- **`il-aivia`** — Illinois **Artificial Intelligence Video Interview Act (AIVIA)**, 820 ILCS 42/1 et
+  seq. Illinois's **second** law, and a different mechanism from HB 3773 — not a discrimination test but
+  a procedural **notice / consent / retention** rule: an employer that uses AI to analyze applicant
+  video interviews must disclose the use before the interview, explain how the AI works, obtain consent
+  (and may not evaluate applicants who do not consent), limit sharing of videos, and delete an
+  applicant's videos within 30 days of a request. A separate provision (§ 20) adds annual race/ethnicity
+  reporting for employers that rely **solely** on AI video analysis to grant in-person interviews. In
+  force since Jan 1, 2020 (§ 20 added Jan 1, 2022); the Act specifies no enforcement agency or penalty.
+  Held apart from HB 3773 — **do not harmonize** the two. Official text:
+  https://www.ilga.gov/legislation/ilcs/ilcs3.asp?ActID=4015&ChapterID=68
 - **`ca-feha-ads`** — California **FEHA automated-decision-system employment regulations** (Civil
   Rights Council), 2 CCR §§ 11008 et seq. Extends existing FEHA employment-discrimination liability to
   an "automated-decision system" (§ 11009(f)) rather than adding a new decision-influence trigger;

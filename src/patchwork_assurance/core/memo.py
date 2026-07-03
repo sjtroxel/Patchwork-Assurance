@@ -18,7 +18,9 @@ _IN_SCOPE = ("yes", "uncertain")
 # How many statute chunks to retrieve per in-scope law for the memo. Raised 5 -> 8 after the
 # Phase 6 eval: retrieval recall@5 was 68% (CO 6-1-1705, the human-review right, ranked 6th-12th
 # for the deployer query), recall@8 ~95%. The eval reads THIS constant so it always measures the
-# real memo depth. A deeper fix (hybrid retrieval) is Phase 8; the facts card already backstops it.
+# real memo depth. The remaining gap (a law whose material rule is worded unlike the generic focus
+# query — Texas TRAIGA's § 552.056 ranked ~19th under ~34 sandbox/council sections) is closed by the
+# key-obligation pin in retrieve_per_law, not by raising k: recall@8 is now 100% (2026-07-03).
 MEMO_RETRIEVAL_K = 8
 # Coverage beyond consequential decisions about people (e.g. CT's AI-companion / generative-AI /
 # frontier-model provisions) — surfaced as a note, not a form gate (Phase 4.6, Fork D).
@@ -57,22 +59,78 @@ def generate_memo(
     return memo
 
 
-def retrieve_per_law(situation: Situation, scope: list[ScopeResult], retriever) -> dict[str, list]:
+def retrieve_per_law(
+    situation: Situation,
+    scope: list[ScopeResult],
+    retriever,
+    laws_by_id: dict[str, LawMetadata] | None = None,
+) -> dict[str, list]:
     """Per-law chunk buckets for the in-scope laws (keyed by law_id), using the same focus query,
     RetrievalFilters(law_id=...), and MEMO_RETRIEVAL_K everywhere. Filter by law_id, not jurisdiction:
     a jurisdiction can hold more than one law (e.g. California's FEHA ADS + CCPA ADMT regs), and each
     law's section must be grounded only in its own statute text. Shared by _generate_single (which
     merges the buckets into one prompt) and the Phase 12 analyst fan-out (which keeps them separate —
-    that separation IS the cross-law isolation)."""
-    return {
-        s.law_id: retriever.retrieve(
-            query=_focus(situation),
-            filters=RetrievalFilters(law_id=s.law_id),
+    that separation IS the cross-law isolation).
+
+    Semantic top-k alone is not enough for laws with many sections whose material rule is worded
+    unlike the generic focus query: Texas TRAIGA frames its one private-sector rule as "unlawful
+    discrimination" (§ 552.056) and buries it under ~30 sandbox/council sections, so it ranks past
+    k=8. Defense: **pin every in-scope law's own curated `key_obligations` sections** (the
+    human-authored source of truth) into its bucket, then let semantic top-k fill the rest. Generic
+    over N statutes — it reads each law's metadata, no per-jurisdiction branch. `laws_by_id` is
+    optional only so older/tests callers still work; production always passes it."""
+    laws_by_id = laws_by_id or {}
+    query = _focus(situation)
+    buckets: dict[str, list] = {}
+    for s in scope:
+        if s.in_scope not in _IN_SCOPE:
+            continue
+        chunks = retriever.retrieve(
+            query=query, filters=RetrievalFilters(law_id=s.law_id), k=MEMO_RETRIEVAL_K
+        )
+        law = laws_by_id.get(s.law_id)
+        if law:
+            _pin_key_obligations(retriever, law, query, chunks)
+        buckets[s.law_id] = chunks
+    return buckets
+
+
+def _pin_key_obligations(retriever, law: LawMetadata, query: str, chunks: list) -> None:
+    """Ensure each of `law`'s curated key-obligation sections is present in `chunks`, fetching any
+    that semantic top-k missed. Mutates `chunks` in place (append), deduped by chunk_index. Section
+    tokens are normalized out of the metadata's `key_obligations[].section` strings with the shared
+    citation parser, so "Tex. Bus. & Com. Code § 552.056" and "775 ILCS 5/2-102(L)(1)" both resolve
+    to the bare chunk section_number; non-citation entries (e.g. "IDHR rulemaking") yield nothing and
+    are skipped."""
+    have_sections = {c.section_number for c in chunks}
+    have_indexes = {c.chunk_index for c in chunks}
+    for token in _key_obligation_sections(law):
+        if token in have_sections:
+            continue
+        pinned = retriever.retrieve(
+            query=query,
+            filters=RetrievalFilters(law_id=law.law_id, section_number=token),
             k=MEMO_RETRIEVAL_K,
         )
-        for s in scope
-        if s.in_scope in _IN_SCOPE
-    }
+        for pc in pinned:
+            if pc.chunk_index not in have_indexes:
+                chunks.append(pc)
+                have_indexes.add(pc.chunk_index)
+                have_sections.add(pc.section_number)
+
+
+def _key_obligation_sections(law: LawMetadata) -> list[str]:
+    """The bare chunk-section tokens named by a law's key_obligations, order-preserving and deduped.
+    Uses the shared `cited_sections` citation parser so it stays generic over each jurisdiction's
+    citation format (the same parser the grounding guard uses)."""
+    from patchwork_assurance.core.grounding import cited_sections
+
+    out: list[str] = []
+    for obl in law.key_obligations:
+        for token in cited_sections(obl.section):
+            if token not in out:
+                out.append(token)
+    return out
 
 
 def _generate_single(
@@ -84,7 +142,7 @@ def _generate_single(
 ) -> ComplianceMemo:
     """Today's path: retrieve every in-scope law's chunks into one list and generate the whole memo
     in a single complete_structured call."""
-    buckets = retrieve_per_law(situation, scope, retriever)
+    buckets = retrieve_per_law(situation, scope, retriever, laws_by_id)
     chunks = []
     for s in scope:
         if s.in_scope in _IN_SCOPE:

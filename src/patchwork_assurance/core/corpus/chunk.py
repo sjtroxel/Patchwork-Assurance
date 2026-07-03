@@ -11,7 +11,7 @@ _HEADING = re.compile(r"^##\s+(.*\S)\s*$")
 # prefix is optional and a state's own format still matches first by alternation order).
 _SECTION_NUM = re.compile(
     r"^(?:§\s*|N\.J\.A\.C\.\s*)?"
-    r"(\d+:\d+-\d+\.\d+\w*|\d+-\d+-\d+\w*|Sec\.\s*\d+\w*|\d+ ILCS \d+/\d+-\d+"
+    r"(\d+:\d+-\d+\.\d+\w*|\d+-\d+-\d+\w*|Sec\.\s*\d+\w*|\d+ ILCS \d+/\d+(?:-\d+)?"
     r"|\d{4,5}(?:\.\d+)?|\d+\.\d+\w*|\d+-\d+\w*)"
 )
 

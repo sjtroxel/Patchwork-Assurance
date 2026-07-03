@@ -319,3 +319,64 @@ def test_multi_agent_pipeline_runs_end_to_end(monkeypatch):
     assert memo.disclaimer == DISCLAIMER  # assembly sets the chrome
     assert memo.generated_on == date.today().isoformat()  # deterministic overlay still applied
     assert [f.law_id for f in memo.per_law] == ["co-sb-26-189"]  # only the in-scope law
+
+
+def test_retrieve_per_law_pins_key_obligation_sections():
+    """A law's curated key-obligation section that semantic top-k ranks past the k-window is still
+    grounded: retrieve_per_law refetches it by section. Regression lock for the TRAIGA gap found
+    2026-07-03 (§ 552.056, the one private-employer rule, ranked ~19th under a generic focus query
+    and never made k=8, so the memo grounded in sandbox/council sections instead)."""
+    from patchwork_assurance.core.corpus.metadata import LawMetadata, Obligation
+    from patchwork_assurance.core.memo import retrieve_per_law
+
+    distractor = RetrievedChunk(
+        text="regulatory sandbox program",
+        citation="Tex. Bus. & Com. Code § 553.054",
+        section_number="553.054",
+        section_heading="Efficient Use of Resources",
+        jurisdiction="Texas",
+        law_id="tx-traiga",
+        score=0.9,
+        chunk_index=23,
+    )
+    material = RetrievedChunk(
+        text="may not deploy AI with intent to unlawfully discriminate",
+        citation="Tex. Bus. & Com. Code § 552.056",
+        section_number="552.056",
+        section_heading="Unlawful Discrimination",
+        jurisdiction="Texas",
+        law_id="tx-traiga",
+        score=0.4,
+        chunk_index=11,
+    )
+
+    class _PinAwareRetriever:
+        """Semantic top-k returns only the distractor (mirrors 552.056 ranking out of the window);
+        the section-scoped refetch is the only way to surface the material section."""
+
+        def retrieve(self, query, filters=None, k=5):
+            if filters and filters.section_number == "552.056":
+                return [material]
+            if filters and filters.section_number:
+                return []  # other key-obligation sections not modeled in this stub
+            return [distractor]
+
+    law = LawMetadata.model_construct(
+        law_id="tx-traiga",
+        key_obligations=[
+            Obligation(section="Tex. Bus. & Com. Code § 552.056", label="Unlawful discrimination")
+        ],
+    )
+    scope = [
+        ScopeResult(
+            law_id="tx-traiga",
+            short_name="TX TRAIGA",
+            jurisdiction="Texas",
+            in_scope="yes",
+            reason="",
+        )
+    ]
+    buckets = retrieve_per_law(SITUATION, scope, _PinAwareRetriever(), {"tx-traiga": law})
+    got = {c.section_number for c in buckets["tx-traiga"]}
+    assert "552.056" in got  # pinned in despite being missed by semantic top-k
+    assert "553.054" in got  # the semantic hit is preserved, not replaced
