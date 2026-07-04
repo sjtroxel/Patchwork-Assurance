@@ -1,5 +1,3 @@
-<img src="site/assets/hero-poster.jpg" alt="Patchwork Assurance — a pieced quilt of colored squares in the project's teal, oxblood, gold, and pine palette" width="100%">
-
 <div align="center">
 
 # Patchwork Assurance
