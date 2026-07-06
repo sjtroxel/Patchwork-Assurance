@@ -17,6 +17,7 @@ running footer (brand / generated date / page X of Y) on every page.
 from __future__ import annotations
 
 import html
+import re
 from datetime import date
 
 from patchwork_assurance.core.contracts import ComplianceMemo, Situation
@@ -44,6 +45,14 @@ def _esc(s: str) -> str:
     """HTML-escape every memo-authored string before interpolating: per-law `why`, obligation text,
     and draft-notice text are LLM-authored and therefore untrusted (Phase 7 grounding posture)."""
     return html.escape(s or "")
+
+
+def _md_bold(escaped: str) -> str:
+    """Render leftover `**bold**` markdown as <strong> in an already-HTML-escaped string. The reviewer's
+    natural-language summary sometimes leads with a `**Executive Summary**` markdown header; Streamlit
+    renders it, but the PDF path is raw HTML, so without this the asterisks print literally. Runs AFTER
+    _esc, so the span text is already escaped and the only tags introduced are the <strong> we control."""
+    return re.sub(r"\*\*(.+?)\*\*", r"<strong>\1</strong>", escaped)
 
 
 def executive_summary(memo: ComplianceMemo, situation: Situation | None = None) -> str:
@@ -120,7 +129,7 @@ def memo_to_html(
     as_of = corpus_as_of or gen
     # Phase 12 seam: prefer the reviewer's natural-language summary when present (multi_agent mode),
     # else the deterministic Phase 11 line (single-call / no-situation path). Both are HTML-escaped.
-    summary = _esc(memo.summary or executive_summary(memo, situation))
+    summary = _md_bold(_esc(memo.summary or executive_summary(memo, situation)))
     disc = _esc(memo.disclaimer or DISCLAIMER)
 
     laws = []
