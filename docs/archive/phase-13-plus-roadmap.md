@@ -1,5 +1,10 @@
 # Phase 13+ — Post-Plan Roadmap (the parking lot)
 
+> **SUPERSEDED 2026-07-09 — archived, not controlling.** Its live content migrated: the LegiScan radar →
+> `docs/roadmap/phase-13-legiscan-radar.md`; the frontier-model benchmark → `phase-14-benchmark-vs-frontier.md`;
+> the residual backlog + still-open tech-debt (§4) → `docs/POST_LAUNCH_PLAN.md`. §1–§3 (funded-run ledger,
+> CT/CO corpus adds, the launch post) are done history. Kept only for provenance.
+
 *Started 2026-07-01, at the tail of Phase 12. This is the forward-looking backlog for everything after
 the planned spine (Phases 0–12) — corpus expansion, launch/activation, and candidate future phases.
 It is deliberately a **parking lot**, not a committed spec: per the project's doc convention we plan
