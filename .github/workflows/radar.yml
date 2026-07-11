@@ -1,0 +1,130 @@
+name: National radar
+
+# Phase 13 sec 6 Batch 6 - weekly detection layer (stage 0) in front of the Phase 9 pipeline.
+# Searches LegiScan for newly enrolled/passed AI-regulation bills across all 50 states +
+# Congress and opens a GitHub ISSUE per candidate for human triage. Blessed candidates flow
+# into the Phase 9 assess/draft/PR lane. The issue IS the human gate - nothing auto-ingests.
+#
+# Cost keystone: zero LLM calls. Detection is deterministic Python over LegiScan's free tier
+# (~650 req/month vs 30,000). A no-candidate run is free (Actions minutes + HTTP only).
+#
+# Required secrets:
+#   LEGISCAN_API_KEY - LegiScan public API key; set in repo Settings > Secrets > Actions.
+# The auto-provided GITHUB_TOKEN opens/updates issues (permissions: issues: write below).
+
+on:
+  schedule:
+    - cron: "0 6 * * 1"  # weekly, Monday 06:00 UTC - bills don't pass daily; issue-noise is the cost
+  workflow_dispatch:      # manual trigger - the first live run rides this
+
+jobs:
+  radar:
+    name: Detect AI-regulation bills (LegiScan)
+    runs-on: ubuntu-latest
+    permissions:
+      issues: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install
+        run: pip install -e ".[dev]"
+
+      # Persist the rich per-bill store across runs. The runner is ephemeral and
+      # .radar_store.json is gitignored, so WITHOUT this every run sees every bill as NEW and
+      # opens duplicate issues. The rolling run_id key writes a fresh cache each run; restore-keys
+      # recovers the most recent prior store. The weekly cron keeps the cache warm (caches evict
+      # after ~7 days idle); a cold miss costs one duplicate-issue run and self-heals next week.
+      - name: Restore radar store
+        uses: actions/cache@v4
+        with:
+          path: .radar_store.json
+          key: radar-store-${{ github.run_id }}
+          restore-keys: |
+            radar-store-
+
+      # Detection only - run_radar reads the store to classify but never writes it (poll
+      # discipline). The summary (with change_hash) is what the next step commits after opening
+      # the issue, so a crashed issue-open never advances the store past an untriaged bill.
+      - name: Run radar (detection only)
+        run: python -m patchwork_assurance.core.agent.radar | tee radar_summary.json
+        env:
+          LEGISCAN_API_KEY: ${{ secrets.LEGISCAN_API_KEY }}
+          RADAR_STORE_PATH: .radar_store.json
+
+      # Ensure the triage label exists (idempotent; ignore "already exists").
+      - name: Ensure radar-candidate label
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh label create radar-candidate --color 5319e7 --description "Phase 13 radar candidate for triage" || true
+
+      # Open an issue per NEW bill, comment on the existing issue per CHANGED bill, then write the
+      # store (issue_number + change_hash). The store save is committed to the cache at job end.
+      # This glue lives in the workflow, not core/, so core/ never imports GitHub (the inward-only
+      # invariant) - the same split monitor.yml uses for PR creation.
+      - name: Open/update issues and commit the store
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          python - <<'EOF'
+          import datetime
+          import json
+          import subprocess
+
+          from patchwork_assurance.core.agent.radar import RadarStore
+
+          with open("radar_summary.json") as f:
+              summary = json.load(f)
+
+          store = RadarStore(".radar_store.json")
+          today = datetime.date.today().isoformat()
+
+          def issue_body(c: dict) -> str:
+              return (
+                  f"**{c['state']} {c['number']}** - {c['title']}\n\n"
+                  f"- Status: {c['status']}\n"
+                  f"- LegiScan relevance: {c['relevance']} (matched query: `{c['query']}`)\n"
+                  f"- Source: {c['url']}\n\n"
+                  "---\n"
+                  "Radar candidate (Phase 13). **Human gate - this is not a decision and not legal "
+                  "advice.** Verify against the official source before adding anything to the corpus; "
+                  "statute text comes from the official publication, never from LegiScan. "
+                  "Bill data via LegiScan (CC BY 4.0).\n"
+              )
+
+          # NEW -> open an issue, record its number + hash (first_seen = today).
+          for c in summary["new"]:
+              title = f"Radar: {c['state']} {c['number']} - {c['title'][:80]}"
+              out = subprocess.run(
+                  ["gh", "issue", "create", "--title", title,
+                   "--body", issue_body(c), "--label", "radar-candidate"],
+                  capture_output=True, text=True, check=True,
+              ).stdout.strip()
+              issue_number = int(out.rsplit("/", 1)[-1])
+              store.set(int(c["bill_id"]), change_hash=c["change_hash"],
+                        first_seen=today, issue_number=issue_number)
+
+          # CHANGED -> comment on the existing issue, refresh the hash (preserve first_seen).
+          for c in summary["changed"]:
+              n = c["issue_number"]
+              if n:
+                  subprocess.run(
+                      ["gh", "issue", "comment", str(n), "--body",
+                       f"Bill changed (new LegiScan change_hash). Status: {c['status']}. "
+                       f"Re-review against source: {c['url']}"],
+                      check=True,
+                  )
+              prior = store.get(int(c["bill_id"])) or {}
+              store.set(int(c["bill_id"]), change_hash=c["change_hash"],
+                        first_seen=prior.get("first_seen", today), issue_number=n)
+
+          store.save()
+          print(f"radar: opened {len(summary['new'])} new, updated {len(summary['changed'])} changed")
+          EOF

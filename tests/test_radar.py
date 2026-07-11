@@ -19,6 +19,7 @@ from patchwork_assurance.core.agent.radar import (
     LegiScanClient,
     RadarCandidate,
     RadarStore,
+    _candidate_summary,
     run_radar,
 )
 
@@ -287,3 +288,14 @@ def test_candidate_status_label():
     assert c.status_label == "passed"
     c.status = 1
     assert c.status_label == "introduced"
+
+
+def test_candidate_summary_carries_change_hash():
+    # Session 2's workflow writes the store from this summary, so change_hash must survive the
+    # round-trip (run_radar never writes the store itself — the caller commits after the issue).
+    c = RadarCandidate.from_search_result(_search_result(1, change_hash="abc123"), "q")
+    c.status = 4
+    c.kind = "NEW"
+    summary = _candidate_summary(c)
+    assert summary["change_hash"] == "abc123"
+    assert summary["status"] == "passed"

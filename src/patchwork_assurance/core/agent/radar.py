@@ -269,6 +269,9 @@ def run_radar(
 
 
 def _candidate_summary(c: RadarCandidate) -> dict:
+    # change_hash is included so Session 2's workflow can write it into the store after opening
+    # the issue — run_radar deliberately does not write the store (poll discipline), so the hash
+    # must round-trip through this summary for the caller to commit it.
     return {
         "bill_id": c.bill_id,
         "number": c.number,
@@ -279,6 +282,7 @@ def _candidate_summary(c: RadarCandidate) -> dict:
         "url": c.url,
         "query": c.query,
         "kind": c.kind,
+        "change_hash": c.change_hash,
         "issue_number": c.issue_number,
     }
 

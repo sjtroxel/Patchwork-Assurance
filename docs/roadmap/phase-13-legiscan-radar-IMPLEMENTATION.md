@@ -1,6 +1,10 @@
 # Phase 13 — IMPLEMENTATION (LegiScan radar / national detection layer)
 
-> **STATUS: PLANNED — build not started.** This is the as-built runbook, written at phase start
+> **STATUS: Session 1 complete (committed 2af87f3); Session 2 CODE staged 2026-07-11 — the live run
+> is the only remaining item, gated on the LegiScan API key (registration submitted, under manual
+> review). `radar.yml`, the README subsection, and the `change_hash`-in-summary change are done, ruff +
+> pytest green (373 passed). The `workflow_dispatch` first run + floor/query tuning happen the moment the
+> key lands.** This is the as-built runbook, written at phase start
 > (2026-07-10) per the repo convention, reflecting how Phases 0–12 actually landed and how the Phase 9
 > agent code is shaped. The intended design + posture live in `phase-13-legiscan-radar.md` (read it
 > first); this doc records the resolved decisions, the reuse map, the exact write paths the radar mirrors,
@@ -246,6 +250,24 @@ issues. This is the only batch that spends an API call or touches CI.*
 
 ## 11. As-built notes
 
-*(Filled in as each session lands — the LegiScan response-shape reality found at the first real run, the
-tuned relevance floor, whether the `getBill` enrichment survived or the search operator replaced it, and
-the first-batch triage story for the writeup. Empty until the build is approved and executed.)*
+**Session 2 code (2026-07-11), staged ahead of the live run:**
+- `.github/workflows/radar.yml` landed on `monitor.yml`'s shape: weekly cron (Mon 06:00 UTC) +
+  `workflow_dispatch`, `permissions: issues: write`, `actions/cache` for `.radar_store.json` (rolling
+  `run_id` key + `restore-keys`), `LEGISCAN_API_KEY` secret. A label-ensure step (`gh label create ... || true`)
+  precedes issue creation so the first run can't fail on a missing label.
+- **Design fork resolved:** the open-issue + store-write glue lives **in the workflow, not `core/`** (an
+  inline `python` heredoc that imports `RadarStore`, calls `gh`, and saves) — the same split `monitor.yml`
+  uses for PR creation, so `core/` never imports GitHub (inward-only invariant preserved).
+- **Session-1 file touched (small):** `_candidate_summary` now emits `change_hash`. The workflow needs it
+  to write the store after opening the issue, and `run_radar` deliberately doesn't write the store — so the
+  hash had to round-trip through the summary. Covered by `test_candidate_summary_carries_change_hash`.
+- `.radar_store.json` + `radar_summary.json` added to `.gitignore` (runtime artifacts, cache-persisted).
+- Gates green: ruff clean, 373 passed. Nothing committed until sjtroxel runs it.
+
+**Still pending the API key (the only blocked items):** the one `workflow_dispatch` live run, the
+first-batch triage, the relevance-floor / query tuning, the `getBill`-vs-search-operator confirmation,
+and the `getSearch` response-shape reality found at the first real run. Registration is in manual review.
+
+*(Original note — filled in as each session lands: the LegiScan response-shape reality found at the first
+real run, the tuned relevance floor, whether the `getBill` enrichment survived or the search operator
+replaced it, and the first-batch triage story for the writeup.)*

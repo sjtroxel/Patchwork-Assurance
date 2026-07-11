@@ -178,6 +178,19 @@ The tool reads **each statute's own language from metadata** rather than flatten
 standard. A memo that said "these seven laws all require X" would be worse than useless — it would be
 confidently wrong.
 
+### Staying current: the national radar
+
+Two layers keep the corpus from going stale, and both **gate on a human** — nothing is auto-ingested.
+The Phase 9 monitor watches the URLs of laws *already* tracked (fetch → hash → diff → pull request on a
+real change). The Phase 13 **national radar** watches for laws *not yet* tracked: a weekly job searches
+LegiScan across all 50 states and Congress for newly enrolled or passed AI-regulation bills, filters by
+relevance and status, and opens a GitHub **issue** per candidate for review. It is a radar that
+**surfaces candidates for human curation, not a claim to detect every AI law** — keyword recall is lossy
+in both directions, and the human issue-gate is a first-class part of the design, the same credibility
+boundary as the monitor's pull-request gate. Detection is deterministic Python with **no LLM calls**;
+bill data comes from LegiScan (CC BY 4.0), while statute text is always sourced from the official
+publication.
+
 ## Stack
 
 Python end to end, on purpose (a deliberate GitHub signal — no JS/TS frontend).
