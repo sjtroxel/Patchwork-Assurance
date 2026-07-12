@@ -44,9 +44,14 @@ logs_*.zip
 *.zip
 
 # Phase 9 monitoring agent runtime artifacts
-.agent_hashes.json        # last-seen content hashes (not repo state — re-built by poll)
-corpus/_staging/          # draft staging area — merged into corpus/ via PR, then cleared
+# .agent_hashes.json = last-seen content hashes (not repo state, re-built by poll)
+# corpus/_staging/ = draft staging area, merged into corpus/ via PR then cleared
+.agent_hashes.json
+corpus/_staging/
 
 # Phase 13 national radar runtime artifacts
-.radar_store.json         # per-bill radar state (change_hash/issue_number) — persisted via Actions cache
-radar_summary.json        # detection summary emitted per run — read by the workflow, not repo state
+# (comments must be on their own line — an inline '#' is part of the pattern, not a comment)
+# .radar_store.json = per-bill radar state (change_hash/issue_number), persisted via Actions cache
+# radar_summary.json = detection summary emitted per run, read by the workflow, not repo state
+.radar_store.json
+radar_summary.json

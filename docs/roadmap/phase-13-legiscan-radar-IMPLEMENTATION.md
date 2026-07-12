@@ -2,10 +2,15 @@
 
 > **STATUS: Session 1 complete (committed 2af87f3); Session 2 complete (committed 75c18c8 — `radar.yml`,
 > the README subsection, and the `change_hash`-in-summary change). Session 3 (2026-07-12) hardened the
-> getBill enrichment so one flaky status lookup can't crash the weekly batch (offline, ruff + pytest green,
-> 374 passed). The live run remains the only blocked item, gated on the LegiScan API key (registration
-> submitted, under manual review); the `workflow_dispatch` first run + floor/query tuning happen the moment
-> the key lands.** This is the as-built runbook, written at phase start
+> getBill enrichment so one flaky status lookup can't crash the weekly batch. Session 4 (2026-07-12) made the
+> data source pluggable behind a `BillSource` seam and added an **Open States** adapter (§12), so the phase is
+> no longer hostage to LegiScan approval — whichever vendor's key lands first finishes it, via one env var
+> (`RADAR_SOURCE`). Session 5 (2026-07-12) ran the first real Open States batch locally (self-serve key),
+> found it noisy (126, ~65% false positives), and tuned three precision knobs (title-match, `classification=bill`,
+> enrolled/enacted floor) → **~12 genuine enacted AI laws** (§12), plus 429 rate-limit backoff found on the live
+> re-run. All offline, $0, ruff + pytest green (**389 passed**). The live *workflow* run is the only step left — the local run already validated Open States
+> end to end; wiring CI (flip `RADAR_SOURCE`, fire `workflow_dispatch`) opens the triage issues.** This is the
+> as-built runbook, written at phase start
 > (2026-07-10) per the repo convention, reflecting how Phases 0–12 actually landed and how the Phase 9
 > agent code is shaped. The intended design + posture live in `phase-13-legiscan-radar.md` (read it
 > first); this doc records the resolved decisions, the reuse map, the exact write paths the radar mirrors,
@@ -283,3 +288,165 @@ and the `getSearch` response-shape reality found at the first real run. Registra
 *(Original note — filled in as each session lands: the LegiScan response-shape reality found at the first
 real run, the tuned relevance floor, whether the `getBill` enrichment survived or the search operator
 replaced it, and the first-batch triage story for the writeup.)*
+
+---
+
+## 12. Session 4 (built 2026-07-12) — source abstraction + Open States backup
+
+> **BUILT & GREEN (offline, $0): `BillSource` seam + `OpenStatesClient` landed; all four decisions
+> below confirmed by sjtroxel and implemented as B1–B4 in one session. ruff clean, 382 passed (+8 Open
+> States tests). CLI smoke: `RADAR_SOURCE` selects the adapter and fails cleanly on a missing key with no
+> network. The one live run stays gated on a key — now *either* vendor's. As-built notes at the end of
+> this section.** The plan that follows is the design as approved.
+
+**Why now.** LegiScan issues API keys by manual approval (account page reads "API Key: Pending approval").
+That is a hard external dependency the phase cannot finish without — *unless* the radar isn't bound to one
+vendor. The engine was already built source-agnostic in spirit (injectable client, `run_radar` generic over
+what it's handed); this session makes that real by putting the data source behind a `BillSource` interface
+and adding an **Open States API v3** adapter. Payoff: whichever key lands first (LegiScan self-serve *or*
+Open States self-serve) finishes the phase — a one-env-var flip, not a rewrite. This is also the honest
+answer to "what if LegiScan is never approved": the detection engine, store, dedup, classification,
+issue-gate, workflow, and tests are all source-agnostic; only a ~120-line adapter is vendor-specific.
+
+**What stays identical (the source-agnostic core — do not touch its behavior):** the `RadarStore`
+save-on-success discipline, the within-run dedup, the relevance floor, the NEW/CHANGED/unchanged
+classification vs the store, the Session-3 per-bill error isolation, and the workflow's issue-open + store-
+commit glue. Only *where candidates come from* and *how "advanced enough" is decided* move behind the seam.
+
+### The `BillSource` seam
+```
+class BillSource(Protocol):
+    name: str
+    def search(self, query: str) -> list[RadarCandidate]: ...       # parse this source's shape -> common candidate
+    def passes_status_floor(self, candidate: RadarCandidate) -> bool: ...  # may hit network (LegiScan) or be local (OS)
+```
+`run_radar(source, store, ...)` takes a `BillSource` instead of a `LegiScanClient`. It calls
+`source.search(query)` (now returns candidates, not raw dicts), dedups/relevance-floors as today, then calls
+`source.passes_status_floor(candidate)` inside the **existing Session-3 try/except** (a per-bill lookup that
+raises still just skips + counts). Everything after that (classify vs store) is unchanged.
+- **LegiScanClient** conforms: `search` = `get_search` + `from_search_result` (keeps LegiScan `relevance`);
+  `passes_status_floor` = the `getBill` call, sets `candidate.status`, returns `status in PASSED_STATUSES`.
+  Behavior byte-identical to today — LegiScan tests keep passing.
+- **OpenStatesClient** (new): `search` = one `GET /bills?q=…&include=actions` per query, parsing each bill and
+  computing "advanced" inline from its actions; `passes_status_floor` returns that precomputed flag (no
+  second network call — Open States gives actions in the search response, so there's no `getBill` analog).
+
+### Open States API v3 — confirmed shape (fetched 2026-07-12)
+- Endpoint `GET https://v3.openstates.org/bills`; auth header `X-API-KEY`; full-text param `q`.
+- Useful params: `sort=latest_action_desc`, `include=actions` (needed for status), `page`/`per_page`
+  (default 10; response carries a `pagination` object → mirror the `MAX_PAGES` guard), optional
+  `action_since` (bound to ~last 90d to focus on freshly-advanced bills). Omit `jurisdiction` = all states.
+- **All 50 states + DC + PR; NO federal/Congress** — fine, the radar is the *state* patchwork by design
+  (federal is a preemption fight, out of scope; NYC LL144 is municipal). LegiScan's `state=ALL` included
+  Congress; dropping it changes nothing the radar cares about.
+- Free-tier rate limits are modest (per-minute + a daily cap); the weekly radar makes ~12 requests/run, far
+  under. Confirm the exact daily cap at signup.
+
+### Field mapping (LegiScan → Open States)
+| Candidate field | LegiScan | Open States |
+|---|---|---|
+| identifier (`bill_id`) | `bill_id` (int) | `id` (OCD string, e.g. `ocd-bill/…`) |
+| `number` | `bill_number` | `identifier` (e.g. "HB 149") |
+| `state` | `state` | `jurisdiction.name` |
+| `title` | `title` | `title` |
+| `url` | `url` | `openstates_url` (fallback: first `sources[].url`) |
+| `change_hash` (change fingerprint) | canonical `change_hash` | `sha1(updated_at)` — Open States has no change_hash; `updated_at` bumps on any record change |
+| `relevance` | `relevance` 0–100 | none → sentinel `100` (relevance floor is a **no-op** for Open States; noise control = query specificity + status floor) |
+| status floor | `getBill` enum ∈ {3 enrolled, 4 passed} | any `actions[].classification` in a PASSED set (`passage` / `enrolled` / `became-law` / `executive-signature`), and/or `latest_passage_date` present — computed inline, tuned at first OS run |
+
+### The one real ripple: identifier type `int` → `str`
+Open States IDs are OCD strings, not ints, so the shared identifier must be `str`:
+`RadarCandidate.bill_id: int → str`; `RadarStore.get/set` signatures `int → str` (the store already
+*stringifies* keys internally, so on-disk format is unchanged); `run_radar`'s `by_bill: dict[int,…] →
+dict[str,…]`; and `radar.yml` drops its `int(c["bill_id"])` casts (JSON `bill_id` is now a string). LegiScan
+ints stringify losslessly, so this is behavior-preserving for LegiScan. Existing radar tests get a mechanical
+`1 → "1"` update.
+
+### Source selection (the "flip")
+`main()` reads `RADAR_SOURCE=legiscan|openstates` (default `legiscan`) and builds the matching client from the
+matching key env (`LEGISCAN_API_KEY` or `OPENSTATES_API_KEY`). `radar.yml` passes both secrets + `RADAR_SOURCE`;
+switching vendors = change one workflow env value. No `core/` change to switch.
+
+### Build order (small, reviewable batches — all offline, mocked, $0)
+- **B1 — identifier `int→str`.** The ripple above + mechanical test updates. Pure refactor; LegiScan behavior
+  identical. Green before anything new is added.
+- **B2 — extract `BillSource`; retrofit `LegiScanClient`.** Add `search` + `passes_status_floor` to
+  LegiScan (wrapping today's methods); point `run_radar` at the protocol. LegiScan tests still green.
+- **B3 — `OpenStatesClient` + mocked tests.** Parse a canned `/bills` page → candidate; status-from-actions
+  (passed vs introduced); `updated_at` fingerprint; pagination + cap; non-OK / HTTP-error raises (feeds the
+  Session-3 isolation). Fully offline.
+- **B4 — `RADAR_SOURCE` selection + workflow.** `main()` source switch; `radar.yml` gains `OPENSTATES_API_KEY`
+  + `RADAR_SOURCE`; README note; as-built.
+
+### Decisions to confirm before B1 (recommendations in **bold**)
+1. Generalize `bill_id` `int→str` (touches committed `radar.py`, `radar.yml`, tests). **Yes** — required for
+   OCD ids, lossless for LegiScan.
+2. Reuse the `change_hash` field for Open States' `updated_at`-derived fingerprint (keep the name, document
+   it as an opaque per-source change fingerprint). **Yes** — avoids churning the store/summary/workflow.
+3. Open States status floor via action classifications (permissive; the human issue-gate catches false
+   positives, same philosophy as LegiScan), tuned at the first real OS run. **Yes.**
+4. Source selection via `RADAR_SOURCE` env + both secrets in the workflow. **Yes.**
+
+*Still $0 and offline: this whole session is mocked; no key of either kind is needed to build or test it. The
+first live run (whichever vendor) remains the one gated step.*
+
+### As-built (2026-07-12)
+- **B1+B2 merged.** The `int→str` id refactor and the `BillSource` seam were done together — B1's test
+  churn would have been thrown away by B2's fake-client rewrite, so merging them was strictly more
+  reviewable (one coherent "put the source behind a seam" diff), not less.
+- **`BillSource` Protocol** (`name`, `search`, `passes_status_floor`); `run_radar(source, store, …)` now
+  takes it and dropped its `year`/`max_pages` params (those are LegiScan search config → moved onto
+  `LegiScanClient.__init__`). LegiScan's `get_search`/`get_bill_status` stayed as the low-level building
+  blocks (their direct unit tests are untouched); `search`/`passes_status_floor` wrap them, and the
+  `int(candidate.bill_id)` cast for the getBill call lives in `passes_status_floor` (the only LegiScan-int
+  spot left).
+- **`RadarCandidate`**: `bill_id: str`; added `status_text` (normalized label when there's no enum) and
+  `advanced` (status-floor result cached by search-time-deciding sources). `status_label` prefers
+  `status_text`, else the LegiScan enum map.
+- **`OpenStatesClient`**: one `GET /bills?q=…&include=actions&sort=latest_action_desc` per query;
+  `_to_candidate` maps the OS shape, decides `advanced` from `actions[].classification ∩
+  OPENSTATES_PASSED_CLASSIFICATIONS` **or** a set `latest_passage_date`, and fingerprints `sha1(updated_at)`
+  into `change_hash`. `passes_status_floor` is a local read of `advanced` (no per-bill network call — OS
+  returns actions inline, so there's no getBill analog). `relevance=100` sentinel ⇒ relevance floor is a
+  no-op for OS.
+- **Session-3 isolation generalized:** the per-bill try/except now wraps `source.passes_status_floor`, so a
+  raised LegiScan getBill *or* a raised OS lookup both skip-and-count rather than tanking the batch.
+- **`main()`**: `_build_source(RADAR_SOURCE, env)` picks the adapter and reads the matching key
+  (`LEGISCAN_API_KEY` / `OPENSTATES_API_KEY`); unknown source falls back to `legiscan`. Summary gained a
+  `source` field. `radar.yml` passes both secrets + a literal `RADAR_SOURCE: legiscan` (a one-word edit to
+  switch to `openstates`; kept literal rather than a `vars.` ref so the editor doesn't hint on an unset var)
+  and dropped the `int(c["bill_id"])` casts (ids are strings now).
+- **Deferred to the first real OS run (the analogs of LegiScan's deferred tuning):** confirm the OS free-tier
+  daily cap at signup; tune `OPENSTATES_PASSED_CLASSIFICATIONS` and whether `action_since` should be set from
+  the first real batch's false positives; confirm the `results`/`pagination.max_page` response shape against
+  live data.
+
+### Session 5 (2026-07-12) — Open States precision tuning (from the first real batch)
+The first real Open States run (local, $0, `RADAR_SOURCE=openstates`) returned **126 candidates, ~65% noise**:
+full-text `q` matches any body mention (state budgets, omnibus crime bills, a ferry-division audit), and Open
+States gives no relevance score to gate on. Three knobs, tuned against that batch and covered by tests:
+- **`require_title_match` (default on):** the query phrase must appear in the bill **title**, not just the body.
+  This is the dominant lever — it removes the budget/omnibus noise whose title never names AI. Trade-off:
+  favors precision, so an abbreviation-only title ("...-AI") can be missed (e.g. IL SB 2909) until it surfaces
+  another way — accepted for a human-gated radar.
+- **`classification="bill"` (default):** server-side, drops study/memorial resolutions (SCR/HR) that can't
+  become regulatory law.
+- **Enrolled/enacted status floor:** dropped bare one-chamber `passage` (and the `latest_passage_date` signal)
+  from `OPENSTATES_PASSED_CLASSIFICATIONS`, leaving `{enrolled, became-law, executive-signature}` — now aligned
+  with LegiScan's enrolled(3)/passed(4) floor.
+- **Result (predicted offline against the 126-batch): 126 → ~12 genuine, enacted state AI laws** (RI AI
+  healthcare/mental-health acts, LA AI crime/elections laws, CO psychotherapy-AI + AI-in-health-care, GA
+  AI-in-insurance-decisions). All three knobs are `OpenStatesClient` constructor args, so they stay tunable
+  without touching `run_radar`. ruff clean, **386 passed**. The `.gitignore` radar/agent entries were also
+  fixed this session (inline `#` comments had disarmed them — the files weren't actually being ignored).
+- **Rate-limit handling (found on the live re-run):** Open States' free tier returns **429** under load (two
+  full batches close together tripped it). `OpenStatesClient._get` now rides it out with bounded backoff —
+  honors a numeric `Retry-After`, else exponential (1/2/4/8s, capped at 30s), up to `max_retries` (default 4),
+  with an injectable `sleep` so tests don't actually wait. A non-429 error still raises immediately; a 429 in
+  `search()` that outlives the retries still fails the run (acceptable — retries next week). This is the
+  standard resilience a rate-limited free API needs; it does not paper over a real outage.
+- **Still deferred to the live tuned run:** the exact count against live data (the prediction used the untuned
+  126-batch), and whether `action_since` should further bound the window.
+- **Op note:** the first live re-run leaked the Open States key into a pasted traceback URL (the key rides in
+  `?apikey=`), so it was rotated. Low blast radius (read-only, free-tier, public data), but rotate on exposure
+  and scrub URLs before sharing logs.

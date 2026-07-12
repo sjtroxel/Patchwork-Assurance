@@ -53,10 +53,15 @@ jobs:
       # Detection only - run_radar reads the store to classify but never writes it (poll
       # discipline). The summary (with change_hash) is what the next step commits after opening
       # the issue, so a crashed issue-open never advances the store past an untriaged bill.
+      # Source is pluggable (doc §12): whichever vendor's key is available finishes the phase.
+      # Change RADAR_SOURCE to "openstates" (one-line edit) to run on Open States instead of
+      # LegiScan - no code change. Both secrets are passed; only the selected source's is read.
       - name: Run radar (detection only)
         run: python -m patchwork_assurance.core.agent.radar | tee radar_summary.json
         env:
+          RADAR_SOURCE: openstates
           LEGISCAN_API_KEY: ${{ secrets.LEGISCAN_API_KEY }}
+          OPENSTATES_API_KEY: ${{ secrets.OPENSTATES_API_KEY }}
           RADAR_STORE_PATH: .radar_store.json
 
       # Ensure the triage label exists (idempotent; ignore "already exists").
@@ -108,7 +113,7 @@ jobs:
                   capture_output=True, text=True, check=True,
               ).stdout.strip()
               issue_number = int(out.rsplit("/", 1)[-1])
-              store.set(int(c["bill_id"]), change_hash=c["change_hash"],
+              store.set(c["bill_id"], change_hash=c["change_hash"],
                         first_seen=today, issue_number=issue_number)
 
           # CHANGED -> comment on the existing issue, refresh the hash (preserve first_seen).
@@ -121,8 +126,8 @@ jobs:
                        f"Re-review against source: {c['url']}"],
                       check=True,
                   )
-              prior = store.get(int(c["bill_id"])) or {}
-              store.set(int(c["bill_id"]), change_hash=c["change_hash"],
+              prior = store.get(c["bill_id"]) or {}
+              store.set(c["bill_id"], change_hash=c["change_hash"],
                         first_seen=prior.get("first_seen", today), issue_number=n)
 
           store.save()

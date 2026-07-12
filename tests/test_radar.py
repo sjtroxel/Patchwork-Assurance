@@ -10,6 +10,7 @@ Key assertions:
 - RadarStore persists its rich per-bill value across reload; run_radar never writes it
 """
 
+import hashlib
 from pathlib import Path
 
 import httpx
@@ -17,9 +18,11 @@ import pytest
 
 from patchwork_assurance.core.agent.radar import (
     LegiScanClient,
+    OpenStatesClient,
     RadarCandidate,
     RadarStore,
     _candidate_summary,
+    _retry_after_seconds,
     run_radar,
 )
 
@@ -40,33 +43,49 @@ def _search_result(bill_id: int, *, relevance: int = 100, change_hash: str = "h"
     }
 
 
-class _FakeClient:
-    """Duck-typed stand-in for LegiScanClient used to drive run_radar.
+class _FakeSource:
+    """Duck-typed `BillSource` used to drive run_radar (bill_id is a string end-to-end).
 
-    search_results: maps a query -> list of raw getSearch dicts.
-    statuses:       maps bill_id -> LegiScan status enum (returned by get_bill_status).
+    search_results: query -> list of raw getSearch dicts (parsed via from_search_result).
+    advanced:       set of bill_id (str) that clear the status floor.
+    raises:         set of bill_id (str) whose passes_status_floor raises (transient failure).
     """
 
-    def __init__(self, search_results: dict[str, list[dict]], statuses: dict[int, int]) -> None:
+    name = "fake"
+
+    def __init__(
+        self,
+        search_results: dict[str, list[dict]],
+        *,
+        advanced: set[str],
+        raises: set[str] | None = None,
+    ) -> None:
         self._search_results = search_results
-        self._statuses = statuses
-        self.status_calls: list[int] = []
+        self._advanced = advanced
+        self._raises = raises or set()
+        self.status_calls: list[str] = []
 
-    def get_search(self, query, *, year=None, max_pages=5):
-        return list(self._search_results.get(query, []))
+    def search(self, query):
+        return [
+            RadarCandidate.from_search_result(r, query) for r in self._search_results.get(query, [])
+        ]
 
-    def get_bill_status(self, bill_id):
-        self.status_calls.append(bill_id)
-        status = self._statuses.get(bill_id)
-        if isinstance(status, Exception):
-            raise status
-        return status
+    def passes_status_floor(self, candidate):
+        self.status_calls.append(candidate.bill_id)
+        if candidate.bill_id in self._raises:
+            raise RuntimeError("transient status-lookup failure")
+        if candidate.bill_id in self._advanced:
+            candidate.status = 4  # passed
+            return True
+        candidate.status = 1  # introduced
+        return False
 
 
 class _FakeResponse:
-    def __init__(self, payload: dict, status_code: int = 200) -> None:
+    def __init__(self, payload: dict, status_code: int = 200, headers: dict | None = None) -> None:
         self._payload = payload
         self.status_code = status_code
+        self.headers = headers or {}
 
     def json(self) -> dict:
         return self._payload
@@ -100,23 +119,23 @@ class _FakeHttp:
 
 
 def test_run_radar_new_candidate(tmp_path: Path):
-    client = _FakeClient({"artificial intelligence": [_search_result(1)]}, statuses={1: 4})
+    source = _FakeSource({"artificial intelligence": [_search_result(1)]}, advanced={"1"})
     store = RadarStore(tmp_path / "radar.json")  # empty
 
-    run = run_radar(client, store, queries=("artificial intelligence",))
+    run = run_radar(source, store, queries=("artificial intelligence",))
 
     assert len(run.new) == 1
     assert run.new[0].kind == "NEW"
-    assert run.new[0].bill_id == 1
+    assert run.new[0].bill_id == "1"
     assert run.changed == []
 
 
 def test_run_radar_changed_hash_carries_issue_number(tmp_path: Path):
-    client = _FakeClient({"q": [_search_result(1, change_hash="new-hash")]}, statuses={1: 4})
+    source = _FakeSource({"q": [_search_result(1, change_hash="new-hash")]}, advanced={"1"})
     store = RadarStore(tmp_path / "radar.json")
-    store.set(1, change_hash="old-hash", first_seen="2026-07-01", issue_number=42)
+    store.set("1", change_hash="old-hash", first_seen="2026-07-01", issue_number=42)
 
-    run = run_radar(client, store, queries=("q",))
+    run = run_radar(source, store, queries=("q",))
 
     assert run.new == []
     assert len(run.changed) == 1
@@ -125,11 +144,11 @@ def test_run_radar_changed_hash_carries_issue_number(tmp_path: Path):
 
 
 def test_run_radar_unchanged_hash_is_noop(tmp_path: Path):
-    client = _FakeClient({"q": [_search_result(1, change_hash="same")]}, statuses={1: 4})
+    source = _FakeSource({"q": [_search_result(1, change_hash="same")]}, advanced={"1"})
     store = RadarStore(tmp_path / "radar.json")
-    store.set(1, change_hash="same", first_seen="2026-07-01", issue_number=42)
+    store.set("1", change_hash="same", first_seen="2026-07-01", issue_number=42)
 
-    run = run_radar(client, store, queries=("q",))
+    run = run_radar(source, store, queries=("q",))
 
     assert run.new == []
     assert run.changed == []
@@ -142,70 +161,71 @@ def test_run_radar_unchanged_hash_is_noop(tmp_path: Path):
 
 
 def test_status_floor_rejects_introduced(tmp_path: Path):
-    # bill 1 is introduced (status 1); bill 2 is passed (status 4).
-    client = _FakeClient({"q": [_search_result(1), _search_result(2)]}, statuses={1: 1, 2: 4})
+    # bill 1 is introduced (fails the floor); bill 2 is passed.
+    source = _FakeSource({"q": [_search_result(1), _search_result(2)]}, advanced={"2"})
     store = RadarStore(tmp_path / "radar.json")
 
-    run = run_radar(client, store, queries=("q",))
+    run = run_radar(source, store, queries=("q",))
 
     ids = {c.bill_id for c in run.new}
-    assert ids == {2}  # introduced bill filtered out
+    assert ids == {"2"}  # introduced bill filtered out
 
 
-def test_relevance_floor_rejects_weak_matches_before_enrichment(tmp_path: Path):
-    client = _FakeClient(
+def test_relevance_floor_rejects_weak_matches_before_status_floor(tmp_path: Path):
+    source = _FakeSource(
         {"q": [_search_result(1, relevance=10), _search_result(2, relevance=90)]},
-        statuses={2: 4},  # bill 1 intentionally absent -> would KeyError if enriched
+        advanced={"2"},
     )
     store = RadarStore(tmp_path / "radar.json")
 
-    run = run_radar(client, store, queries=("q",), relevance_floor=50)
+    run = run_radar(source, store, queries=("q",), relevance_floor=50)
 
-    assert {c.bill_id for c in run.new} == {2}
-    # getBill must run on survivors only — bill 1 was never enriched (budget guard).
-    assert client.status_calls == [2]
+    assert {c.bill_id for c in run.new} == {"2"}
+    # the status floor must run on survivors only — bill 1 never reached it (budget guard).
+    assert source.status_calls == ["2"]
 
 
 def test_bill_matching_multiple_queries_deduped_highest_relevance(tmp_path: Path):
-    client = _FakeClient(
+    source = _FakeSource(
         {
             "q1": [_search_result(1, relevance=40)],
             "q2": [_search_result(1, relevance=95)],
         },
-        statuses={1: 4},
+        advanced={"1"},
     )
     store = RadarStore(tmp_path / "radar.json")
 
-    run = run_radar(client, store, queries=("q1", "q2"), relevance_floor=50)
+    run = run_radar(source, store, queries=("q1", "q2"), relevance_floor=50)
 
     assert len(run.new) == 1
     assert run.new[0].relevance == 95  # highest-relevance sighting wins
 
 
-def test_getbill_failure_is_isolated_not_fatal(tmp_path: Path):
-    # bill 1's status lookup throws (transient LegiScan hiccup); bill 2 is healthy + passed.
+def test_status_lookup_failure_is_isolated_not_fatal(tmp_path: Path):
+    # bill 1's status lookup throws (transient hiccup); bill 2 is healthy + passed.
     # The failing bill must not tank the batch: bill 2 still classifies NEW, bill 1 is skipped
-    # (no status == don't surface) and counted, so the week's detection survives.
-    client = _FakeClient(
+    # (unresolved status == don't surface) and counted, so the week's detection survives.
+    source = _FakeSource(
         {"q": [_search_result(1), _search_result(2)]},
-        statuses={1: RuntimeError("LegiScan getBill returned status='ERROR'"), 2: 4},
+        advanced={"2"},
+        raises={"1"},
     )
     store = RadarStore(tmp_path / "radar.json")
 
-    run = run_radar(client, store, queries=("q",))
+    run = run_radar(source, store, queries=("q",))
 
-    assert {c.bill_id for c in run.new} == {2}  # healthy bill still surfaced
+    assert {c.bill_id for c in run.new} == {"2"}  # healthy bill still surfaced
     assert run.errors == 1  # failed lookup counted, not raised
-    assert client.status_calls == [1, 2]  # both enriched; only bill 1's raised
+    assert source.status_calls == ["1", "2"]  # both checked; only bill 1's raised
 
 
 def test_run_radar_does_not_write_store(tmp_path: Path):
-    client = _FakeClient({"q": [_search_result(1)]}, statuses={1: 4})
+    source = _FakeSource({"q": [_search_result(1)]}, advanced={"1"})
     store = RadarStore(tmp_path / "radar.json")
 
-    run_radar(client, store, queries=("q",))
+    run_radar(source, store, queries=("q",))
 
-    assert store.get(1) is None  # caller commits after opening the issue; radar never writes
+    assert store.get("1") is None  # caller commits after opening the issue; radar never writes
 
 
 # ---------------------------------------------------------------------------
@@ -216,16 +236,16 @@ def test_run_radar_does_not_write_store(tmp_path: Path):
 def test_radar_store_persist_and_reload(tmp_path: Path):
     p = tmp_path / "radar.json"
     s1 = RadarStore(p)
-    s1.set(7, change_hash="abc", first_seen="2026-07-10", issue_number=5)
+    s1.set("ocd-bill/xyz", change_hash="abc", first_seen="2026-07-10", issue_number=5)
     s1.save()
 
     s2 = RadarStore(p)
-    entry = s2.get(7)
+    entry = s2.get("ocd-bill/xyz")
     assert entry == {"change_hash": "abc", "first_seen": "2026-07-10", "issue_number": 5}
 
 
 def test_radar_store_missing_returns_none(tmp_path: Path):
-    assert RadarStore(tmp_path / "radar.json").get(999) is None
+    assert RadarStore(tmp_path / "radar.json").get("ocd-bill/nope") is None
 
 
 # ---------------------------------------------------------------------------
@@ -319,3 +339,256 @@ def test_candidate_summary_carries_change_hash():
     summary = _candidate_summary(c)
     assert summary["change_hash"] == "abc123"
     assert summary["status"] == "passed"
+
+
+# ---------------------------------------------------------------------------
+# OpenStatesClient — the LegiScan-independent backup source (Session 4)
+# ---------------------------------------------------------------------------
+
+
+def _os_bill(
+    bill_id="ocd-bill/abc",
+    *,
+    identifier="HB 1",
+    title="An AI act",
+    juris="California",
+    updated_at="2026-07-01T00:00:00+00:00",
+    classifications=("introduction",),
+    latest_passage_date=None,
+):
+    return {
+        "id": bill_id,
+        "identifier": identifier,
+        "title": title,
+        "jurisdiction": {"name": juris},
+        "updated_at": updated_at,
+        "latest_action_description": "Referred to committee",
+        "latest_passage_date": latest_passage_date,
+        "openstates_url": f"https://openstates.org/bill/{bill_id}",
+        "sources": [{"url": "https://leg.example/bill"}],
+        "actions": [{"classification": list(classifications)}],
+    }
+
+
+def _os_page(bills, *, page=1, max_page=1):
+    return {"results": list(bills), "pagination": {"page": page, "max_page": max_page}}
+
+
+class _FakeOSHttp:
+    """Fake httpx client for OpenStatesClient; dispatches on the page param."""
+
+    def __init__(self, pages: dict[int, dict]) -> None:
+        self._pages = pages
+        self.captured: list[dict] = []
+
+    def get(self, url, **kwargs):
+        params = kwargs["params"]
+        self.captured.append(params)
+        return _FakeResponse(self._pages[params["page"]])
+
+
+def test_openstates_parses_bill_into_common_candidate():
+    page = _os_page(
+        [_os_bill(title="Artificial Intelligence Act", classifications=("became-law",))]
+    )
+    client = OpenStatesClient("KEY", http_client=_FakeOSHttp({1: page}))
+
+    [c] = client.search("artificial intelligence")
+
+    assert c.bill_id == "ocd-bill/abc"  # OCD string id, not an int
+    assert c.number == "HB 1"
+    assert c.state == "California"
+    assert c.url == "https://openstates.org/bill/ocd-bill/abc"
+    assert c.relevance == 100  # sentinel — Open States has no relevance score
+    assert c.change_hash == hashlib.sha1(b"2026-07-01T00:00:00+00:00").hexdigest()
+    assert c.advanced is True
+    assert c.status_label == "became-law"
+
+
+def test_openstates_introduced_bill_is_not_advanced():
+    page = _os_page([_os_bill(classifications=("introduction", "referral"))])
+    # require_title_match off to isolate the status-floor logic from the title filter.
+    client = OpenStatesClient("KEY", http_client=_FakeOSHttp({1: page}), require_title_match=False)
+
+    [c] = client.search("q")
+
+    assert c.advanced is False
+    assert client.passes_status_floor(c) is False  # local read, no network
+
+
+def test_openstates_one_chamber_passage_is_not_advanced():
+    # Tuned floor (2026-07-12): bare `passage` (one chamber) and a set latest_passage_date are
+    # BOTH excluded — only enrolled/enacted clears. This rejects mid-flight bills that flooded run 1.
+    page = _os_page([_os_bill(classifications=("passage",), latest_passage_date="2026-06-15")])
+    client = OpenStatesClient("KEY", http_client=_FakeOSHttp({1: page}), require_title_match=False)
+
+    [c] = client.search("q")
+
+    assert c.advanced is False
+    assert client.passes_status_floor(c) is False
+
+
+def test_openstates_enrolled_clears_the_floor():
+    page = _os_page([_os_bill(classifications=("passage", "enrolled"))])
+    client = OpenStatesClient("KEY", http_client=_FakeOSHttp({1: page}), require_title_match=False)
+
+    [c] = client.search("q")
+
+    assert c.advanced is True
+    assert c.status_label == "enrolled"
+
+
+def test_openstates_title_filter_drops_body_only_matches():
+    # Two enacted bills; only one names the query in its title. The body-only match (a budget that
+    # merely mentions the phrase) is the dominant noise source the title filter exists to cut.
+    page = _os_page(
+        [
+            _os_bill(
+                bill_id="ocd-bill/ai",
+                title="Artificial Intelligence Act",
+                classifications=("became-law",),
+            ),
+            _os_bill(
+                bill_id="ocd-bill/budget",
+                title="State Operations Budget",
+                classifications=("became-law",),
+            ),
+        ]
+    )
+    client = OpenStatesClient("KEY", http_client=_FakeOSHttp({1: page}))  # title match ON (default)
+
+    results = client.search("artificial intelligence")
+
+    assert [c.bill_id for c in results] == ["ocd-bill/ai"]  # body-only budget bill dropped
+
+
+def test_openstates_title_filter_can_be_disabled():
+    page = _os_page(
+        [
+            _os_bill(
+                bill_id="ocd-bill/ai",
+                title="Artificial Intelligence Act",
+                classifications=("became-law",),
+            ),
+            _os_bill(
+                bill_id="ocd-bill/budget",
+                title="State Operations Budget",
+                classifications=("became-law",),
+            ),
+        ]
+    )
+    client = OpenStatesClient("KEY", http_client=_FakeOSHttp({1: page}), require_title_match=False)
+
+    results = client.search("artificial intelligence")
+
+    assert {c.bill_id for c in results} == {"ocd-bill/ai", "ocd-bill/budget"}
+
+
+def test_openstates_change_hash_tracks_updated_at():
+    a = OpenStatesClient._to_candidate(_os_bill(updated_at="2026-07-01T00:00:00+00:00"), "q")
+    b = OpenStatesClient._to_candidate(_os_bill(updated_at="2026-07-08T00:00:00+00:00"), "q")
+    same = OpenStatesClient._to_candidate(_os_bill(updated_at="2026-07-01T00:00:00+00:00"), "q")
+
+    assert a.change_hash != b.change_hash  # a record change moves the fingerprint
+    assert a.change_hash == same.change_hash  # identical updated_at -> identical fingerprint
+
+
+def test_openstates_paginates_and_respects_cap():
+    pages = {
+        1: _os_page([_os_bill(bill_id="ocd-bill/1")], page=1, max_page=2),
+        2: _os_page([_os_bill(bill_id="ocd-bill/2")], page=2, max_page=2),
+    }
+    http = _FakeOSHttp(pages)
+    client = OpenStatesClient("KEY", http_client=http, require_title_match=False)
+
+    results = client.search("q")
+
+    assert [c.bill_id for c in results] == ["ocd-bill/1", "ocd-bill/2"]
+    assert [p["page"] for p in http.captured] == [1, 2]
+
+
+def test_openstates_stops_at_max_pages():
+    http = _FakeOSHttp({1: _os_page([_os_bill()], page=1, max_page=9)})
+    client = OpenStatesClient("KEY", http_client=http, max_pages=1)
+
+    client.search("q")
+
+    assert [p["page"] for p in http.captured] == [1]  # capped, not chased to max_page=9
+
+
+def test_openstates_sends_apikey_query_actions_and_classification():
+    http = _FakeOSHttp({1: _os_page([])})
+    OpenStatesClient("SECRET", http_client=http).search("algorithmic discrimination")
+
+    sent = http.captured[0]
+    assert sent["apikey"] == "SECRET"
+    assert sent["q"] == "algorithmic discrimination"
+    assert sent["include"] == "actions"  # needed to decide the status floor inline
+    assert sent["classification"] == "bill"  # server-side: drop resolutions (default knob)
+
+
+def test_openstates_classification_can_be_omitted():
+    http = _FakeOSHttp({1: _os_page([])})
+    OpenStatesClient("KEY", http_client=http, classification=None).search("q")
+
+    assert "classification" not in http.captured[0]
+
+
+def test_openstates_non_429_error_raises_immediately():
+    class _ErrHttp:
+        def get(self, url, **kwargs):
+            return _FakeResponse({}, status_code=401)  # auth error — not retryable
+
+    client = OpenStatesClient("KEY", http_client=_ErrHttp())
+    with pytest.raises(httpx.HTTPError):
+        client.search("q")
+
+
+class _SeqOSHttp:
+    """Fake httpx client returning a preset sequence of responses (drives the retry path)."""
+
+    def __init__(self, responses: list) -> None:
+        self._responses = list(responses)
+        self.calls = 0
+
+    def get(self, url, **kwargs):
+        self.calls += 1
+        return self._responses.pop(0)
+
+
+def test_openstates_retries_on_429_then_succeeds():
+    ok = _os_page([_os_bill(title="Artificial Intelligence Act", classifications=("became-law",))])
+    http = _SeqOSHttp(
+        [
+            _FakeResponse({}, status_code=429, headers={"Retry-After": "3"}),
+            _FakeResponse(ok, status_code=200),
+        ]
+    )
+    waits: list[float] = []
+    client = OpenStatesClient("KEY", http_client=http, sleep=waits.append)
+
+    results = client.search("artificial intelligence")
+
+    assert [c.bill_id for c in results] == ["ocd-bill/abc"]  # succeeded on the retry
+    assert waits == [3.0]  # honored Retry-After, then retried
+    assert http.calls == 2
+
+
+def test_openstates_gives_up_after_max_retries():
+    http = _SeqOSHttp([_FakeResponse({}, status_code=429) for _ in range(10)])
+    waits: list[float] = []
+    client = OpenStatesClient("KEY", http_client=http, sleep=waits.append, max_retries=2)
+
+    with pytest.raises(httpx.HTTPError):
+        client.search("q")
+
+    assert len(waits) == 2  # retried max_retries times, then raised (no infinite loop)
+
+
+def test_retry_after_seconds_honors_header_else_backoff():
+    assert _retry_after_seconds(_FakeResponse({}, 429, headers={"Retry-After": "5"}), 0) == 5.0
+    assert _retry_after_seconds(_FakeResponse({}, 429), 3) == 8.0  # no header -> 2**attempt
+    assert _retry_after_seconds(_FakeResponse({}, 429, headers={"Retry-After": "999"}), 0) == 30.0
+    # A date-form Retry-After isn't parsed as a number -> falls back to backoff.
+    date = {"Retry-After": "Wed, 21 Oct 2026 07:28:00 GMT"}
+    assert _retry_after_seconds(_FakeResponse({}, 429, headers=date), 1) == 2.0
