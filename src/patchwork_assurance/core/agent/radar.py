@@ -211,6 +211,10 @@ class RadarRun:
     new: list[RadarCandidate] = field(default_factory=list)
     changed: list[RadarCandidate] = field(default_factory=list)
     unchanged: int = 0
+    # Survivors whose getBill status lookup raised (network/HTTP/non-OK). Counted, not fatal:
+    # a single flaky enrichment must not tank the whole weekly batch. Skipped conservatively
+    # (no status == don't surface), so the bill re-appears next run once LegiScan is healthy.
+    errors: int = 0
 
 
 def run_radar(
@@ -244,7 +248,15 @@ def run_radar(
     # 3. Enrich status (getBill) on survivors only, then apply the status floor.
     run = RadarRun()
     for candidate in survivors:
-        candidate.status = client.get_bill_status(candidate.bill_id)
+        # A per-bill getBill failure is isolated: one transient LegiScan hiccup skips that
+        # candidate (counted in run.errors) rather than crashing the batch and losing the
+        # week's already-classified bills. The skip is safe — no status means we don't surface
+        # it — and the bill returns on the next weekly run once the API is healthy again.
+        try:
+            candidate.status = client.get_bill_status(candidate.bill_id)
+        except (httpx.HTTPError, RuntimeError, ValueError):
+            run.errors += 1
+            continue
         if candidate.status not in PASSED_STATUSES:
             continue
 
@@ -318,6 +330,7 @@ def main() -> None:
         "total_new": len(run.new),
         "total_changed": len(run.changed),
         "total_unchanged": run.unchanged,
+        "total_errors": run.errors,  # getBill lookups that failed and were skipped (not fatal)
         "new": [_candidate_summary(c) for c in run.new],
         "changed": [_candidate_summary(c) for c in run.changed],
     }

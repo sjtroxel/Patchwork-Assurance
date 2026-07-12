@@ -1,10 +1,11 @@
 # Phase 13 — IMPLEMENTATION (LegiScan radar / national detection layer)
 
-> **STATUS: Session 1 complete (committed 2af87f3); Session 2 CODE staged 2026-07-11 — the live run
-> is the only remaining item, gated on the LegiScan API key (registration submitted, under manual
-> review). `radar.yml`, the README subsection, and the `change_hash`-in-summary change are done, ruff +
-> pytest green (373 passed). The `workflow_dispatch` first run + floor/query tuning happen the moment the
-> key lands.** This is the as-built runbook, written at phase start
+> **STATUS: Session 1 complete (committed 2af87f3); Session 2 complete (committed 75c18c8 — `radar.yml`,
+> the README subsection, and the `change_hash`-in-summary change). Session 3 (2026-07-12) hardened the
+> getBill enrichment so one flaky status lookup can't crash the weekly batch (offline, ruff + pytest green,
+> 374 passed). The live run remains the only blocked item, gated on the LegiScan API key (registration
+> submitted, under manual review); the `workflow_dispatch` first run + floor/query tuning happen the moment
+> the key lands.** This is the as-built runbook, written at phase start
 > (2026-07-10) per the repo convention, reflecting how Phases 0–12 actually landed and how the Phase 9
 > agent code is shaped. The intended design + posture live in `phase-13-legiscan-radar.md` (read it
 > first); this doc records the resolved decisions, the reuse map, the exact write paths the radar mirrors,
@@ -250,7 +251,18 @@ issues. This is the only batch that spends an API call or touches CI.*
 
 ## 11. As-built notes
 
-**Session 2 code (2026-07-11), staged ahead of the live run:**
+**Session 3 (2026-07-12) — enrichment resilience (offline, $0):**
+- `run_radar`'s `getBill` status enrichment is now isolated per bill: a lookup that raises
+  (`httpx.HTTPError` / `RuntimeError` non-OK payload / `ValueError`) skips that one candidate and
+  increments `RadarRun.errors` instead of crashing the whole run. Rationale: the radar is a *weekly*
+  cron — one transient LegiScan hiccup on one bill must not discard the week's already-classified
+  detections. The skip is conservative (no status == don't surface), and the bill re-appears next run
+  once the API is healthy. `main()`'s JSON summary now carries `total_errors` so a bad enrichment week
+  is visible to the operator, not silently swallowed. Covered by
+  `test_getbill_failure_is_isolated_not_fatal`. Gates green: ruff clean, 374 passed. Done ahead of the
+  live run precisely because the first real run is the riskiest moment.
+
+**Session 2 code (2026-07-11, committed 75c18c8):**
 - `.github/workflows/radar.yml` landed on `monitor.yml`'s shape: weekly cron (Mon 06:00 UTC) +
   `workflow_dispatch`, `permissions: issues: write`, `actions/cache` for `.radar_store.json` (rolling
   `run_id` key + `restore-keys`), `LEGISCAN_API_KEY` secret. A label-ensure step (`gh label create ... || true`)
@@ -262,7 +274,7 @@ issues. This is the only batch that spends an API call or touches CI.*
   to write the store after opening the issue, and `run_radar` deliberately doesn't write the store — so the
   hash had to round-trip through the summary. Covered by `test_candidate_summary_carries_change_hash`.
 - `.radar_store.json` + `radar_summary.json` added to `.gitignore` (runtime artifacts, cache-persisted).
-- Gates green: ruff clean, 373 passed. Nothing committed until sjtroxel runs it.
+- Gates green at the time: ruff clean, 373 passed. Committed as 75c18c8.
 
 **Still pending the API key (the only blocked items):** the one `workflow_dispatch` live run, the
 first-batch triage, the relevance-floor / query tuning, the `getBill`-vs-search-operator confirmation,

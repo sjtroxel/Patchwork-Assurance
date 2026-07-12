@@ -57,7 +57,10 @@ class _FakeClient:
 
     def get_bill_status(self, bill_id):
         self.status_calls.append(bill_id)
-        return self._statuses.get(bill_id)
+        status = self._statuses.get(bill_id)
+        if isinstance(status, Exception):
+            raise status
+        return status
 
 
 class _FakeResponse:
@@ -177,6 +180,23 @@ def test_bill_matching_multiple_queries_deduped_highest_relevance(tmp_path: Path
 
     assert len(run.new) == 1
     assert run.new[0].relevance == 95  # highest-relevance sighting wins
+
+
+def test_getbill_failure_is_isolated_not_fatal(tmp_path: Path):
+    # bill 1's status lookup throws (transient LegiScan hiccup); bill 2 is healthy + passed.
+    # The failing bill must not tank the batch: bill 2 still classifies NEW, bill 1 is skipped
+    # (no status == don't surface) and counted, so the week's detection survives.
+    client = _FakeClient(
+        {"q": [_search_result(1), _search_result(2)]},
+        statuses={1: RuntimeError("LegiScan getBill returned status='ERROR'"), 2: 4},
+    )
+    store = RadarStore(tmp_path / "radar.json")
+
+    run = run_radar(client, store, queries=("q",))
+
+    assert {c.bill_id for c in run.new} == {2}  # healthy bill still surfaced
+    assert run.errors == 1  # failed lookup counted, not raised
+    assert client.status_calls == [1, 2]  # both enriched; only bill 1's raised
 
 
 def test_run_radar_does_not_write_store(tmp_path: Path):
