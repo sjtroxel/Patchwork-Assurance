@@ -191,3 +191,68 @@ from primary statutory text** (corpus discipline).
   disparate-impact rules (adopted, eff. Dec 15 2025; AEDT coverage) — added 2026-06-25 eve
 
 *(Full URLs captured in the session research log; re-fetch live before relying on any specific date.)*
+
+---
+
+## 7. Scope map & radar-triage criteria (the in/out boundary) — added 2026-07-12
+
+Written so the in/out decision for a radar candidate (LegiScan / Open States) or any hand-add is
+**applied, not re-derived** each time. This is the checklist form of the discipline stated in the header
+and §4. Grounded in the actual `scope_domains` metadata of the 12 corpus laws.
+
+### 7.1 The thesis (what the corpus IS about)
+Laws imposing an obligation — or defining liability, or granting an individual right — when **AI is used
+in a consequential/significant DECISION about an individual**, across these decision domains:
+**employment (the anchor), housing, lending, insurance, healthcare, education** (+ government services
+where a public benefit decision affects an individual). The corpus was multi-domain from the start;
+"employment" is the most-covered vertical, **not** the whole subject.
+
+Two structural flavors are both IN (and are never harmonized — `.claude/rules/corpus.md`):
+- **AI-decision / anti-discrimination laws** (employment + multi-domain): `co-sb26-189`, `ct-sb5-pa26-15`,
+  `il-hb3773`, `il-aivia`, `ca-feha-ads`, `nyc-ll144`, `nj-njac-13-16`, `tx-traiga`.
+- **Consumer-privacy profiling opt-outs** (adjacent *consumer* capacity — employment is carved out of
+  these by statute): `co-cpa`, `ct-ctdpa`, `nj-njdpa`, and the rulemaking-heavy `ca-ccpa-admt` (which,
+  uniquely, also reaches employment because CA has no employment exemption).
+
+### 7.2 The rubric — a candidate is likely IN only if ALL of:
+1. **AI-specific** — regulates AI / automated decision systems, not a tech-neutral law that merely
+   mentions AI.
+2. **Consequential decision about an individual** — someone's job, housing, credit, insurance,
+   healthcare, or education turns on it.
+3. **Real duty structure** — imposes a business obligation, defines liability, or grants an individual
+   right (e.g., a profiling opt-out). Pure transparency/disclosure alone is not enough.
+4. **Enacted** — the radar's status floor already enforces this (enrolled/enacted only).
+
+### 7.3 Likely OUT if ANY of (record *why* as `OUT OF SCOPE`, so we don't re-chase):
+- **Frontier-model safety** (catastrophic risk, compute thresholds) — e.g., NY RAISE. Different subject.
+- **Deepfake / synthetic media / CSAM / election manipulation** — different subject.
+- **Chatbot / AI-companion disclosure** or generic **AI-transparency** — transparency, not a
+  consequential-decision duty. (This is why parts of `ct-sb5` and `tx-traiga` — their frontier/provenance/
+  companion and gov/healthcare-*disclosure* provisions — are the only general-AI-governance content in the
+  corpus: they ride inside a law that's IN for its *decision/discrimination* core.)
+- **Government-use only** (public-sector procurement/disclosure) — unless it imposes consequential-decision
+  duties on regulated private entities.
+- **Sector-specific single-vertical mandate** (e.g., insurance utilization review, one healthcare-agency
+  rule) that doesn't cross-cut — this opens a **new sub-category**; default OUT unless we deliberately
+  decide to expand there.
+- **Tech-neutral** law that only mentions AI in passing.
+
+### 7.4 Deepen before broaden (standing rule, §4)
+Between two equally in-scope candidates, prefer the one that **completes a state already covered** (e.g., a
+privacy opt-out for a state whose employment law we already hold) over one that opens a brand-new
+jurisdiction. And the privacy-opt-out *cluster* for genuinely new states stays **PARKED** (§4 decision,
+2026-06-28) — revisit only on credible third-party advice, CO/CT-style completion first.
+
+### 7.5 Worked examples — first Open States radar batch (2026-07-12, `RADAR_SOURCE=openstates`, 13 candidates)
+| Candidate | Call | Why |
+|---|---|---|
+| GA SB 444 — insurance "private review agents": health-coverage decisions not *solely* AI | **OUT (borderline)** | AI-in-a-decision, yes, but a *sector-specific insurance/utilization-review* mandate — new sub-category (7.3), not the profiling-privacy or employment/AI-decision flavor. |
+| RI HB 7349 / SB 2197 etc. — AI oversight in mental-health care | **OUT** | Sector-specific healthcare. |
+| LA HB 459 (AI in campaigns), HB 119 / SB 42 (AI-generated CSAM/images) | **OUT** | Elections / criminal subject matter (7.3), not a consequential decision about an individual's opportunities. |
+| *A hypothetical enacted state employment AI bias/audit/notice law* | **IN (core)** | Meets all of 7.2; anchor vertical. |
+| *A new state's comprehensive privacy law w/ a profiling opt-out* | **IN-category but PARKED** | 7.4 — right flavor, but the new-jurisdiction privacy cluster stays parked; deepen CO/CT first. |
+
+**Bottom line for this batch:** most of the 13 are sector-specific (health/insurance/crime/elections) →
+default OUT under 7.3. Anything that turns out to be an **employment** or cross-cutting **consequential-
+decision / profiling-opt-out** law is the one to look at hard. When a candidate is declined, record it as a
+one-line `OUT OF SCOPE` note (§2 style) so the radar doesn't keep re-surfacing it as a fresh question.
