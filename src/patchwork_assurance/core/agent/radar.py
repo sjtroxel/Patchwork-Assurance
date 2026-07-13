@@ -216,6 +216,9 @@ OPENSTATES_PASSED_CLASSIFICATIONS: frozenset[str] = frozenset(
 )
 OPENSTATES_PER_PAGE = 20  # response carries a pagination.max_page; we still cap at MAX_PAGES
 OPENSTATES_MAX_BACKOFF = 30.0  # cap a single wait so a large Retry-After can't hang the run
+# Statuses worth retrying: 429 rate-limit + transient gateway/server errors. Open States' gateway
+# intermittently 502/504s on our queries from CI (2026-07-13) — one flaky page shouldn't tank the run.
+RETRIABLE_STATUSES: frozenset[int] = frozenset({429, 500, 502, 503, 504})
 # Open States can be slow to answer from cloud/CI IPs (GitHub runners read-timed-out at 30s on
 # 2026-07-13 while a residential IP was fine). Give the read phase generous room so a slow-but-alive
 # server can finish "at its leisure"; keep connect tight so a truly dead connection still fails fast.
@@ -304,9 +307,10 @@ class OpenStatesClient:
                     self._sleep(min(2.0**attempt, OPENSTATES_MAX_BACKOFF))
                     continue
                 raise
-            # 429 (rate limit) is transient too — honor Retry-After if present, else exponential
-            # backoff (1, 2, 4, ... capped at 30s), then retry. Any other error raises immediately.
-            if response.status_code == 429 and attempt < self._max_retries:
+            # 429 and transient gateway/server 5xx (502/503/504) are retryable — honor Retry-After if
+            # present, else exponential backoff (1, 2, 4, ... capped at 30s), then retry. Any other
+            # error (401 auth, 404, ...) raises immediately.
+            if response.status_code in RETRIABLE_STATUSES and attempt < self._max_retries:
                 self._sleep(_retry_after_seconds(response, attempt))
                 continue
             response.raise_for_status()  # Open States signals errors via HTTP status, not an envelope

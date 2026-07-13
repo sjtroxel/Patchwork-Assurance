@@ -595,6 +595,21 @@ def test_openstates_retries_on_429_then_succeeds():
     assert http.calls == 2
 
 
+def test_openstates_retries_on_5xx_gateway_then_succeeds():
+    # The 2026-07-13 CI failure: Open States' gateway 502'd on one search page. A transient 5xx must
+    # be retried (backoff, no Retry-After header), not crash the run.
+    ok = _os_page([_os_bill(title="Artificial Intelligence Act")])
+    http = _SeqOSHttp([_FakeResponse({}, status_code=502), _FakeResponse(ok, status_code=200)])
+    waits: list[float] = []
+    client = OpenStatesClient("KEY", http_client=http, sleep=waits.append)
+
+    results = client.search("artificial intelligence")
+
+    assert [c.bill_id for c in results] == ["ocd-bill/abc"]  # recovered on the retry
+    assert waits == [1.0]  # backoff 2**0 (5xx carries no Retry-After)
+    assert http.calls == 2
+
+
 def test_openstates_gives_up_after_max_retries():
     http = _SeqOSHttp([_FakeResponse({}, status_code=429) for _ in range(10)])
     waits: list[float] = []

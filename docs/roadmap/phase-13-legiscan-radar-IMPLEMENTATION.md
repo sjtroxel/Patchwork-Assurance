@@ -474,5 +474,11 @@ The Monday cron fired the radar on Open States and the job failed. Two distinct 
   only on title/relevance survivors (the title filter is the budget guard bounding it to a handful). This
   mirrors LegiScan's search→getBill split. `_get` became `_request(url, ...)` so both calls share the retry
   logic. Also added a generous read timeout (`httpx.Timeout(15, read=90)`) + a `timeout-minutes: 15` job cap
-  as the hung-connection backstop. 392 passed. Validate locally first (the light query is guaranteed light),
-  then re-fire CI — the 504 should be gone.
+  as the hung-connection backstop. 392 passed.
+- **The light search worked (504 gone), then a `502 Bad Gateway` on search *page 2*.** Confirmed the light
+  query deployed (no `include=actions` in the failing URL) and got through page 1 — so the heavy-query 504 is
+  solved. The 502 was a transient gateway blip that wasn't being retried: retry covered 429 + transport, not
+  5xx. Fix: added `RETRIABLE_STATUSES = {429, 500, 502, 503, 504}` and retry any of them with backoff. 393
+  passed. Errors converged 504 → 502 (architectural → transient); this is the last plausible failure mode for
+  a light query that already serves page 1. If a *light* query still fails after 5xx-retry, treat Open States
+  as CI-unreachable and fall back to local runs + LegiScan-for-CI (don't keep chasing).
