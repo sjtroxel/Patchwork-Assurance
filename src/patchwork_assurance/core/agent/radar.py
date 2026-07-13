@@ -216,6 +216,12 @@ OPENSTATES_PASSED_CLASSIFICATIONS: frozenset[str] = frozenset(
 )
 OPENSTATES_PER_PAGE = 20  # response carries a pagination.max_page; we still cap at MAX_PAGES
 OPENSTATES_MAX_BACKOFF = 30.0  # cap a single wait so a large Retry-After can't hang the run
+# Open States can be slow to answer from cloud/CI IPs (GitHub runners read-timed-out at 30s on
+# 2026-07-13 while a residential IP was fine). Give the read phase generous room so a slow-but-alive
+# server can finish "at its leisure"; keep connect tight so a truly dead connection still fails fast.
+# The hard backstop against a *hung* (never-responding) connection is the workflow job's
+# `timeout-minutes`, not this — a request timeout can't tell "slow" from "hung", only a job cap can.
+OPENSTATES_TIMEOUT = httpx.Timeout(15.0, read=90.0)
 
 
 def _retry_after_seconds(response: httpx.Response, attempt: int) -> float:
@@ -286,7 +292,10 @@ class OpenStatesClient:
             # the whole radar crashed because only 429 *status codes* were retried, not timeouts.)
             try:
                 response = fetch(
-                    OPENSTATES_BASE, params=full, timeout=30.0, headers=REQUEST_HEADERS
+                    OPENSTATES_BASE,
+                    params=full,
+                    timeout=OPENSTATES_TIMEOUT,
+                    headers=REQUEST_HEADERS,
                 )
             except httpx.TransportError:
                 if attempt < self._max_retries:

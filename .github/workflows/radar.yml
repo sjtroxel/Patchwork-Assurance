@@ -21,6 +21,9 @@ jobs:
   radar:
     name: Detect AI-regulation bills (LegiScan)
     runs-on: ubuntu-latest
+    # Hard backstop: a hung (never-responding) source can't run the job away for hours. A generous
+    # per-request read timeout lets a *slow* server finish; this caps the *hung* case cleanly.
+    timeout-minutes: 15
     permissions:
       issues: write
 
