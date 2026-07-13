@@ -280,8 +280,20 @@ class OpenStatesClient:
         fetch = self._client.get if self._client else httpx.get
         full = {**params, "apikey": self._api_key}
         for attempt in range(self._max_retries + 1):
-            response = fetch(OPENSTATES_BASE, params=full, timeout=30.0, headers=REQUEST_HEADERS)
-            # 429 (rate limit) is transient — honor Retry-After if present, else exponential
+            # A transport error (ReadTimeout / ConnectError / ...) is raised *before* any response
+            # and is transient — retry it with backoff, just like a 429, instead of crashing the run.
+            # (Real GitHub-Actions failure 2026-07-13: Open States read-timed-out from the runner and
+            # the whole radar crashed because only 429 *status codes* were retried, not timeouts.)
+            try:
+                response = fetch(
+                    OPENSTATES_BASE, params=full, timeout=30.0, headers=REQUEST_HEADERS
+                )
+            except httpx.TransportError:
+                if attempt < self._max_retries:
+                    self._sleep(min(2.0**attempt, OPENSTATES_MAX_BACKOFF))
+                    continue
+                raise
+            # 429 (rate limit) is transient too — honor Retry-After if present, else exponential
             # backoff (1, 2, 4, ... capped at 30s), then retry. Any other error raises immediately.
             if response.status_code == 429 and attempt < self._max_retries:
                 self._sleep(_retry_after_seconds(response, attempt))

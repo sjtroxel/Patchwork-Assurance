@@ -450,3 +450,20 @@ States gives no relevance score to gate on. Three knobs, tuned against that batc
 - **Op note:** the first live re-run leaked the Open States key into a pasted traceback URL (the key rides in
   `?apikey=`), so it was rotated. Low blast radius (read-only, free-tier, public data), but rotate on exposure
   and scrub URLs before sharing logs.
+
+### Session 6 (2026-07-13) — first live CI run failed; two fixes
+The Monday cron fired the radar on Open States and the job failed. Two distinct bugs, both fixed + tested
+(391 passed):
+- **`httpx.ReadTimeout` crashed the run.** Open States read-timed-out from the GitHub runner. The retry loop
+  only caught 429 *status codes*; a **transport error is raised before any response**, so it bypassed the
+  retry and crashed `main()`. Fix: `OpenStatesClient._get` now wraps the `fetch()` in `except
+  httpx.TransportError` and retries with backoff (same bounded loop as 429), re-raising only after the
+  retries are spent. Covered by `test_openstates_retries_on_transport_error_then_succeeds` +
+  `..._gives_up_after_transport_retries`.
+- **`| tee` masked the crash.** `python -m … | tee radar_summary.json` returned tee's exit 0, so the radar
+  step went green while writing an *empty* summary; the *next* step then failed cryptically on
+  `json.load` ("Expecting value: line 1 column 1"). Fix: `set -o pipefail` in the run step, so a radar
+  crash fails **that** step with the real traceback and the issue-opening step never runs on empty data.
+- No cleanup needed: the crash was before the issue-creation step, so **zero issues were created** and the
+  store was never written (nothing half-committed). Re-fire `workflow_dispatch` after this lands to open the
+  first real triage batch.

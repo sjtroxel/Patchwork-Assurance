@@ -553,7 +553,10 @@ class _SeqOSHttp:
 
     def get(self, url, **kwargs):
         self.calls += 1
-        return self._responses.pop(0)
+        item = self._responses.pop(0)
+        if isinstance(item, Exception):
+            raise item  # a queued transport error (e.g. httpx.ReadTimeout)
+        return item
 
 
 def test_openstates_retries_on_429_then_succeeds():
@@ -583,6 +586,32 @@ def test_openstates_gives_up_after_max_retries():
         client.search("q")
 
     assert len(waits) == 2  # retried max_retries times, then raised (no infinite loop)
+
+
+def test_openstates_retries_on_transport_error_then_succeeds():
+    # The 2026-07-13 GitHub-Actions failure: a read-timeout (transport error, raised before any
+    # response) must be retried like a 429, not crash the whole run.
+    ok = _os_page([_os_bill(title="Artificial Intelligence Act", classifications=("became-law",))])
+    http = _SeqOSHttp([httpx.ReadTimeout("read timed out"), _FakeResponse(ok, status_code=200)])
+    waits: list[float] = []
+    client = OpenStatesClient("KEY", http_client=http, sleep=waits.append)
+
+    results = client.search("artificial intelligence")
+
+    assert [c.bill_id for c in results] == ["ocd-bill/abc"]  # recovered on the retry
+    assert waits == [1.0]  # backoff 2**0 (no Retry-After on a timeout)
+    assert http.calls == 2
+
+
+def test_openstates_gives_up_after_transport_retries():
+    http = _SeqOSHttp([httpx.ReadTimeout("timeout") for _ in range(10)])
+    waits: list[float] = []
+    client = OpenStatesClient("KEY", http_client=http, sleep=waits.append, max_retries=2)
+
+    with pytest.raises(httpx.TransportError):
+        client.search("q")
+
+    assert len(waits) == 2  # retried max_retries times, then re-raised the timeout
 
 
 def test_retry_after_seconds_honors_header_else_backoff():

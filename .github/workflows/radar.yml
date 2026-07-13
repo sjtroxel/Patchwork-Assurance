@@ -57,7 +57,12 @@ jobs:
       # Change RADAR_SOURCE to "openstates" (one-line edit) to run on Open States instead of
       # LegiScan - no code change. Both secrets are passed; only the selected source's is read.
       - name: Run radar (detection only)
-        run: python -m patchwork_assurance.core.agent.radar | tee radar_summary.json
+        # pipefail so a crash in the radar (empty stdout) fails THIS step loudly instead of leaving an
+        # empty radar_summary.json for the next step to choke on with a cryptic JSON error (the
+        # 2026-07-13 failure mode, when tee masked a python read-timeout with exit 0).
+        run: |
+          set -o pipefail
+          python -m patchwork_assurance.core.agent.radar | tee radar_summary.json
         env:
           RADAR_SOURCE: openstates
           LEGISCAN_API_KEY: ${{ secrets.LEGISCAN_API_KEY }}
