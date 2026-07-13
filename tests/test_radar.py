@@ -17,6 +17,7 @@ import httpx
 import pytest
 
 from patchwork_assurance.core.agent.radar import (
+    OPENSTATES_BASE,
     LegiScanClient,
     OpenStatesClient,
     RadarCandidate,
@@ -375,23 +376,42 @@ def _os_page(bills, *, page=1, max_page=1):
 
 
 class _FakeOSHttp:
-    """Fake httpx client for OpenStatesClient; dispatches on the page param."""
+    """Fake httpx client: dispatches on URL — the search base vs a per-bill detail path.
 
-    def __init__(self, pages: dict[int, dict]) -> None:
-        self._pages = pages
+    pages: {page_int -> search payload}; bills: {bill_id -> bill dict (with actions) for detail}.
+    """
+
+    def __init__(self, pages: dict[int, dict] | None = None, bills: dict[str, dict] | None = None):
+        self._pages = pages or {}
+        self._bills = bills or {}
         self.captured: list[dict] = []
 
     def get(self, url, **kwargs):
         params = kwargs["params"]
-        self.captured.append(params)
-        return _FakeResponse(self._pages[params["page"]])
+        self.captured.append({"url": url, **params})
+        if url == OPENSTATES_BASE:  # the light full-text search
+            return _FakeResponse(self._pages[params["page"]])
+        bill_id = url[len(OPENSTATES_BASE) + 1 :]  # detail: base + "/" + bill_id
+        return _FakeResponse(self._bills.get(bill_id, {}))
+
+
+def _os_candidate(bill_id="ocd-bill/abc", title="Artificial Intelligence Act"):
+    return RadarCandidate(
+        bill_id=bill_id,
+        number="HB 1",
+        state="California",
+        title=title,
+        change_hash="h",
+        relevance=100,
+        url="u",
+        query="q",
+    )
 
 
 def test_openstates_parses_bill_into_common_candidate():
-    page = _os_page(
-        [_os_bill(title="Artificial Intelligence Act", classifications=("became-law",))]
-    )
-    client = OpenStatesClient("KEY", http_client=_FakeOSHttp({1: page}))
+    # The LIGHT search leaves `advanced` undecided (None) — status is enriched per-bill later.
+    page = _os_page([_os_bill(title="Artificial Intelligence Act")])
+    client = OpenStatesClient("KEY", http_client=_FakeOSHttp(pages={1: page}))
 
     [c] = client.search("artificial intelligence")
 
@@ -401,61 +421,64 @@ def test_openstates_parses_bill_into_common_candidate():
     assert c.url == "https://openstates.org/bill/ocd-bill/abc"
     assert c.relevance == 100  # sentinel — Open States has no relevance score
     assert c.change_hash == hashlib.sha1(b"2026-07-01T00:00:00+00:00").hexdigest()
-    assert c.advanced is True
+    assert c.advanced is None  # not decided at search time (no actions in the light response)
+    assert c.status_label == "Referred to committee"  # display placeholder from latest_action
+
+
+def test_openstates_status_floor_fetches_bill_detail_with_actions():
+    # passes_status_floor enriches per-bill: hits the /bills/<ocd-id> detail with include=actions.
+    detail = _os_bill(classifications=("became-law",))
+    http = _FakeOSHttp(bills={"ocd-bill/abc": detail})
+    client = OpenStatesClient("KEY", http_client=http)
+    c = _os_candidate()
+
+    assert client.passes_status_floor(c) is True
+    sent = http.captured[0]
+    assert sent["url"] == f"{OPENSTATES_BASE}/ocd-bill/abc"  # single-bill detail endpoint
+    assert sent["include"] == "actions"  # the actions the light search deliberately omitted
+    assert sent["apikey"] == "KEY"
     assert c.status_label == "became-law"
 
 
 def test_openstates_introduced_bill_is_not_advanced():
-    page = _os_page([_os_bill(classifications=("introduction", "referral"))])
-    # require_title_match off to isolate the status-floor logic from the title filter.
-    client = OpenStatesClient("KEY", http_client=_FakeOSHttp({1: page}), require_title_match=False)
+    detail = _os_bill(classifications=("introduction", "referral"))
+    client = OpenStatesClient("KEY", http_client=_FakeOSHttp(bills={"ocd-bill/abc": detail}))
+    c = _os_candidate()
 
-    [c] = client.search("q")
-
+    assert client.passes_status_floor(c) is False
     assert c.advanced is False
-    assert client.passes_status_floor(c) is False  # local read, no network
 
 
 def test_openstates_one_chamber_passage_is_not_advanced():
     # Tuned floor (2026-07-12): bare `passage` (one chamber) and a set latest_passage_date are
     # BOTH excluded — only enrolled/enacted clears. This rejects mid-flight bills that flooded run 1.
-    page = _os_page([_os_bill(classifications=("passage",), latest_passage_date="2026-06-15")])
-    client = OpenStatesClient("KEY", http_client=_FakeOSHttp({1: page}), require_title_match=False)
+    detail = _os_bill(classifications=("passage",), latest_passage_date="2026-06-15")
+    client = OpenStatesClient("KEY", http_client=_FakeOSHttp(bills={"ocd-bill/abc": detail}))
+    c = _os_candidate()
 
-    [c] = client.search("q")
-
-    assert c.advanced is False
     assert client.passes_status_floor(c) is False
 
 
 def test_openstates_enrolled_clears_the_floor():
-    page = _os_page([_os_bill(classifications=("passage", "enrolled"))])
-    client = OpenStatesClient("KEY", http_client=_FakeOSHttp({1: page}), require_title_match=False)
+    detail = _os_bill(classifications=("passage", "enrolled"))
+    client = OpenStatesClient("KEY", http_client=_FakeOSHttp(bills={"ocd-bill/abc": detail}))
+    c = _os_candidate()
 
-    [c] = client.search("q")
-
-    assert c.advanced is True
+    assert client.passes_status_floor(c) is True
     assert c.status_label == "enrolled"
 
 
 def test_openstates_title_filter_drops_body_only_matches():
-    # Two enacted bills; only one names the query in its title. The body-only match (a budget that
-    # merely mentions the phrase) is the dominant noise source the title filter exists to cut.
+    # Two bills; only one names the query in its title. The body-only match (a budget that merely
+    # mentions the phrase) is the dominant noise source the title filter exists to cut — in the LIGHT
+    # search, before any per-bill status fetch is spent on it.
     page = _os_page(
         [
-            _os_bill(
-                bill_id="ocd-bill/ai",
-                title="Artificial Intelligence Act",
-                classifications=("became-law",),
-            ),
-            _os_bill(
-                bill_id="ocd-bill/budget",
-                title="State Operations Budget",
-                classifications=("became-law",),
-            ),
+            _os_bill(bill_id="ocd-bill/ai", title="Artificial Intelligence Act"),
+            _os_bill(bill_id="ocd-bill/budget", title="State Operations Budget"),
         ]
     )
-    client = OpenStatesClient("KEY", http_client=_FakeOSHttp({1: page}))  # title match ON (default)
+    client = OpenStatesClient("KEY", http_client=_FakeOSHttp(pages={1: page}))  # title match ON
 
     results = client.search("artificial intelligence")
 
@@ -465,19 +488,13 @@ def test_openstates_title_filter_drops_body_only_matches():
 def test_openstates_title_filter_can_be_disabled():
     page = _os_page(
         [
-            _os_bill(
-                bill_id="ocd-bill/ai",
-                title="Artificial Intelligence Act",
-                classifications=("became-law",),
-            ),
-            _os_bill(
-                bill_id="ocd-bill/budget",
-                title="State Operations Budget",
-                classifications=("became-law",),
-            ),
+            _os_bill(bill_id="ocd-bill/ai", title="Artificial Intelligence Act"),
+            _os_bill(bill_id="ocd-bill/budget", title="State Operations Budget"),
         ]
     )
-    client = OpenStatesClient("KEY", http_client=_FakeOSHttp({1: page}), require_title_match=False)
+    client = OpenStatesClient(
+        "KEY", http_client=_FakeOSHttp(pages={1: page}), require_title_match=False
+    )
 
     results = client.search("artificial intelligence")
 
@@ -498,7 +515,7 @@ def test_openstates_paginates_and_respects_cap():
         1: _os_page([_os_bill(bill_id="ocd-bill/1")], page=1, max_page=2),
         2: _os_page([_os_bill(bill_id="ocd-bill/2")], page=2, max_page=2),
     }
-    http = _FakeOSHttp(pages)
+    http = _FakeOSHttp(pages=pages)
     client = OpenStatesClient("KEY", http_client=http, require_title_match=False)
 
     results = client.search("q")
@@ -508,7 +525,7 @@ def test_openstates_paginates_and_respects_cap():
 
 
 def test_openstates_stops_at_max_pages():
-    http = _FakeOSHttp({1: _os_page([_os_bill()], page=1, max_page=9)})
+    http = _FakeOSHttp(pages={1: _os_page([_os_bill()], page=1, max_page=9)})
     client = OpenStatesClient("KEY", http_client=http, max_pages=1)
 
     client.search("q")
@@ -516,19 +533,20 @@ def test_openstates_stops_at_max_pages():
     assert [p["page"] for p in http.captured] == [1]  # capped, not chased to max_page=9
 
 
-def test_openstates_sends_apikey_query_actions_and_classification():
-    http = _FakeOSHttp({1: _os_page([])})
+def test_openstates_search_is_light_no_actions():
+    http = _FakeOSHttp(pages={1: _os_page([])})
     OpenStatesClient("SECRET", http_client=http).search("algorithmic discrimination")
 
     sent = http.captured[0]
+    assert sent["url"] == OPENSTATES_BASE
     assert sent["apikey"] == "SECRET"
     assert sent["q"] == "algorithmic discrimination"
-    assert sent["include"] == "actions"  # needed to decide the status floor inline
     assert sent["classification"] == "bill"  # server-side: drop resolutions (default knob)
+    assert "include" not in sent  # LIGHT search — actions are fetched per-bill, not bundled here
 
 
 def test_openstates_classification_can_be_omitted():
-    http = _FakeOSHttp({1: _os_page([])})
+    http = _FakeOSHttp(pages={1: _os_page([])})
     OpenStatesClient("KEY", http_client=http, classification=None).search("q")
 
     assert "classification" not in http.captured[0]

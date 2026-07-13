@@ -238,15 +238,17 @@ def _retry_after_seconds(response: httpx.Response, attempt: int) -> float:
 class OpenStatesClient:
     """`BillSource` over the Open States v3 `/bills` endpoint.
 
-    Unlike LegiScan, Open States returns a bill's actions inline (`include=actions`), so the
-    status floor is decided at parse time (no per-bill enrichment call) and cached on the
-    candidate's `advanced` flag. Open States exposes no relevance score, so `relevance` is a
-    sentinel and the shared relevance floor is a no-op for this source. Precision instead comes
-    from three knobs tuned against the first real batch: `classification="bill"` (drop
-    resolutions), `require_title_match` (query phrase must be in the title, not just the body),
-    and the enrolled/enacted status floor. Trade-off: the title match favors precision, so a bill
-    titled with only the abbreviation (e.g. "...-AI") can be missed until it surfaces another way
-    - acceptable for a human-gated radar, revisit if recall matters.
+    Two-step like LegiScan: a LIGHT full-text search (no `include=actions`) returns candidates, then
+    the status floor is enriched per-survivor via a small per-bill fetch in passes_status_floor.
+    (Bundling actions into the broad search 504'd Open States' gateway from CI on 2026-07-13 — the
+    heavy response was too much for their backend; the per-bill fetch is a tiny request that isn't.)
+    Open States exposes no relevance score, so `relevance` is a sentinel and the shared relevance
+    floor is a no-op; precision comes from three knobs tuned against the first real batch:
+    `classification="bill"` (drop resolutions), `require_title_match` (query phrase must be in the
+    title, not just the body — also the budget guard that bounds the per-bill fetches), and the
+    enrolled/enacted status floor. Trade-off: the title match favors precision, so a bill titled with
+    only the abbreviation (e.g. "...-AI") can be missed until it surfaces another way - acceptable for
+    a human-gated radar, revisit if recall matters.
     """
 
     name = "openstates"
@@ -282,7 +284,7 @@ class OpenStatesClient:
         self._max_retries = max_retries
         self._sleep = sleep
 
-    def _get(self, params: dict) -> dict:
+    def _request(self, url: str, params: dict) -> dict:
         fetch = self._client.get if self._client else httpx.get
         full = {**params, "apikey": self._api_key}
         for attempt in range(self._max_retries + 1):
@@ -292,7 +294,7 @@ class OpenStatesClient:
             # the whole radar crashed because only 429 *status codes* were retried, not timeouts.)
             try:
                 response = fetch(
-                    OPENSTATES_BASE,
+                    url,
                     params=full,
                     timeout=OPENSTATES_TIMEOUT,
                     headers=REQUEST_HEADERS,
@@ -323,10 +325,12 @@ class OpenStatesClient:
         results: list[RadarCandidate] = []
         page = 1
         while page <= self._max_pages:
+            # LIGHT search: NO include=actions. Bundling every result's action history into one broad
+            # full-text response is what timed out Open States' gateway (504) from CI on 2026-07-13.
+            # Status is enriched per-survivor in passes_status_floor instead (mirrors LegiScan's getBill).
             params: dict[str, object] = {
                 "q": query,
                 "sort": "latest_action_desc",
-                "include": "actions",
                 "page": page,
                 "per_page": self._per_page,
             }
@@ -334,7 +338,7 @@ class OpenStatesClient:
                 params["classification"] = self._classification
             if self._action_since:
                 params["action_since"] = self._action_since
-            payload = self._get(params)
+            payload = self._request(OPENSTATES_BASE, params)
             for bill in payload.get("results", []):
                 candidate = self._to_candidate(bill, query)
                 if self._require_title_match and needle not in candidate.title.lower():
@@ -349,17 +353,8 @@ class OpenStatesClient:
 
     @staticmethod
     def _to_candidate(bill: dict, query: str) -> RadarCandidate:
-        actions = bill.get("actions") or []
-        classifications = {c for a in actions for c in (a.get("classification") or [])}
-        passed = classifications & OPENSTATES_PASSED_CLASSIFICATIONS
-        # Strictly the enrolled/enacted floor: a set `latest_passage_date` (one-chamber passage) is
-        # deliberately NOT treated as advanced (tuned 2026-07-12 — it re-admitted mid-flight bills).
-        advanced = bool(passed)
-        status_text = (
-            sorted(passed)[0]
-            if passed
-            else (str(bill.get("latest_action_description", "")) or "in progress")[:40]
-        )
+        # Parsed from the LIGHT search response (no actions), so `advanced` is left None here and
+        # decided later by passes_status_floor's per-bill fetch. status_text is a display placeholder.
         jurisdiction = bill.get("jurisdiction") or {}
         sources = bill.get("sources") or []
         url = bill.get("openstates_url") or (sources[0].get("url") if sources else "")
@@ -376,13 +371,37 @@ class OpenStatesClient:
             relevance=100,  # no score from Open States; relevance floor is a no-op here
             url=str(url),
             query=query,
-            status_text=status_text,
-            advanced=advanced,
+            status_text=(str(bill.get("latest_action_description", "")) or "in progress")[:40],
         )
 
+    @staticmethod
+    def _advanced_from_actions(bill: dict) -> tuple[bool, str | None]:
+        """(advanced, label) from a bill's action classifications, per the enrolled/enacted floor.
+
+        A set `latest_passage_date` (one-chamber passage) is deliberately NOT advanced (tuned
+        2026-07-12 — it re-admitted mid-flight bills).
+        """
+        actions = bill.get("actions") or []
+        classifications = {c for a in actions for c in (a.get("classification") or [])}
+        passed = classifications & OPENSTATES_PASSED_CLASSIFICATIONS
+        return (bool(passed), sorted(passed)[0] if passed else None)
+
     def passes_status_floor(self, candidate: RadarCandidate) -> bool:
-        """Return the status-floor result computed at search time (no network call)."""
-        return bool(candidate.advanced)
+        """Enrich status via a LIGHT per-bill fetch (one bill's actions), then apply the floor.
+
+        The broad search is deliberately actions-free (it 504'd their gateway); the enrolled/enacted
+        decision needs action classifications, so we fetch them one bill at a time here — a small,
+        fast request that won't choke the backend. Called only on relevance/title survivors, so it's
+        a bounded handful of calls. Mirrors LegiScan's getBill enrichment. A raise (timeout/429 past
+        retries) propagates to run_radar's per-bill isolation.
+        """
+        # candidate.bill_id is the OCD id "ocd-bill/<uuid>"; the detail endpoint is base + that id.
+        bill = self._request(f"{OPENSTATES_BASE}/{candidate.bill_id}", {"include": "actions"})
+        advanced, label = self._advanced_from_actions(bill)
+        candidate.advanced = advanced
+        if label:
+            candidate.status_text = label
+        return advanced
 
 
 # ---------------------------------------------------------------------------

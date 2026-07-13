@@ -465,5 +465,14 @@ The Monday cron fired the radar on Open States and the job failed. Two distinct 
   `json.load` ("Expecting value: line 1 column 1"). Fix: `set -o pipefail` in the run step, so a radar
   crash fails **that** step with the real traceback and the issue-opening step never runs on empty data.
 - No cleanup needed: the crash was before the issue-creation step, so **zero issues were created** and the
-  store was never written (nothing half-committed). Re-fire `workflow_dispatch` after this lands to open the
-  first real triage batch.
+  store was never written (nothing half-committed).
+- **Then it failed again — `504 Gateway Time-out` (Open States' *own* gateway).** With the timeout retries in
+  place, the real cause surfaced: the broad full-text search with `include=actions` is too heavy for Open
+  States' backend to build reliably from CI (it served a residential IP fine — intermittent/load-dependent).
+  **Fix = the two-step redesign:** the search is now **light** (no `include=actions`), and status is enriched
+  **per-bill** in `passes_status_floor` via `GET /bills/ocd-bill/{id}?include=actions` — a tiny request run
+  only on title/relevance survivors (the title filter is the budget guard bounding it to a handful). This
+  mirrors LegiScan's search→getBill split. `_get` became `_request(url, ...)` so both calls share the retry
+  logic. Also added a generous read timeout (`httpx.Timeout(15, read=90)`) + a `timeout-minutes: 15` job cap
+  as the hung-connection backstop. 392 passed. Validate locally first (the light query is guaranteed light),
+  then re-fire CI — the 504 should be gone.
