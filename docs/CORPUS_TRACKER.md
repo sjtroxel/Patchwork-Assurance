@@ -256,3 +256,29 @@ jurisdiction. And the privacy-opt-out *cluster* for genuinely new states stays *
 default OUT under 7.3. Anything that turns out to be an **employment** or cross-cutting **consequential-
 decision / profiling-opt-out** law is the one to look at hard. When a candidate is declined, record it as a
 one-line `OUT OF SCOPE` note (§2 style) so the radar doesn't keep re-surfacing it as a fresh question.
+
+### 7.6 Triage decisions — first batch resolved (2026-07-14)
+The 13 Open States candidates from the 2026-07-12 local run, run through §7.2/§7.3. **All 13 OUT; zero
+corpus adds.** Recorded here so the radar does not re-surface them as fresh questions.
+
+| Bill | Call | Why |
+|---|---|---|
+| GA SB 444 — insurance private-review agents | OUT (borderline) | §7.3 sector-specific insurance utilization-review; new sub-category |
+| CO HB 1139 — AI in health care | OUT (borderline) | Real duty (no coverage denial *solely* on AI) but §7.3 sector-specific insurance UR — same bucket as GA SB 444; eff. 2027-01-01 |
+| CO HB 1195 — psychotherapy AI restrictions | OUT | §7.3 sector-specific mental-health practice |
+| RI SB 2195 — AI companion models | OUT | §7.3 AI-companion disclosure |
+| RI SB 2197 / HB 7349 — behavioral-health AI oversight | OUT | §7.3 sector-specific healthcare |
+| RI SB 2570 / HB 7538 — AI by healthcare providers | OUT | §7.3 sector-specific healthcare |
+| LA HB 459 — AI in campaigns | OUT | §7.3 elections |
+| LA SB 42 — AI-generated CSAM | OUT | §7.3 criminal / CSAM |
+| LA HB 119 — AI-generated images of a person | OUT | §7.3 synthetic media |
+| CT SB 417 — DECD to develop an AI plan | OUT | §7.3 government study / plan, no private duty |
+| CT HB 5222 — omnibus (amends CTDPA) | OUT as add | Amends a held law, but the 2026 amendments (geolocation, data-broker, facial-recognition) don't touch the CTDPA **profiling opt-out** the corpus represents — no re-ingest needed |
+
+**Two findings banked (not gaps):** (1) GA SB 444 + CO HB 1139 form a coherent *AI-in-insurance-coverage /
+utilization-review* sub-category — a deliberate future-expansion domain, default OUT under §7.3 +
+deepen-before-broaden §7.4 (both effective 2027-01-01). (2) CT HB 5222 confirms the CTDPA entry's
+operative profiling-opt-out core is unchanged by the 2026 amendments — the held law is still accurately
+represented. Corpus coverage cross-checked against external 2026 trackers (Akin, Brightmine, K&L Gates,
+Seyfarth): the major enacted automated-decision / employment + privacy-ADMT laws (CA×2, CO, IL×2, CT,
+NYC, TX) are all present — the corpus is current on its core thesis.

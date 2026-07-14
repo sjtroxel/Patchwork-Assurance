@@ -13,8 +13,12 @@ name: National radar
 # The auto-provided GITHUB_TOKEN opens/updates issues (permissions: issues: write below).
 
 on:
-  schedule:
-    - cron: "0 6 * * 1"  # weekly, Monday 06:00 UTC - bills don't pass daily; issue-noise is the cost
+  # Weekly cron DISABLED 2026-07-13: Open States' gateway 502/504s the heavy query and then
+  # rate-limits (429) the light one from GitHub's cloud runners (it serves a residential IP fine).
+  # Re-enable this cron once the LegiScan key lands (set RADAR_SOURCE=legiscan) - different infra,
+  # 30k/mo limit. Until then the radar runs locally on demand; manual dispatch below still works.
+  # schedule:
+  #   - cron: "0 6 * * 1"  # weekly, Monday 06:00 UTC
   workflow_dispatch:      # manual trigger - the first live run rides this
 
 jobs:

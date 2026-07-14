@@ -8,8 +8,18 @@
 > (`RADAR_SOURCE`). Session 5 (2026-07-12) ran the first real Open States batch locally (self-serve key),
 > found it noisy (126, ~65% false positives), and tuned three precision knobs (title-match, `classification=bill`,
 > enrolled/enacted floor) → **~12 genuine enacted AI laws** (§12), plus 429 rate-limit backoff found on the live
-> re-run. All offline, $0, ruff + pytest green (**389 passed**). The live *workflow* run is the only step left — the local run already validated Open States
-> end to end; wiring CI (flip `RADAR_SOURCE`, fire `workflow_dispatch`) opens the triage issues.** This is the
+> re-run. All offline, $0, ruff + pytest green (**389 passed**).
+> **PHASE COMPLETE 2026-07-14.** Unattended *cloud* cron proved unachievable on free-tier vendors: LegiScan's
+> API key never issued (registration 2026-07-11 stuck in manual review, presumed dead), and Open States is
+> **CI-unreachable** — GitHub's datacenter IPs get 502/504 gateway-errored on the heavy query, then 429
+> rate-limited on the light one (it serves residential IPs fine). No client-side fix. The weekly `schedule:`
+> cron is therefore **disabled** in `radar.yml` (documented inline; `workflow_dispatch` kept); the radar runs
+> **on-demand locally** (`RADAR_SOURCE=openstates`) — the correct posture anyway, since a human gates every
+> corpus change. **DoD met via the local run:** one real Open States batch (126 → tuned to 13), **triaged
+> 2026-07-14 → all 13 OUT of scope** (tracker §7.6; zero corpus adds; coverage cross-checked current against
+> external 2026 trackers). Reframed from "autonomous dragnet" to "on-demand detection tool with a human
+> triage gate." The detection engine + `BillSource` seam + resilience work all stand; if a CI-reachable vendor
+> key ever lands, re-enabling the cron is a one-line flip. This is the
 > as-built runbook, written at phase start
 > (2026-07-10) per the repo convention, reflecting how Phases 0–12 actually landed and how the Phase 9
 > agent code is shaped. The intended design + posture live in `phase-13-legiscan-radar.md` (read it
