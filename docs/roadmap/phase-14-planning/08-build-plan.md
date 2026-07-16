@@ -113,7 +113,7 @@ last, smallest step.
 |---|---|
 | Runs through the existing judged harness, same path | `--arm` swaps the producer only; all scoring shared (§1) |
 | Raw-query arm complete | Arm A open (`03`) |
-| Tool-augmented arm done or scoped out + disclosed | **Open decision** — see `10`. Current lean: scoped out, disclosed |
+| Tool-augmented arm done or scoped out + disclosed | **DECIDED 7/16: scoped out, disclosed** (`10` D5) |
 | Model list re-verified with check date | `01`, re-verify at build |
 | Losses reported | `09` |
 | Harness + prompts + raw outputs + scores committed | Build items 2, 10 |

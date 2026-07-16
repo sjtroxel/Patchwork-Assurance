@@ -4,7 +4,10 @@
 > (poll → diff → assess/fetch → draft → PR human-gate). Fetch/extract hardened beyond the original plan:
 > HTML normalization, **PDF text-layer extraction (pypdf) + OCR fallback (PyMuPDF + tesseract)** for
 > scanned statutes, and a **browser user-agent** for sources that 403 a default UA. The corpus grew
-> **2→7 jurisdictions** (CO, CT, IL, CA×2, NYC, NJ), all served with zero `core/` change. The additions
+> **2→7 laws across 6 jurisdictions** (CO, CT, IL, CA×2, NYC, NJ), all served with zero `core/` change.
+> *(Corrected 2026-07-16: read "2→7 jurisdictions" until today. Seven was the **law** count; CA's two
+> regimes are two laws in one jurisdiction. Six jurisdictions is right for 6/28 — TX, added 7/3, made 7
+> true. Same slip in the Phase 8 batch-7 note and the ROADMAP §6 row; both fixed.)* The additions
 > were **human-curated by hand**; the agent's first **live** end-to-end PR is the one deferred step
 > (a funded run — same posture as the deferred paid/live items in Phases 6–8). See ROADMAP §6.
 

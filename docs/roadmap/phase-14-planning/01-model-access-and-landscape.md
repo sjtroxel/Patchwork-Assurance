@@ -77,28 +77,79 @@ Whichever way this lands, the write-up must state Google's GA situation explicit
 Flash and calling it "Google's frontier model" is the kind of small inaccuracy that a knowledgeable
 reader catches and then distrusts the rest of the numbers over.
 
-## 5. The Chinese model: include it, but not for diversity
+## 5. The big four, and what's beyond them
 
-You floated "maybe something Chinese." The catalog has plenty of live options: DeepSeek V4 Pro
-($0.43/$0.87), GLM-5.2 ($0.87/$2.72), Qwen3.7-Max ($1.25/$3.75), Kimi K2.7, MiniMax M3.
+*Revised 2026-07-15 after sjtroxel clarified the ask: not national-interest framing, just "something
+beyond the big-3 that Americans are by-far most familiar with." Chinese labs were named as one known
+example, not as the requirement. European, or anything else, equally welcome.*
 
-Adding one *for national diversity* is a weak reason — it doesn't answer any question the reader has,
-and "does a Chinese model know Colorado employment law" is a mildly interesting trivia result, not a
-finding.
+### It's a big FOUR, not a big three
 
-**The strong reason to include DeepSeek V4 Pro is price-performance.** It is roughly **20x cheaper than
-Fable 5** ($0.43/$0.87 vs $10/$50). That sets up the sharpest question in the whole experiment:
+The survey's main finding, and sjtroxel's call on reading it: **xAI belongs with the majors.** Grok 4.5
+shipped 2026-07 with a 500k context at $2/$6 — current, competitive, and cheaper than Sol. Treating it
+as a curiosity beyond the "real" labs would misdescribe the 2026 US market. The honest frame is
+**Anthropic, OpenAI, Google, xAI**, and these docs use it.
+
+That matters for the post's claim, not just the arm list: "raw frontier models fail on currency" across
+**four labs** is a materially stronger structural statement than across three, and it costs $0.23.
+
+### Beyond the big four, the field is thinner than the vendor count suggests
+
+OpenRouter lists **47 non-big-3 vendors**, but most are serving old or niche models. Sorted by release
+date rather than price, the labs actually shipping *current* frontier models are:
+
+| Lab | Current flagship | Released | $/M in-out | Note |
+|---|---|---|---|---|
+| **xAI** | `x-ai/grok-4.5` | **2026-07** | $2 / $6 | 500k ctx. **Promoted to a major — see above** |
+| **Mistral** (FR) | `mistralai/mistral-medium-3-5` | 2026-04 | $1.50 / $7.50 | The European entry. Naming caveat below |
+| **DeepSeek** (CN) | `deepseek/deepseek-v4-pro` | current | $0.43 / $0.87 | 20x cheaper than Fable 5 |
+| Alibaba (CN) | `qwen/qwen3.7-max` | current | $1.25 / $3.75 | |
+| Z-ai (CN) | `z-ai/glm-5.2` | current | $0.87 / $2.72 | |
+| NVIDIA | `nvidia/nemotron-3-ultra-550b-a55b` | 2026-06 | $0.60 / $3.60 | Has a `:free` tier |
+
+And the ones that look like contenders but aren't, which is worth knowing:
+
+- **Meta Llama** — latest is Llama 4 Maverick, **April 2025**. No Llama 5. Not current.
+- **Cohere Command A** — March 2025, 16 months old. A shame, since Cohere is RAG/enterprise-focused and
+  would have been a thematically apt comparison.
+- **Amazon Nova Premier** — October 2025, $2.50/$12.50.
+- **AI21 Jamba Large 1.7** (IL) — August 2025.
+
+**Mistral naming caveat:** `mistral-medium-3-5` (2026-04) is *newer* than `mistral-large-2512`
+(2025-12), which suggests Mistral hasn't shipped a new Large. Their tiering is confusing enough that
+picking the wrong model and calling it "Europe's flagship" is a real risk. **Web-check Mistral's current
+flagship before using it** — this is the kind of small public error that costs credibility.
+
+### Each candidate serves a different job
+
+Cost is *not* the constraint here — at 12 cases, Grok adds ~$0.23, Mistral ~$0.26, DeepSeek ~$0.04. The
+real constraint is **table rows and narrative clarity**. Every arm added makes the results harder to
+read. So each one should earn its place on purpose, not on price:
+
+| Candidate | The job it does | Verdict (decided 2026-07-15) |
+|---|---|---|
+| **Grok 4.5** | Breadth of the frontier claim — makes "raw frontier models fail on currency" span **four labs, not three**. Current, cheap, genuinely competitive. | **IN** — as a peer baseline, not a novelty arm |
+| **DeepSeek V4 Pro** | The price-performance thesis + the grounded ablation. Load-bearing for the headline (below). | **IN** |
+| **Mistral Medium 3.5** | Geographic/ecosystem breadth ("and Europe"). | **ALTERNATE** — parked; fold in later only if the results need it. Web-check its flagship first. |
+| GLM-5.2 / Qwen3.7-Max | Robustness check on the cheap-model finding. | Alternate |
+
+### Why DeepSeek specifically earns its slot
+
+Not for diversity — on argument. It is roughly **20x cheaper than Fable 5** ($0.43/$0.87 vs $10/$50),
+which sets up the sharpest question in the experiment:
 
 > Does a 20x-cheaper model, properly grounded, beat a frontier model asked raw?
 
-That is an *architecture* claim rather than a vendor claim, it's the question a working AI engineer
-actually asks, and it is the natural headline for the post. See `08-build-plan.md` on the grounded-cheap
-ablation and `09-the-post.md` on why this reframing is stronger.
+That's an *architecture* claim rather than a vendor claim, it's the question a working AI engineer
+actually asks, and it's the natural headline. See `08-build-plan.md` for the grounded-cheap ablation and
+`09-the-post.md` §1 for why this reframing is stronger than a vendor shootout.
 
-If you want a second Chinese model as a robustness check, GLM-5.2 at $0.87/$2.72 is the next pick. Not
-necessary; nice-to-have.
+The diversity benefit is real but secondary: it comes along for free once the model is in for its own
+reasons.
 
 ## 6. The proposed model set
+
+**Locked 2026-07-15; D3 and D4b both DECIDED as of 2026-07-16 — this is the final set:**
 
 | Arm | Model | Role |
 |---|---|---|
@@ -106,9 +157,19 @@ necessary; nice-to-have.
 | Baseline | `openai/gpt-5.6-sol` | OpenAI flagship, GA |
 | Baseline | `anthropic/claude-fable-5` | Anthropic flagship, GA |
 | Baseline | `google/gemini-3.5-flash` | Google GA frontier |
-| Baseline | `google/gemini-3.1-pro-preview` | Google Pro tier, disclosed as preview |
+| Baseline | `google/gemini-3.1-pro-preview` | Google Pro tier, disclosed as preview (`10` D3) |
+| Baseline | `x-ai/grok-4.5` | **xAI flagship, GA, current (2026-07)** — a major, per §5 |
 | Baseline | `deepseek/deepseek-v4-pro` | Price-performance probe |
 | Ablation | `deepseek/deepseek-v4-pro` **+ Patchwork corpus** | Isolates grounding from model quality |
+
+**Alternates (parked, not in the run):** `mistralai/mistral-medium-3-5` (verify flagship first, §5),
+`z-ai/glm-5.2`, `qwen/qwen3.7-max`. Each is one model ID and well under a dollar to add if the results
+turn out to need them.
+
+The four majors — Anthropic, OpenAI, Google, xAI — are all represented raw. That's what lets the
+currency finding be stated as a claim about *frontier models*, rather than about three vendors.
+
+Grok adds ~$0.23 to the 12-case core run; see `07-cost-model.md`.
 
 Including Fable 5 is a credibility asset, not a conflict of interest. Patchwork is Claude-powered, so
 benchmarking against Anthropic's own best model and reporting that raw Fable 5 loses to a Sonnet-5-based

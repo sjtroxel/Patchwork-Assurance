@@ -357,7 +357,8 @@ not a placeholder:
   their keep only as the corpus grows.* That is the intended senior narrative, not a shortfall.
 
 **Batch 7 as-built (2026-07-01): the N=7 re-sweep — the free half of the Phase 8 funded run.** With the
-corpus now at **7 jurisdictions** (CO, CT, IL, CA×2, NYC, NJ), re-ran the free deterministic sweep
+corpus now at **7 laws across 6 jurisdictions** (CO, CT, IL, CA×2, NYC, NJ) — the N=7 in "N=7 re-sweep"
+is the **law** count, which is what this sweep varies — re-ran the free deterministic sweep
 (`python -m eval.run --sweep`) and the knob sweep (`python -m eval.sweep_knobs`). Scope accuracy
 **238/238 = 100%** (mode-independent, unchanged). Results: `eval/results/20260701T122637Z.json`,
 `eval/results/knobs-20260701T122804Z.json`.

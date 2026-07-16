@@ -1,15 +1,31 @@
 # 10 — Open decisions
 
-*The calls that are yours. Nothing gets built until these land and the IMPLEMENTATION doc is written and
-approved — starting a phase means the doc comes before the code.*
+> **ALL RATIFIED 2026-07-16 (sjtroxel).** The outcomes are recorded per-decision below and consolidated
+> in `../phase-14-benchmark-vs-frontier-IMPLEMENTATION.md` §1, which is controlling for the build. This
+> file is kept for the *reasoning* — the honest case against each call is worth having on the record when
+> the results land.
+>
+> **Also ratified: the `09` §1 reframe** — the phase's thesis is **grounding vs. no grounding**, not
+> Patchwork vs. the labs. This supersedes design doc §1.
 
 *Each decision below has a recommendation and the honest case against it.*
 
 ---
 
-## Decision 1 — Spend scope
+## Decision 1 — Spend scope — **DECIDED 2026-07-16**
 
-**Core only (~$7), or core plus the judged tier (~$14.50)?** (Plus 5.5% OpenRouter fee; ±50% error
+**DECIDED (sjtroxel): the middle option. Core run only (~$7, ~$8.50 with D6). The judged tier gets
+BUILT but NOT RUN — the spend decision is deferred until the core results are in hand.**
+
+The build decision and the spend decision are separable, and only the spend decision needed deferring.
+Building the judge path and the Sol cross-check costs nothing (offline on `StubLLM`, steps 3–4 of the run
+plan), so specifying the tier in full now makes it a batch command later rather than a new build. Nothing
+about the core results is uninterpretable without groundedness — currency and citation validity are
+self-contained findings.
+
+*Original framing and reasoning below, kept for the record.*
+
+**Core only (~$7), or core plus the judged tier (~$15.50)?** (Plus 5.5% OpenRouter fee; ±50% error
 bars per `07` §5.)
 
 **Recommendation: core only.**
@@ -31,7 +47,24 @@ run.
 
 ---
 
-## Decision 2 — Case set
+## Decision 2 — Case set — **DECIDED 2026-07-16, with a live refinement**
+
+**DECIDED (sjtroxel): 12 cases, composed to span the traps, selection rule disclosed.**
+
+**But the analysis changed after the call.** The in-scope pool was recomputed live on 7/16 and is **32
+yes-scope / 35 harness-selected**, not the 25 assumed when "12" was chosen as a budget number. At 32, a
+12-case set can't cleanly cover the trap matrix: the TX currency probe ends up doing triple duty inside
+`tx-co-multistate`, and NYC LL 144 drops out of the set entirely. The marginal cost of a case is
+~$0.30–0.50 across all eight arms.
+
+**AMENDED SAME DAY to 13.** Reading the actual gold data showed the 12-case set left the **TX currency
+probe uninstrumented** — half of the rank-1 centerpiece metric. `tx-co-multistate` carries only TRAIGA's
+intent prohibition; `tx-employment-deployer` also carries the negative obligation ("the Act imposes **no**
+impact-assessment, consumer-notice, or opt-out duty on a private employer"), which *is* the 2.0-vs-1.0
+test. Added, ~$0.58. NYC considered and cut — a distinct regime but not a headline probe; disclosed
+instead. See IMPLEMENTATION §3.2.
+
+*Original framing below.*
 
 **12 trap-focused cases, or the full in-scope set (~25+ of 44)?**
 
@@ -49,7 +82,13 @@ Note the exact in-scope count needs recomputing — the corpus grew after Phase 
 
 ---
 
-## Decision 3 — Gemini
+## Decision 3 — Gemini — **DECIDED 2026-07-16**
+
+**DECIDED (sjtroxel): both variants.** His reasoning: there's no clean Gemini analogue to Sol or
+Fable 5, so asking something different of Google is what makes it a true contributor rather than a
+sandbagged row. Headline the GA Flash, footnote the preview Pro.
+
+*Original framing below.*
 
 **Both variants (GA Flash + preview Pro), or GA only?**
 
@@ -66,7 +105,20 @@ preview and the problem is contained.
 
 ---
 
-## Decision 4 — The grounded-cheap ablation
+## Decision 4 — The grounded-cheap ablation — **DECIDED 2026-07-16**
+
+**DECIDED (sjtroxel): IN.** His reasoning: "for six cents any opportunity to bolster the integrity of
+our app is worth it." Accepted with eyes open that it may deflate the Phase-12 multi-agent narrative.
+
+**Worth recording, because the worry came up and the answer is load-bearing: this cannot force a
+retraction of the 7/7 launch post.** Phase 12 held grounding constant and varied the pipeline; the
+ablation varies the corpus (its clean pair is DeepSeek raw vs. DeepSeek + corpus — same model, same
+pipeline, one variable). Different experiments, different questions. And Phase 12 already published the
+concession in its own IMPLEMENTATION §11 ("gains are partly structural … coverage is the honest tiebreak
+and it held") on a +2.0-point delta. Worst case here is *adding a sentence*, not withdrawing one. Full
+argument in IMPLEMENTATION §1.1.
+
+*Original framing below.*
 
 **In or out**, knowing it might show the multi-agent pipeline isn't the moat?
 
@@ -86,7 +138,35 @@ and your narrative, and it's worth deciding with eyes open rather than discoveri
 
 ---
 
-## Decision 5 (lower stakes) — Tool-augmented arm
+## Decision 4b — Which non-big-3 arms? — **DECIDED 2026-07-15**
+
+*Added 2026-07-15 after the "beyond the big three" survey (`01` §5).*
+
+**DECIDED (sjtroxel): Grok 4.5 folds in as a peer baseline. Mistral is an alternate — outside the set
+for now, foldable in later if the results need it. DeepSeek stays.**
+
+His reasoning, and it's the right read: **xAI is not a fourth-place curiosity, it's a peer.** Grok 4.5
+shipped 2026-07 with a 500k context at $2/$6. The honest framing of the US market is the **big four** —
+Anthropic, OpenAI, Google, xAI — not the big three plus an also-ran. The docs have been updated to that
+framing.
+
+Mistral stays parked because it buys geographic breadth and little else, and its current flagship is
+genuinely ambiguous from the catalog (`01` §5 naming caveat). It needs a web check before use, and
+picking the wrong model in public is worse than omitting it. Nothing about the build blocks adding it
+later — it's one model ID and ~$0.26.
+
+**Standing caution (unchanged):** every arm is a row in every table and a sentence in the post. The cost
+is clarity, not dollars. If the post starts reading like a spreadsheet, cut back rather than adding.
+
+---
+
+## Decision 5 (lower stakes) — Tool-augmented arm — **DECIDED 2026-07-16**
+
+**DECIDED (sjtroxel): scoped out and disclosed.** The disclosure burden is accepted and is real — the
+post must be *prominently* clear that the currency claim is about raw queries only. If that disclosure
+isn't prominent, the whole piece is an overclaim.
+
+*Original framing below.*
 
 **Build a browsing arm, or scope it out and disclose?**
 
@@ -104,7 +184,12 @@ burden, not a hole — but if the disclosure isn't prominent, the whole piece is
 
 ---
 
-## Decision 6 (lower stakes) — Variance
+## Decision 6 (lower stakes) — Variance — **DECIDED 2026-07-16**
+
+**DECIDED (sjtroxel): N=3 on a 4-case subset (~+$1.50).** Worth it "for a good bulletproof read." Note
+this puts the ratified core run at **~$8.50, not $7** (realistically $6–12 at ±50%).
+
+*Original framing below.*
 
 **N=1 disclosed, or N=3 on a 4-case subset (~+$1.50)?**
 
@@ -114,11 +199,10 @@ finding in its own right (`09` §3).
 
 ---
 
-## Once these land
+## Once these land — **status 2026-07-16**
 
-1. Write `docs/roadmap/phase-14-benchmark-vs-frontier-IMPLEMENTATION.md` — the as-built plan, per the
-   doc-first rule.
-2. You review and approve it.
+1. ~~Write `docs/roadmap/phase-14-benchmark-vs-frontier-IMPLEMENTATION.md`~~ — **DONE 7/16.**
+2. **You review and approve it.** ← *current step*
 3. Build offline on `StubLLM` (`08` §4–5). Free.
 4. Paid smoke test, one case per model (~$0.10).
 5. Core run through `confirm_spend`, batched.

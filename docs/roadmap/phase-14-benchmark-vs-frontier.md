@@ -4,6 +4,17 @@
 `docs/BENCHMARK_VS_FRONTIER.md`. **Second** post-launch build — starts only after the Phase 13 radar
 ships (one build slot at a time). A measured-eval artifact + follow-up write-up.*
 
+> **STATUS 2026-07-16 — superseded in four places by
+> `phase-14-benchmark-vs-frontier-IMPLEMENTATION.md`, which is controlling for the build.** This doc
+> remains the statement of intent. The deltas, all decided 7/16:
+>
+> | This doc says | Now |
+> |---|---|
+> | §1 "Patchwork vs. frontier models" | **Reframed: grounding vs. no grounding** (`phase-14-planning/09` §1). The models aren't the opponent; the ungrounded query is |
+> | §3 model list (7/7) | **Stale — corrected in §3 below** and re-verified 7/15 in `phase-14-planning/01`. Re-verify again at build |
+> | §4.3 score on "groundedness, citation validity, scope" | **Reordered by neutrality** (`phase-14-planning/05`). Scope is 100% by construction and is **not headlined**; groundedness is built but deferred |
+> | §6 "a few dollars, one-time" | **~$8.50 as ratified** (±50%). Judged tier a further ~$8, deferred |
+
 ---
 
 ## 1. What it is (and the objection it answers)
@@ -28,21 +39,35 @@ The defensible, genuinely useful claim is narrow and true:
   model **web search / browsing** and a good one may retrieve the current law and NOT fail the currency
   test. So we MUST decide and DISCLOSE which we test. Primary = raw query (the real layperson scenario);
   optional secondary = tool-augmented, reported separately.
-- Do NOT let this slide into an unqualified "beats GPT-5.5 / Gemini / Claude." If browsing changes the
+- Do NOT let this slide into an unqualified "beats GPT-5.6 / Gemini / Fable." If browsing changes the
   result, that's an **unverified overclaim** — and unverified claims kill trust (`legal-content` rule,
   recruiter-copy discipline).
 - The honest, more interesting finding beats a clean sweep: *"grounding beats a raw query; tool-use
   narrows the currency gap; here's where each model still fabricates citations or harmonizes distinct
   standards."*
 
-## 3. Model set (as of 2026-07-07 — VERIFY AT BUILD; the churn is the thesis)
+## 3. Model set (~~as of 2026-07-07~~ — re-verified 2026-07-15; VERIFY AGAIN AT BUILD)
 
 Versions move weekly. **Re-verify the day you build via live web search, note the check date in the
-write-up, and never assert a comparison from a stale list.** As of the 7/7 check:
+write-up, and never assert a comparison from a stale list.**
 
-- **OpenAI:** GPT-5.5 (GA flagship). GPT-5.6 "Sol" was gated preview, NOT GA — don't use until GA.
-- **Google:** Gemini 3.1 Pro; Gemini 3.5 Pro cleared for July GA — use whichever is GA at build.
-- **Anthropic:** Claude Fable 5 and/or Opus 4.8.
+**The 7/7 list below was wrong within two days — which is the thesis in miniature, so it's kept rather
+than overwritten.** The live-verified set is in `phase-14-planning/01` §6 and IMPLEMENTATION §2.
+
+*What the 7/7 check said:*
+
+- ~~**OpenAI:** GPT-5.5 (GA flagship). GPT-5.6 "Sol" was gated preview, NOT GA — don't use until GA.~~
+  → **Sol went GA 2026-07-09** at $5/$30. The gate cleared. **Use Sol** — the comparison is against each
+  lab's best, not its cost-optimized tier.
+- ~~**Google:** Gemini 3.1 Pro; Gemini 3.5 Pro cleared for July GA — use whichever is GA at build.~~
+  → **Gemini 3.5 Pro never shipped.** Google has **no GA Pro model** in the 3.x line: 3.5 Pro doesn't
+  exist, 3.1 Pro is preview-only, and Google's GA frontier text model is *Flash*-tier. **Decided (D3):
+  run both**, headline the GA Flash, footnote the preview Pro.
+- **Anthropic:** Claude Fable 5. (Opus 4.8 is Patchwork's own reviewer — it's in the control, not a
+  baseline.)
+- **Added since:** **xAI Grok 4.5** (shipped 2026-07, $2/$6, 500k ctx) as a peer baseline — it's a big
+  **four**, not a big three (`01` §5). Plus **DeepSeek V4 Pro** ($0.43/$0.87) for the price-performance
+  thesis and the grounded-cheap ablation.
 
 Patchwork's side = its production **multi-agent** default (Sonnet 5 analysts + Opus 4.8 reviewer, grounded
 on the corpus). Fair unit: one raw frontier call vs. the full grounded multi-agent memo.

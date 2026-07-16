@@ -1,8 +1,15 @@
 # Phase 14 — pre-implementation planning
 
-*Written 2026-07-15, before any code. Feeds
-`docs/roadmap/phase-14-benchmark-vs-frontier-IMPLEMENTATION.md`, which gets written and approved once
-the open decisions in `10` land.*
+*Written 2026-07-15, before any code. Fed
+`docs/roadmap/phase-14-benchmark-vs-frontier-IMPLEMENTATION.md`.*
+
+> **STATUS 2026-07-16 — all open decisions in `10` are RATIFIED and the IMPLEMENTATION doc is written.**
+> These planning files are now **background reasoning, not the controlling plan.** The IMPLEMENTATION doc
+> is what the build follows; where the two differ, it wins and says why.
+>
+> Two facts in these files were corrected on 7/16 against the live code: the in-scope pool is **35**
+> (not 25 — `02` §2), and the negative control **cannot run through `run_judged` as written** because the
+> in-scope filter drops all-`no` cases (IMPLEMENTATION §7.2 — a gap this planning pass missed).
 
 *Controlling design doc: `../phase-14-benchmark-vs-frontier.md`. Where this planning pass disagrees with
 that doc, the disagreement is flagged explicitly and the design doc has not been edited — decide first,
@@ -29,13 +36,44 @@ If you read three: **03** (the crux), **04** (the traps), **10** (the decisions)
 
 ---
 
+## Terms used across these docs
+
+- **GA — "Generally Available."** A vendor's stable, public, supported release: anyone can buy it, the
+  API is committed, and it won't change under you without notice. The ladder is roughly *preview/beta*
+  (works, but may be gated, can change or be retired, no stability promise) then *GA*. It matters here
+  because the design doc §3 has a GA-only rule and reproducibility is a DoD item — a preview model can
+  be swapped or retired, which breaks "anyone can rerun this." It's the crux of the Gemini problem
+  (`01` §3–4).
+- **Arm** — one condition in the experiment (Patchwork, one baseline model, the ablation). Each arm
+  produces a `ComplianceMemo` scored by the identical harness path (`08` §1).
+- **The control** — the Patchwork arm: the production default, frozen and unchanged (`02`).
+- **Ablation** — an arm that removes or swaps one variable to see what that variable was worth. Here:
+  a cheap model *with* the corpus, to isolate grounding from model quality (`08`, `09` §4).
+- **Confound** — something that could explain your results other than the thing you're claiming. Most
+  of `04` is confound-hunting.
+- **Steelman** — the strongest fair version of the opposing case. Arm B ("primed") is the baselines'
+  steelman: hand them the law list and see if they still fail (`03` §4).
+
+---
+
 ## The short version
 
-**Access is a solved problem.** Every model — GPT-5.6 Sol, Claude Fable 5, Gemini, DeepSeek — is on
-OpenRouter, which is already your funded wallet and already has a working client. One balance, one code
-path, no new adapters. Two corrections to the 7/7 list: **Sol went GA on 7/9** (the doc's "don't use
-until GA" gate has cleared), and **Google has no GA Pro model** in the 3.x line — 3.5 Pro doesn't exist,
-3.1 Pro is preview-only, and Google's GA frontier text model is *Flash*-tier.
+**Access is a solved problem.** Every model — GPT-5.6 Sol, Claude Fable 5, Gemini, Grok, DeepSeek — is
+on OpenRouter, which is already your funded wallet and already has a working client. One balance, one
+code path, no new adapters. Two corrections to the 7/7 list: **Sol went GA on 7/9** (the doc's "don't
+use until GA" gate has cleared), and **Google has no GA Pro model** in the 3.x line — 3.5 Pro doesn't
+exist, 3.1 Pro is preview-only, and Google's GA frontier text model is *Flash*-tier.
+
+**It's a big FOUR** (`01` §5, decided 2026-07-15). xAI's Grok 4.5 shipped 2026-07 — 500k context, $2/$6,
+cheaper than Sol — and belongs with the majors rather than in a novelty slot. So the raw-baseline set is
+**Anthropic, OpenAI, Google, xAI**, which lets the currency finding be a claim about *frontier models*
+rather than about three vendors. DeepSeek V4 Pro joins on argument (the price-performance thesis), not
+diversity. Mistral is a parked alternate.
+
+**Beyond those, the field is thin.** Of 47 non-big-3 vendors on OpenRouter, only xAI, Mistral, and the
+Chinese labs ship *current* frontier models. Meta's latest is Llama 4 from **April 2025**; Cohere's
+Command A is 16 months old. Arms are nearly free (~$0.23 each) — the constraint on adding them is table
+rows and narrative clarity, not money.
 
 **The hard part isn't access — it's that the harness can't score a frontier model.** Every metric takes
 a `ComplianceMemo` object; raw models emit prose. Building that bridge is the real work, and it's where
@@ -63,9 +101,9 @@ neutrality it's closer to: **currency > citation validity > coverage > groundedn
 consequence: the best metrics are the cheapest — currency and citation validity need generation only, no
 judge.
 
-**Cost (`07`): ~$7 core, ~$14.50 with the judged tier**, ±50%. The design doc's "a few dollars" is
-optimistic, and the Phase-12 numbers can't be reused as the control because the corpus changed the very
-next day.
+**Cost (`07`): ~$7 core, ~$15.50 with the judged tier + cross-check**, ±50%. The design doc's "a few
+dollars" is optimistic, and the Phase-12 numbers can't be reused as the control because the corpus
+changed the very next day. (As ratified — core plus the D6 variance subset — the run is **~$8.50**.)
 
 **One reframe worth arguing about (`09`):** this isn't Patchwork vs. the labs. It's **grounding vs. no
 grounding**. The models aren't the opponent; the ungrounded query is. That framing is more true, avoids

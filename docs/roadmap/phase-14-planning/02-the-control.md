@@ -44,6 +44,20 @@ You can't, because **the corpus changed immediately afterward**:
 - Gold set is now **44 cases** (it was smaller then)
 - Two grounding bugs were fixed on 7/3 (key-obligations retrieval pin, NJ citation regex)
 
+**The in-scope count, recomputed live 2026-07-16** (this file previously flagged it as needing
+recomputation; here it is):
+
+```
+total gold cases:                       44
+harness in-scope (yes OR uncertain):    35   <- what run_judged actually selects (run.py:38)
+yes-only:                               32
+the 3 uncertain-only: co-employment-role-unknown, location-unknown, domain-unknown
+```
+
+So the pool is **35**, not the 25 the Phase-12 run used. That widens the D2 selection pool and makes a
+full-set run materially more expensive than `07-cost-model.md` modelled. See
+`../phase-14-benchmark-vs-frontier-IMPLEMENTATION.md` §0.1 and §3.
+
 So the 7/2 numbers describe a different system against a different gold set. Reusing them would be
 comparing a June Patchwork to a July frontier model. **Budget for a fresh control run**
 (`07-cost-model.md` accounts for it).

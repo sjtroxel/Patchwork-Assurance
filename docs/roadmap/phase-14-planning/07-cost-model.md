@@ -35,38 +35,50 @@ tokens/case (a memo-shaped JSON with ~8 obligations). **Excludes reasoning token
 | Baseline | `claude-fable-5` | $10 / $50 | $0.145 | **$1.74** |
 | Baseline | `gemini-3.5-flash` | $1.50 / $9 | $0.026 | **$0.31** |
 | Baseline | `gemini-3.1-pro-preview` | $2 / $12 | $0.034 | **$0.41** |
+| Baseline | `grok-4.5` | $2 / $6 | $0.019 | **$0.23** |
 | Baseline | `deepseek-v4-pro` | $0.43 / $0.87 | $0.003 | **$0.04** |
 | Ablation | `deepseek-v4-pro` + corpus | $0.43 / $0.87 | $0.005 | **$0.06** |
+| *(optional)* | `mistral-medium-3-5` | $1.50 / $7.50 | $0.022 | *$0.26* |
 
-**Core subtotal (generation only, no judge): ~$6.69**
+**Core subtotal (generation only, no judge): ~$6.92** (~$7.18 with Mistral)
 
 Note the spread: DeepSeek's entire 12-case arm costs **four cents**. Fable 5's costs $1.74 — 43x more.
 That price gap is itself part of the story (`09-the-post.md`).
+
+**Money is not the constraint on adding arms.** Grok, Mistral, and DeepSeek together are ~$0.53 — under
+8% of the core run. The real cost of another arm is a row in the results table and a harder-to-read
+post. Add arms for what they prove, not because they're cheap (`01` §5).
 
 ## 3. The judged tier
 
 Groundedness needs the Opus judge on every obligation, across every arm:
 
 ```
-7 arms × 12 cases × 7.8 obligations ≈ 655 obligations × $0.0115 ≈ $7.53
+8 arms × 12 cases × 7.8 obligations ≈ 749 obligations × $0.0115 ≈ $8.61
 ```
 
-Call it **~$6.50–7.50** (baselines will emit somewhat fewer obligations than the control's 7.8).
+Call it **~$7.50–8.50** (baselines will emit somewhat fewer obligations than the control's 7.8).
 
 Plus the self-preference cross-check from `04` trap 4 — a ~20% subset re-judged by `gpt-5.6-sol`:
 **~$0.50**.
 
 ## 4. Totals, and the decision
 
-| Scope | Cost | What you get |
-|---|---|---|
-| **Core only** | **~$6.70** | Currency, citation validity, coverage, harmonization. The headline findings. |
-| **Core + judged tier + cross-check** | **~$14.50** | The above plus groundedness and the judge-agreement rate. |
-| Full 25-case set + judged | ~$25–30 | Same findings, better N, materially more money |
+| Scope | Cost | What you get | Status |
+|---|---|---|---|
+| **Core only** (12 cases) | **~$6.90** | Currency, citation validity, coverage, harmonization. The headline findings. | **RATIFIED — plus ~$1.50 for the D6 variance subset = ~$8.50** |
+| Core + judged tier + cross-check | ~$15.50 | The above plus groundedness and the judge-agreement rate. | **Deferred** (D1) — built, not run; decide with real data |
+| ~~Full 25-case set~~ **full 35-case set** + judged | ~~~$27–32~~ **~$38–45** | Same findings, better N, materially more money | **Rejected** |
+
+**The last row was priced against a stale pool.** The in-scope set is **35** (yes-or-uncertain), not the
+25 the Phase-12 run used — recomputed live 2026-07-16, see `02` §2. Everything else in this file is
+per-case and unaffected; only the full-set row scales with the count. It was the reject option before and
+it's a firmer reject now.
 
 Add **5.5%** on top for the OpenRouter credit purchase.
 
 **Recommendation: core only, ~$7, with the groundedness tier as an explicit maybe.**
+**(Ratified 2026-07-16 — core only, ~$8.50 with D6. See `10` D1.)**
 
 The reasoning follows directly from `05-metric-hierarchy.md`: groundedness is **~half the total cost**
 and the **least neutral metric** you have (it's confounded by both the skip-bug and the judge-family
