@@ -148,7 +148,7 @@ today, §0.1). Every case earns its slot:
 | 3 | `ct-employment-deployer` | Operative term: "substantial factor" (AERDT) |
 | 4 | `ct-ctdpa-lending-deployer` | **Do-not-harmonize** — CT CTDPA vs. #3 |
 | 5 | `il-employment-deployer` | IL HB 3773, effect-based standard |
-| 6 | `il-aivia-video-interview` | **Do-not-harmonize** — AIVIA is procedural notice/consent/retention, **not** a discrimination test |
+| 6 | `il-aivia-video-interview` | **Do-not-harmonize** — AIVIA is procedural notice/consent/retention, **not** a discrimination test. *The video-interview fact moved into `situation.notes` on 7/16 — without it this case was indistinguishable from #5 and probed nothing (§21)* |
 | 7 | `nj-employment-deployer` | N.J.A.C. 13:16, effect-based disparate impact |
 | 8 | `nj-njdpa-insurance-deployer` | **Do-not-conflate** — NJDPA vs. #7. The two NJ laws |
 | 9 | `ca-employment-deployer` | CA FEHA ADS regs |
@@ -209,7 +209,7 @@ reader notice the gap.
 
 `location-unknown` is an uncertain-only case and was **the Phase-12 cost peak** — 28 obligations, and
 the Opus reviewer judges every obligation serially, which made it the batch-2 spike. It is not in the
-12, and it should stay out unless there's a reason: at eight arms it would be the single most expensive
+13, and it should stay out unless there's a reason: at eight arms it would be the single most expensive
 case in the run and it probes nothing the set doesn't already cover.
 
 ---
@@ -322,7 +322,7 @@ artifacts and will be published; the not-legal-advice chrome is present on every
 ### 7.1 The design
 
 ```bash
-python -m eval.run --judge --arm baseline-open --baseline-model openai/gpt-5.6-sol --limit 12
+python -m eval.run --judge --arm baseline-open --baseline-model openai/gpt-5.6-sol --limit 13
 ```
 
 `--arm` selects **only what produces the memo**. Everything downstream — `score_citation_exists`,
@@ -350,7 +350,7 @@ in_scope_cases = [
 ]
 ```
 
-Every all-`no` case is **dropped before generation.** That includes `no-regulating-nexus` — case 12, the
+Every all-`no` case is **dropped before generation.** That includes `no-regulating-nexus` — case 13, the
 negative control — and every other over-claiming probe (`no-ai-in-decisions`, `nyc-developer-only`,
 `ca-domain-mismatch`, and six more).
 
@@ -579,7 +579,7 @@ paid eval in this project.
 
 | # | Step | Cost | Gate |
 |---|---|---|---|
-| 1 | `render_situation_prose` + tests. **Read all 12 renderings by eye.** | $0 | The instrument. Don't rush it |
+| 1 | `render_situation_prose` + tests. **Read all 13 renderings by eye.** | $0 | The instrument. Don't rush it |
 | 2 | `score_currency` + gold markers + tests. Verify against a hand-written fake memo naming SB 24-205 | $0 | |
 | 3 | `eval/baseline.py` on `StubLLM` + `--arm` dispatch + the §7.2 arm-aware selector | $0 | `--arm patchwork` byte-identical; 393 green |
 | 4 | Judged tier + cross-judge flag, built and stub-tested (D1 — built, not run) | $0 | |
@@ -705,7 +705,31 @@ A clean sweep would be **less** believable than a mixed result.
 plan got wrong.*
 
 - Model landscape re-verified on: **[date]** — changes from `01`'s 7/15 check:
-- Prose renderer review notes:
+- Prose renderer review notes: **Step 1 done 2026-07-16.** `eval/prose.py` + `tests/test_prose.py`
+  (48 tests; suite 393 → 441 green, regression bar held). All 13 renderings read by eye. Deviation
+  from §5's example wording: the example renders role as *"We are the deployer of the system, not its
+  developer"*, but `deployer`/`developer` are the operative role terms in several corpus statutes, so
+  the prose describes the fact instead — *"We buy or license the AI systems we use. We do not build
+  them ourselves."* Unambiguous, but the model does the mapping work the gate does deterministically.
+  Tests assert the neutrality bar directly (no operative terms, no bill numbers, no law names).
+  One bug found and fixed: an empty `decision_domains` list crashed the list join.
+- **The AIVIA collision — found at step 1's read-by-eye gate, fixed same night.**
+  `il-aivia-video-interview` and `il-employment-deployer` had **byte-identical `situation` objects**.
+  The video-interview fact lived only in the case's `rationale` — documentation, not input — so the
+  renderer (lossless over `situation` and nothing else) produced identical prose for both. No arm
+  could pass both, since the gold obligations differ completely, and §3.1's do-not-harmonize probe for
+  case 6 measured nothing: a model never told about video interviews that misses AIVIA has not
+  harmonized anything. At 8 arms it was buying a duplicate of case 5 at full price.
+  **Not a defect in the gold set** — the Phase-6 gold was built for the deterministic gate, where
+  AIVIA's verdict deliberately mirrors HB 3773's (the gold header says so). It only breaks under
+  Phase 14's `situation`-only rendering.
+  **Fix:** the fact added to `situation.notes`. Blast radius verified rather than assumed —
+  `scope.py` never reads `notes`; the retrieval focus query (`core/memo.py:217`) composes from
+  `roles` + `decision_domains` only; `notes` reaches the memo prompt alone (`core/prompts.py:104`),
+  symmetrically for every arm. **Zero paid re-runs:** the AIVIA case was added 7/3 (`0f835dc`), the
+  day *after* the 7/2 Phase-12 paid eval, so no prior paid number was ever computed from it (grep of
+  `eval/results/` confirms: no hits). Deterministic tier re-run post-edit: **528/528 scope, recall
+  1.0 — unchanged.** Caveat: this is now the only case of the 44 carrying free-text `notes`.
 - Structured-output support per model (which needed the lenient fallback):
 - Training cutoffs recorded:
 - Smoke test result:

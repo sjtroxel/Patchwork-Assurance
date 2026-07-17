@@ -1435,11 +1435,23 @@
     case exists to exercise the AIVIA grounding path (820 ILCS 42/5, 42/15); the deterministic gate
     cannot see AIVIA's narrower real-world trigger (that lives in the memo prose), so at the gate the
     verdict tracks HB 3773.
+
+    NOTE (2026-07-16, Phase 14): `notes` carries the video-interview fact. It was added because the
+    gate does not need that fact but a READER does — this case's situation was otherwise byte-identical
+    to il-employment-deployer, so Phase 14's prose renderer (which is lossless over `situation` and
+    nothing else) produced the same input for both cases and the AIVIA probe measured nothing. `notes`
+    is ignored by scope.py and by the retrieval focus query (core/memo.py:217), so the deterministic
+    scope and retrieval numbers are unaffected; it reaches the memo prompt only (core/prompts.py:104),
+    symmetrically for every arm. Deliberately states the FACT and not the rule: no notice, consent, or
+    retention language, which are the gold obligations the model has to reach on its own.
   situation:
     jurisdictions: [Illinois]
     decision_domains: [employment]
     roles: [deployer]
     ai_use: "yes"
+    notes: >-
+      As part of hiring we ask applicants to record video interviews, and we use AI to analyze
+      those recordings to evaluate the applicants.
   expect:
     scope:
       co-sb26-189: "no"
