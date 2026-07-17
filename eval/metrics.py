@@ -9,7 +9,7 @@ import re
 from dataclasses import dataclass
 
 from eval.harness import Core
-from eval.loader import GoldCase, RetrievalQueryCase
+from eval.loader import CurrencyMarkers, GoldCase, RetrievalQueryCase
 from patchwork_assurance.core.contracts import ComplianceMemo
 from patchwork_assurance.core.grounding import locate_section
 from patchwork_assurance.core.memo import (  # production query builder + key-obligation pin
@@ -184,3 +184,107 @@ def score_coverage(
     return CoverageOutcome(
         case_id, len(gold_obligations), len(gold_obligations) - len(missed), missed
     )
+
+
+# --- currency (deterministic, free: the headline metric costs nothing) ---
+# Phase 14 §8. Does the output describe the law as it is now, or as it was before it changed?
+# A raw model answers from training data; a grounded system answers from the corpus. Two probes:
+#
+#   Colorado  SB 26-189 replaced SB 24-205. A stale answer cites the repealed act and its duty
+#             stack (impact assessments, the 90-day AG notification, the reasonable-care standard),
+#             or states the 2024 Act's effective date instead of the current one.
+#   Texas     The SUBTLER and better probe, because the bill number never changed. TRAIGA as
+#             introduced ("1.0") carried a broad private-sector duty stack; TRAIGA as ENACTED
+#             ("2.0") removed it. A model trained on the 2025 news cycle describes duties that
+#             never became law — not citing a repealed statute, but the wrong VERSION of a live one.
+#
+# No judge, no API key, no spend. Markers live in the gold YAML as data (eval/loader.py
+# CurrencyMarkers) — adding a probe is a data change, never a `if colorado:` branch.
+
+
+def _normalize(text: str) -> str:
+    """Lowercase, treat hyphens as spaces, and collapse whitespace.
+
+    Hyphens are normalized because a marker's validity must not depend on how a model (or the gold
+    author) happened to punctuate it. "impact-assessment" and "impact assessment" are the same claim,
+    and a screen that catches one but not the other is luck, not measurement — this exact coincidence
+    hid an invalid TX marker until the two-sided validity bar went in (§21 step 2).
+    """
+    return " ".join(text.lower().replace("-", " ").split())
+
+
+def _memo_claim_text(memo: ComplianceMemo) -> str:
+    """Every field where the MODEL asserts something, pooled and normalized.
+
+    The disclaimer is excluded on purpose: it is fixed chrome, identical across every arm, and not a
+    claim the model made. Including it would let boilerplate trip a marker.
+    """
+    parts: list[str] = []
+    for finding in memo.per_law:
+        parts += [finding.law_id, finding.short_name, finding.why, *finding.effective_dates]
+        for ob in finding.obligations:
+            parts += [ob.text, ob.citation]
+    for notice in memo.draft_notices:
+        parts += [notice.kind, notice.jurisdiction, notice.text]
+    for item in memo.deadline_checklist:
+        parts += [item.date, item.what, item.law]
+    parts += memo.next_steps
+    if memo.summary:
+        parts.append(memo.summary)
+    return _normalize(" ".join(parts))
+
+
+_CONTEXT_CHARS = 90
+
+
+def _context(claims: str, marker: str) -> str:
+    """The text around a marker's first occurrence, for hand-verification.
+
+    This exists because a bare substring match CANNOT read polarity, and polarity is the whole
+    question. "TRAIGA requires an impact assessment" and "TRAIGA imposes no impact-assessment duty"
+    both contain the marker; the first is the finding and the second is the CORRECT answer (it is
+    almost verbatim this case's gold obligation). A window of surrounding text settles it at a
+    glance, which is what makes §8's mandated hand-verification a minute's work instead of a re-read
+    of every memo.
+    """
+    start = claims.find(_normalize(marker))
+    if start == -1:
+        return ""
+    lo = max(0, start - _CONTEXT_CHARS)
+    hi = min(len(claims), start + len(marker) + _CONTEXT_CHARS)
+    return ("…" if lo > 0 else "") + claims[lo:hi] + ("…" if hi < len(claims) else "")
+
+
+@dataclass
+class CurrencyOutcome:
+    case_id: str
+    stale_hits: list[str]  # markers of the superseded version found in the memo's claims
+    stale_date_hit: bool  # the memo states the superseded version's effective date
+    stale: bool  # any hit at all — EVIDENCE of a currency failure, pending hand-verification
+    hit_contexts: dict[str, str]  # marker -> surrounding text, so a human can read polarity
+
+
+def score_currency(memo: ComplianceMemo, case: GoldCase) -> CurrencyOutcome | None:
+    """Marker check against the case's stale-law markers. Deterministic, free, no judge.
+
+    Returns None for a case carrying no markers (42 of the 44 gold cases), which is not a pass —
+    it means the case does not probe currency and should be reported as such, never as a zero.
+
+    THE OUTPUT IS A SCREEN, NOT A VERDICT. It is deliberately high-recall and low-precision: it
+    finds every place a superseded duty is named and hands them to a human with context, because it
+    cannot tell an assertion from a denial. `stale=True` means "look here", not "this model failed".
+    Hand-verify every hit before it reaches the write-up (§8) — this number is the headline finding
+    and is too important to leave to a substring search.
+    """
+    markers: CurrencyMarkers | None = case.currency_markers
+    if markers is None:
+        return None
+    claims = _memo_claim_text(memo)
+    stale_hits = [m for m in markers.stale if _normalize(m) in claims]
+    date_hit = bool(
+        markers.stale_effective_date and _normalize(markers.stale_effective_date) in claims
+    )
+    contexts = {m: _context(claims, m) for m in stale_hits}
+    if date_hit and markers.stale_effective_date:
+        contexts[markers.stale_effective_date] = _context(claims, markers.stale_effective_date)
+    return CurrencyOutcome(case.id, stale_hits, date_hit, bool(stale_hits) or date_hit, contexts)

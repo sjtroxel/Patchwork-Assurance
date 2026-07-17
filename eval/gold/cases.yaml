@@ -119,6 +119,28 @@
     obligations:
       - "Before using a covered ADMT to materially influence a consequential decision, give the consumer a clear and conspicuous notice that a covered ADMT is in use (Colorado 6-1-1704(1))."
       - "On an adverse outcome, on request provide the consumer an opportunity for meaningful human review and reconsideration, plus instructions to correct inaccurate personal data (Colorado 6-1-1705(1))."
+  # CURRENCY PROBE 1 of 2 (Phase 14 §8) — SB 26-189 replaced SB 24-205. A model answering from the
+  # 2024-25 news cycle describes the repealed Act's duty stack.
+  #
+  # Every marker clears the two-sided validity bar (eval/loader.py CurrencyMarkers): absent from the
+  # CURRENT text (corpus/co-sb26-189.md) AND absent from this case's gold answer above. Colorado's
+  # gold is a positive statement of live duties and shares no vocabulary with the repealed Act, so
+  # all eight markers survive. test_currency.py re-checks both sides against the real corpus and the
+  # real gold on every run — a corpus update breaks the test rather than rotting the metric.
+  # Matching is hyphen- and case-insensitive, so each marker is listed once, as a concept.
+  currency_markers:
+    stale:
+      - "SB 24-205"
+      - "24-205"
+      - "impact assessment"          # the 2024 Act's duty stack; SB 26-189 imposes no such duty
+      - "algorithmic discrimination" # the 2024 Act's operative term; absent from SB 26-189
+      - "90-day"                     # AG notification of algorithmic discrimination (2024 Act).
+                                     #   Normalization makes this cover "90 days" too.
+      - "reasonable care"            # the 2024 Act's duty-of-care standard
+      - "duty of care"
+    # SB 24-205's effective date. The CURRENT Act's general effective date is 2027-01-01
+    # (co-sb26-189.meta.yaml), so this date is unambiguously the superseded one.
+    stale_effective_date: "February 2026"
 
 - id: ct-employment-deployer
   rationale: >
@@ -1356,6 +1378,42 @@
     obligations:
       - "Texas TRAIGA: do not develop or deploy an AI system with the intent to unlawfully discriminate against a protected class; a disparate impact alone is not sufficient to demonstrate intent (Texas 552.056)."
       - "Texas TRAIGA: the Act imposes no impact-assessment, consumer-notice, or opt-out duty on a private employer; it is enforced only by the Attorney General, with a 60-day cure period and no private right of action (Texas 552.101, 552.104)."
+  # CURRENCY PROBE 2 of 2 (Phase 14 §8) — the subtler probe, and the reason this case is in the
+  # 13-case set (§3.2). The bill number never changed: HB 149 as INTRODUCED ("TRAIGA 1.0") carried a
+  # broad private-sector duty stack; as ENACTED ("2.0") it was removed before passage. The removed
+  # items are enumerated in corpus/tx-traiga.meta.yaml's operative_standard: "impact assessments,
+  # risk-management policies, private-deployer disclosure". A stale answer describes those duties.
+  #
+  # Markers REJECTED here, and why — this probe sets a trap for itself, and this is the record of it.
+  # Both sides of the two-sided validity bar (eval/loader.py CurrencyMarkers) reject something:
+  #
+  # Side 1 — appears in the CURRENT (enacted) text, so it would fire on a correct memo:
+  #   "disparate impact"  enacted 552.056(c): "a disparate impact is not sufficient by itself to
+  #                       demonstrate an intent" — i.e. the clause stating the CORRECT answer.
+  #   "reasonable care"   enacted 552.105(c) (rebuttable presumption). Usable for the COLORADO probe,
+  #                       unusable here: markers are per-case for exactly this reason.
+  #   "risk management"   3x in enacted TRAIGA (NIST AI-RMF safe harbor, 552.105(e)). Only the
+  #                       narrower "risk management policy" — a removed 1.0 duty — is safe.
+  #
+  # Side 2 — appears in THIS CASE'S GOLD ANSWER, so it cannot be evidence of a wrong one:
+  #   "impact assessment" the gold obligation above says the Act "imposes NO impact-assessment,
+  #                       consumer-notice, or opt-out duty on a private employer". A correct memo
+  #                       therefore NAMES the duty in order to deny it, and a substring screen cannot
+  #                       read that negation. Disqualified rather than adjudicated. (It passed only
+  #                       by the accident of the gold's hyphen until matching was made hyphen-
+  #                       insensitive.) Same reasoning bars "consumer notice" and "opt-out".
+  #
+  # The cost is recall: a model asserting TRAIGA impact assessments while using NO other 1.0
+  # vocabulary slips the screen. Accepted — TRAIGA 1.0 was the CO-style broad law, so this framing
+  # travels together, the 8-memo hand-read is the backstop, and the residual error runs toward FALSE
+  # NEGATIVES (under-claiming against our own thesis), which is the safe direction to be wrong.
+  currency_markers:
+    stale:
+      - "risk management policy"      # removed 1.0 duty (bare "risk management" is NOT safe: the
+                                      #   NIST safe harbor is in the enacted text)
+      - "high-risk"                   # the CO-style 1.0 framing; absent from enacted TRAIGA
+      - "algorithmic discrimination"  # the effects-test vocabulary 2.0 expressly rejects
+      - "duty of care"
 
 - id: tx-developer-only
   rationale: >

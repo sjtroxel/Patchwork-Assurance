@@ -696,6 +696,7 @@ A clean sweep would be **less** believable than a mixed result.
 | 3 | **Negative control scoring** — qualitative-only, since Patchwork generates no memo for it? (§7.2) | Qualitative, reported absolutely. It's a stronger result than a percentage | Step 3 |
 | 4 | **Mistral** — fold in as a 9th arm? | No. Parked. Web-check its real flagship first if it ever goes in | After results |
 | 5 | **Post format** — one post, thread, carousel? Chart? (`09` §6) | Defer. Doesn't block the build | After results |
+| ~~6~~ | ~~The TX currency probe is a screen, not a deterministic metric~~ | **RESOLVED 7/17: two-sided validity bar** (§21 step 2). A marker must be absent from the current statute **and** from the case's own gold answer — a phrase the correct answer uses is *disqualified*, not hand-adjudicated. Ejects one TX marker; recall trade errs toward false negatives (under-claiming), pinned by test. Negation-aware matching rejected: a parser that would itself need defending in the write-up **adds** technical surface rather than removing it. The premise was also partly wrong — §8 hand-verifies **both** probes' hits, so there was never an output asymmetry to disclose | — |
 
 ---
 
@@ -730,6 +731,60 @@ plan got wrong.*
   day *after* the 7/2 Phase-12 paid eval, so no prior paid number was ever computed from it (grep of
   `eval/results/` confirms: no hits). Deterministic tier re-run post-edit: **528/528 scope, recall
   1.0 — unchanged.** Caveat: this is now the only case of the 44 carrying free-text `notes`.
+- **Currency markers + `score_currency` — Step 2 done 2026-07-17.** `eval/loader.py`
+  (`CurrencyMarkers`), `eval/metrics.py` (`score_currency`), markers on the two probe cases,
+  `tests/test_currency.py` (15 tests; suite 441 → **456 green**, regression bar held). Markers are
+  data in the gold YAML per §4 — zero branches, no `if colorado:`.
+  - **A marker is only valid if it is ABSENT from the current statute text**, or it fires on a
+    correct memo and points the headline metric the wrong way. Enforced structurally by
+    `test_markers_absent_from_current_corpus`, which greps the **real `corpus/*.md`** (not a
+    fixture) for every marker of every in-scope law — so a future corpus update *breaks the test*
+    rather than silently rotting the metric.
+  - **Two TX markers from §8's sketch were rejected by that check.** `"disparate impact"` appears in
+    **enacted** TRAIGA § 552.056(c) — *inside the clause that states the correct answer* ("a
+    disparate impact is not sufficient by itself to demonstrate an intent") — and `"reasonable
+    care"` in § 552.105(c) (rebuttable presumption). Either would have scored a *right* TX memo as
+    stale. `"risk management"` was also cut for the narrower `"risk management policy"`: the bare
+    phrase hits 3x on the enacted NIST AI-RMF safe harbor (§ 552.105(e)). All CO markers cleared
+    unchanged (0 hits in `co-sb26-189.md`).
+  - **TX 1.0 markers are grounded in the repo, not recalled**: `tx-traiga.meta.yaml`'s
+    `operative_standard` enumerates what was removed before passage — "impact assessments,
+    risk-management policies, private-deployer disclosure". Markers track that list.
+  - **CO's stale effective date is unambiguous:** the *current* Act's general effective date is
+    **2027-01-01** (`co-sb26-189.meta.yaml`), so "February 2026" cannot collide with a correct answer.
+  - **The polarity problem, and the two-sided validity bar that fixes it (§20 item 6, RESOLVED).**
+    A substring screen cannot distinguish an assertion from a denial, and **the correct Texas answer
+    names the very duties TRAIGA does not impose** (its gold obligation: *"the Act imposes **no**
+    impact-assessment, consumer-notice, or opt-out duty"*). A correct TX memo phrased "imposes no
+    impact assessment duty" tripped the marker exactly like a stale one asserting it — and passed
+    the first cut only by the accident of the gold's hyphenation.
+    - **Fix (sjtroxel, 7/17): the validity bar is now two-sided.** A marker must be absent from the
+      **current statute text** *and* from **the case's own gold answer**. A phrase the correct
+      answer uses cannot be evidence of a wrong one, so it is **disqualified rather than
+      hand-adjudicated**. Both sides are enforced structurally, parametrized over both probes, so
+      Colorado's cleanliness is pinned rather than a happy accident.
+    - Mechanically ejects exactly one marker (`"impact assessment"` from TX) and nothing else.
+      Matching also made **hyphen-insensitive**, so validity no longer depends on punctuation; that
+      also collapsed the duplicate spellings (`"high risk"`, `"risk-management policy"`, `"90 days"`)
+      so each marker is listed once, as a concept.
+    - **The recall trade, accepted with eyes open:** a stale answer using *only* disqualified
+      vocabulary now slips the screen. Mitigated because TRAIGA 1.0 was the CO-style broad law, so
+      its framing travels together (`test_stale_memo_describing_traiga_1_0_is_caught` pins that a
+      realistic 1.0 memo is still caught *without* the dropped marker — if it ever fails, the bar
+      has cost more than it is worth). The residual error runs toward **false negatives**, which
+      under-claims against Patchwork's own thesis — the safe direction to be wrong.
+    - **Residual limit, pinned by test** (`test_the_residual_polarity_limit_is_known`): the screen
+      still cannot read polarity, so a denial phrased in words the gold never uses ("TRAIGA has no
+      high-risk tier") can still trip a marker. Far narrower than the gold-obligation collision,
+      which was a near-certainty. `CurrencyOutcome.hit_contexts` (±90-char window) makes resolving
+      one a glance.
+    - **Correction to this note's first draft:** it claimed the write-up must disclose that TX is
+      hand-adjudicated while CO is deterministic. **That was wrong.** §8 mandates hand-verifying
+      every hit for *both* probes, so both published numbers are hand-verified identically — the
+      determinism gap was only in how much noise the internal screen handed the reviewer, never in
+      the number reaching the reader. There is no output asymmetry to disclose. Currency methodology
+      (marker screen + hand-verification of every hit, markers listed in the gold YAML) belongs in
+      the repo's methods section, not in the post.
 - Structured-output support per model (which needed the lenient fallback):
 - Training cutoffs recorded:
 - Smoke test result:

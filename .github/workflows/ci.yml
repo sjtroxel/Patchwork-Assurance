@@ -3,13 +3,18 @@ name: CI
 # Runs only when Python code/config changes. Before Phase 0 creates these paths, no
 # commit touches them, so CI never fires on the docs-only repo (no failing runs). The
 # commit that adds pyproject.toml + src/ + tests/ triggers the first real run.
+#
+# eval/** is here (added 2026-07-17, Phase 14) because the harness is real code that the
+# test suite imports, and an eval-only commit was previously going green by never running.
+# That matters most for eval/gold/cases.yaml: a bad edit there silently rots a metric —
+# the Phase 14 currency markers live in it — while CI stays quiet.
 on:
   push:
     branches: [main]
-    paths: [pyproject.toml, "src/**", "tests/**"]
+    paths: [pyproject.toml, "src/**", "tests/**", "eval/**"]
   pull_request:
     branches: [main]
-    paths: [pyproject.toml, "src/**", "tests/**"]
+    paths: [pyproject.toml, "src/**", "tests/**", "eval/**"]
 
 jobs:
   ci:
