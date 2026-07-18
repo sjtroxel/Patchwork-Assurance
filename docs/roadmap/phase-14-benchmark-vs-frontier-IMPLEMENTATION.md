@@ -785,6 +785,42 @@ plan got wrong.*
       the number reaching the reader. There is no output asymmetry to disclose. Currency methodology
       (marker screen + hand-verification of every hit, markers listed in the gold YAML) belongs in
       the repo's methods section, not in the post.
+- **Baseline arm + `--arm` dispatch + arm-aware selector — Step 3 done 2026-07-18.** `eval/baseline.py`
+  (`produce_baseline_memo`), `eval/prompts/baseline_open.txt` + `baseline_primed.txt` (frozen,
+  committed verbatim), `--arm` / `--baseline-model` / `--cases` on `eval/run.py`, `tests/test_baseline.py`
+  (10 tests; suite 456 → **469 green**, regression bar held). Deterministic tier unchanged at 528/528.
+  - **The regression lock is a delegation assertion, not a re-run.** `_produce_memo(core, case,
+    "patchwork", llm)` is proven byte-identical to today by asserting it calls `generate_memo` with
+    the exact production args (same situation, the gate's own `applicable_laws` scope, same retriever,
+    same laws) — cheaper and stronger than diffing a stub memo, and it needs no Chroma. Baseline arms
+    are separately pinned to **never** call `generate_memo`.
+  - **Two doc assumptions corrected against the code.** (1) The plan wrote
+    `complete_structured(ComplianceMemo)`; the real signature is `(system, messages, schema, ...)`, so
+    the producer builds the system + user message itself. (2) The plan's memo path strips
+    `effective_dates` (a system-authored deadline list replaces it); the baseline path **leaves
+    `effective_dates` free** on purpose — it is one of the fields `_memo_claim_text` reads, so a raw
+    model naming a repealed law's old effective date surfaces there for the currency screen.
+  - **Fairness, made checkable.** The prompts are written as steelman: they warn the model about the
+    three failure modes we measure (cite the in-force version; keep similar laws distinct; return
+    nothing when nothing applies), so no reader can say the frontier arm was sandbagged. Neutrality is
+    enforced by a test — `test_baseline_prompts_do_not_leak_the_answer` greps both prompts for every
+    operative term, acronym, and bill number and fails if one appears (feeding the model the finding
+    we claim it produced would be the *other* way to rig this). The open arm is separately pinned to
+    reveal no law/jurisdiction count.
+  - **The one input asymmetry that stays, disclosed by design:** baselines get no retrieved statute
+    text. Handing them the excerpts makes them a RAG system, not a raw model, and erases the
+    comparison. The write-up says so.
+  - **Selection is in the repo, not a shell flag.** `PHASE14_CASE_IDS` (the 13-case set, §3.1) is a
+    frozen constant selected by `--cases phase14`; `--cases` also takes an explicit id list and
+    fails loud on a typo. Case selection runs BEFORE the arm filter, so the patchwork arm sees the 12
+    in-scope of the 13 and the baseline arms see all 13 including the negative control (§7.2).
+  - **§7.3 items landed too:** an aggregate ARM SUMMARY prints every rate with its judged-N
+    denominator (95%-of-2 can't masquerade as 95%-of-120), currency probes report stale-flagged/total,
+    a per-arm machine-readable scorecard (`judged-<stamp>-<arm>.json`) is persisted next to the memo
+    HTML, and the spend estimate is arm-aware (`_est_per_case`) pending the step-8 recompute.
+  - **Known step-5 gap (not a step-3 defect):** the judged tier early-returns on `LLM_PROVIDER=stub`,
+    so the "full offline dry run, all 8 arms" (build order step 5) needs either the OpenRouter `:free`
+    path or a stub judged path that doesn't short-circuit. Deferred to step 5, where it belongs.
 - Structured-output support per model (which needed the lenient fallback):
 - Training cutoffs recorded:
 - Smoke test result:
