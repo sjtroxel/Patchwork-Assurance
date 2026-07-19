@@ -692,7 +692,7 @@ A clean sweep would be **less** believable than a mixed result.
 |---|---|---|---|
 | ~~1~~ | ~~12 cases or 14?~~ | **RESOLVED 7/16: 13** (§3.2). TX probe instrumented; NYC cut and disclosed | — |
 | **1b** | **Does `07`'s core subtotal account for the two-arm baseline split?** (§15) — doc `07` §2 prices each baseline **once**, but `03` splits every baseline into open + primed. If so the core run is **~$10.70, not $6.92**, before D6 | **Recompute before step 8.** Doesn't block steps 1–7 (all $0). The `confirm_spend` hard cap is the real protection either way | Before the paid run |
-| 2 | **Groundedness denominator** for baseline arms — skip unresolvable cites, or count them as not-grounded? (§10) | Count as not-grounded; it's the honest denominator here. Report whichever, explicitly | Step 4 |
+| ~~2~~ | ~~**Groundedness denominator** for baseline arms — skip unresolvable cites, or count them as not-grounded? (§10)~~ | **RESOLVED 7/19: count as not-grounded for baseline arms** (§21 Step 4). The patchwork arm keeps the skip (regression lock); the denominator each arm used is printed and persisted. The honest denominator — a raw model's worst currency failures are the cites that don't resolve | — |
 | 3 | **Negative control scoring** — qualitative-only, since Patchwork generates no memo for it? (§7.2) | Qualitative, reported absolutely. It's a stronger result than a percentage | Step 3 |
 | 4 | **Mistral** — fold in as a 9th arm? | No. Parked. Web-check its real flagship first if it ever goes in | After results |
 | 5 | **Post format** — one post, thread, carousel? Chart? (`09` §6) | Defer. Doesn't block the build | After results |
@@ -821,6 +821,78 @@ plan got wrong.*
   - **Known step-5 gap (not a step-3 defect):** the judged tier early-returns on `LLM_PROVIDER=stub`,
     so the "full offline dry run, all 8 arms" (build order step 5) needs either the OpenRouter `:free`
     path or a stub judged path that doesn't short-circuit. Deferred to step 5, where it belongs.
+- **Judged tier variants — the denominator fix + the cross-judge — Step 4 done 2026-07-19 (built, not
+  run, D1).** All in `eval/judge.py` (`score_groundedness` extended) + `eval/run.py` wiring +
+  `tests/test_eval_harness.py` (6 tests; suite 469 → **475 green**, regression bar held). No paid call.
+  - **Decision #2 RESOLVED (sjtroxel, 7/19): baseline arms count an unresolvable citation as
+    not-grounded; the patchwork arm keeps the skip.** `score_groundedness` grew a keyword-only
+    `count_unresolvable_as_ungrounded` (default `False` = today's behaviour, the regression lock).
+    When `True`, an unresolvable cite lands in `judged` as a `"no"` and is tallied in a new
+    `unresolvable_counted` field, so the reported number stays transparent about how many of the "no"s
+    came from there. `run.py` sets it `arm != "patchwork"` and prints/persists which denominator each
+    arm used (`groundedness_denominator: count-unresolvable|skip`). The honest denominator: a raw
+    model's worst currency failures ARE the citations that don't resolve, and skipping them would let
+    it post a groundedness number built only on its corpus-matching subset (§10).
+  - **Cross-judge (§10 trap 4) built.** `score_groundedness` takes an optional `cross_judge_llm` +
+    `cross_judge_stride` (default 5 ≈ 20%). A deterministic every-stride-th **locatable** obligation is
+    re-judged by a second model and compared to the primary Opus verdict; it re-uses the primary
+    verdict already computed, so the second judge is the only extra call. Unresolvable cites are never
+    cross-judged — there is no statute text to hand a judge. Off by default (`cross_judge_llm=None`),
+    so D1 "built, not run" is the natural state. CLI: `--cross-judge` + `--cross-judge-model` (default
+    `openai/gpt-5.6-sol`, a different lab from the Opus primary — that difference is the whole point of
+    the self-preference check). `run.py` aggregates `cross_compared`/`cross_agreed`, prints the
+    agreement rate + split count, and persists per-case `cross_disagreements` (citation, primary,
+    secondary) to the scorecard.
+  - **Stride counts only locatable obligations** (`located_index`), so the ~20% sample is stable
+    across arms regardless of how many unresolvable "no"s the denominator variant folds in — the two
+    features don't interfere. Pinned by `test_cross_judge_skips_unresolvable_cites`.
+  - **Spend gate honoured:** the cross-judge adds paid calls, so `est_cost` carries a conservative
+    `_EST_CROSS_JUDGE_BUMP` (×1.20) before `confirm_spend`, and the confirm description names the
+    second judge. Recompute with real tokens at step 8 like every other estimate.
+  - **Provider note:** the whole Phase-14 run is `LLM_PROVIDER=openrouter` (the API-wallet setup — all
+    of Sol/Fable/Gemini/Grok/DeepSeek are OpenRouter ids), so the cross-judge model routes through the
+    same `build_llm` with no cross-provider special-casing.
+  - **Stub-tested at the function level**, matching the existing groundedness tests — a second
+    `_StubJudge` instance stands in for the second-lab judge, so the step-5 `LLM_PROVIDER=stub`
+    early-return (above) does not block Step 4's offline coverage.
+- **Offline stub dry run of the judged tier — Step 5 done 2026-07-19 (partial: see the grounded-cheap
+  gap).** `eval/run.py` (`--stub-judged` flag + `stub_dry_run` path + run-level provenance),
+  `make eval-dryrun`, `tests/test_eval_harness.py` (2 tests; suite 475 → **477 green**). No paid call.
+  - **The step-5 prerequisite (the early-return) is solved.** `run_judged` previously bailed on
+    `LLM_PROVIDER=stub`; now `--stub-judged` runs the WHOLE pipeline — arm dispatch, prose (baseline
+    arms), currency, groundedness (both denominators), cross-judge, per-case memo HTML, scorecard — on
+    `StubLLM` at $0. A guard fails loud if `--stub-judged` is passed with a non-stub provider (a "dry
+    run" that quietly spent money would be the worst outcome). The spend gate gets a stub branch that
+    skips `confirm_spend` (no money to protect) while the hard cap still guards a runaway case count.
+  - **Offline-ness verified deliberately, not assumed (§13):** every arm reports
+    `run cost: $0.0000 (N LLM calls, 0 in / 0 out tokens)`, and the scorecard persists `cost_usd: 0.0`.
+    `test_stub_dry_run_is_offline_free_and_keeps_provenance` pins it. The guard is pinned by
+    `test_stub_dry_run_guard_rejects_paid_provider`.
+  - **Provenance now on every scorecard (§12):** a run-level `provenance` block — `git_sha`,
+    `corpus_as_of`, and all 12 `corpus_laws` with `retrieved_on` — plus `run_stamp` and `stub_dry_run`.
+    Recorded at the RUN level, not read off a memo, because baseline memos never touch the corpus and
+    carry a null `corpus_as_of` — yet the run was still configured against these laws. This is the
+    Phase-12-lost-tee-log fix made structural: an artifact is reproducible from the repo alone.
+  - **Fixed a latent fragility found by the test:** the final "wrote …" print did
+    `scorecard.relative_to(Path.cwd())`, which raised if `RESULTS_DIR` sat outside cwd — a cosmetic
+    print crashing a run that had already written its scorecard. Now falls back to the absolute path.
+  - **Cross-judge sampling reported honestly.** The dry run exposed that `score_groundedness` runs
+    once per case, so its stride resets each call — with one obligation per baseline memo, index 0
+    always fires and every case's lead obligation is cross-judged (13/13, not ~20%). Kept as-is (per-
+    case sampling gives better cross-case spread than a global stride would), but the summary now
+    prints the ACTUAL sampled fraction (`N of M obligations sampled`) so nobody trusts a "~20%" label.
+  - **Timing (answers the "how long" question):** the three built arms run in **~9s total** as three
+    separate CLI invocations (each pays ~3s interpreter+core build; the stub LLM calls are 0ms,
+    retrieval ~15ms). Compute-bound, nothing to wait on.
+  - **THE GAP — this is Step 5 "partial," not closed.** "All 8 arms" in the build order is not literally
+    satisfied: the **grounded-cheap ablation arm (D4) is not built.** `_ARMS` carries three
+    (`patchwork`, `baseline-open`, `baseline-primed`); the ablation (retrieval + one structured call,
+    `deepseek-v4-pro` + corpus — the arm that separates "the corpus is the moat" from "the agents are")
+    is a distinct producer that still needs a frozen prompt template, retrieval integration, an `--arm`
+    branch, and tests — a step-3-sized piece. On stub the six baseline *models* collapse to their two
+    producer paths (stub ignores the model id), so the dry run exercises every producer that EXISTS;
+    it cannot exercise one that doesn't. Build grounded-cheap next, then re-run `make eval-dryrun` to
+    truly close step 5.
 - Structured-output support per model (which needed the lenient fallback):
 - Training cutoffs recorded:
 - Smoke test result:

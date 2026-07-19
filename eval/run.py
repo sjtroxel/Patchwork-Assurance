@@ -12,6 +12,7 @@ The judged tier is opt-in on purpose so the everyday `make eval` stays free.
 import argparse
 import html
 import json
+import subprocess
 import sys
 from datetime import UTC, datetime
 from pathlib import Path
@@ -74,10 +75,50 @@ PHASE14_CASE_IDS = (
 # than no gate.
 _EST_USD_PER_JUDGED_CASE = 0.18
 _EST_USD_PER_BASELINE_CASE = 0.15
+# Cross-judge (§10 trap 4) re-judges ~20% of locatable obligations with a second-lab judge — a modest
+# add-on of paid judge calls. A conservative +20% per-case bump keeps the spend gate honest; recompute
+# with real token counts at step 8 like everything else. Default second judge = a different lab from
+# the Opus primary, which is the whole point of the cross-check.
+_EST_CROSS_JUDGE_BUMP = 1.20
+_DEFAULT_CROSS_JUDGE_MODEL = "openai/gpt-5.6-sol"
 
 
 def _est_per_case(arm: str) -> float:
     return _EST_USD_PER_JUDGED_CASE if arm == "patchwork" else _EST_USD_PER_BASELINE_CASE
+
+
+def _git_sha() -> str:
+    """The commit the run's code came from. Read-only (never mutates history). 'unknown' if git is
+    unavailable — provenance degrades, it never crashes the run."""
+    try:
+        return subprocess.run(
+            ["git", "rev-parse", "HEAD"], capture_output=True, text=True, check=True
+        ).stdout.strip()
+    except Exception:
+        return "unknown"
+
+
+def _run_provenance(core) -> dict:
+    """Run-level provenance for the scorecard (§12): the exact code + corpus the numbers came from, so
+    an artifact is reproducible from the repo without a separate log (Phase 12 lost its tee log to a
+    path typo). Recorded on every run, dry or paid. The corpus is recorded at the RUN level — not read
+    off a memo — because baseline arms never touch the corpus and carry a null corpus_as_of, yet the
+    run was still configured against these laws."""
+    laws = sorted(core.laws, key=lambda law: law.law_id)
+    retrieved = [law.retrieved_on for law in laws if getattr(law, "retrieved_on", None)]
+    return {
+        "git_sha": _git_sha(),
+        "corpus_as_of": max(retrieved).isoformat() if retrieved else None,
+        "corpus_laws": [
+            {
+                "law_id": law.law_id,
+                "retrieved_on": (
+                    law.retrieved_on.isoformat() if getattr(law, "retrieved_on", None) else None
+                ),
+            }
+            for law in laws
+        ],
+    }
 
 
 def _select_cases(cases, core, arm: str):
@@ -155,6 +196,8 @@ def run_judged(
     limit: int | None = None,
     offset: int = 0,
     stamp: str | None = None,
+    cross_judge_model: str | None = None,
+    stub_dry_run: bool = False,
 ) -> None:
     """Tier B: generate a real memo per selected case and judge it. Paid on Anthropic / non-free
     OpenRouter; $0 on OpenRouter `:free` models. `arm` selects only what produces the memo (§7.1):
@@ -162,11 +205,20 @@ def run_judged(
     (`baseline_model`) the same question with no retrieval. `case_ids` restricts to an explicit set
     (the 13-case phase-14 publish set). `limit` caps the cases run — useful on a free model whose
     shared upstream rate-limits a full burst; `offset`+`limit` carve a disjoint paid batch. `stamp`
-    pairs the memo dir with the run's scorecard json (same timestamp)."""
-    if settings.llm_provider == "stub":
+    pairs the memo dir with the run's scorecard json (same timestamp). `cross_judge_model` (§10 trap 4)
+    turns on the second-lab cross-judge over ~20% of locatable obligations; None leaves it off.
+    `stub_dry_run` (§13, build-order step 5) runs the WHOLE judged pipeline — arm dispatch, currency,
+    groundedness, cross-judge, artifacts, provenance — on `StubLLM` at $0, so the wiring can be
+    exercised end-to-end offline before a paid call. It requires `LLM_PROVIDER=stub` (fail loud
+    otherwise: a "dry run" that quietly spent real money would be the worst outcome)."""
+    if stub_dry_run and settings.llm_provider != "stub":
+        raise SystemExit(
+            "  --stub-judged requires LLM_PROVIDER=stub (a dry run must not reach a paid provider)."
+        )
+    if settings.llm_provider == "stub" and not stub_dry_run:
         print(
-            "\n  [judged tier skipped] Set LLM_PROVIDER=anthropic|openrouter to run it.\n"
-            "  It generates real memos (memo_model) and judges them (judge_model).\n"
+            "\n  [judged tier skipped] Set LLM_PROVIDER=anthropic|openrouter to run it, or pass\n"
+            "  --stub-judged to exercise the whole pipeline offline on StubLLM at $0 (a dry run).\n"
         )
         return
 
@@ -186,10 +238,23 @@ def run_judged(
     if limit is not None:
         arm_cases = arm_cases[:limit]
 
+    # Cross-judge (§10 trap 4) adds a second-lab judge over ~20% of obligations — more paid calls, so
+    # the estimate carries a conservative bump before it reaches the gate.
+    est_cost = len(arm_cases) * _est_per_case(arm)
+    if cross_judge_model:
+        est_cost *= _EST_CROSS_JUDGE_BUMP
+
     # Spending goes through one chokepoint (eval/safety.py): hard cap, no-unattended, typed confirm.
     # A provably-free run ($0 OpenRouter :free models) skips the attended/typed layers — there's no
     # money to protect — but the hard cap still applies as a runaway circuit breaker.
-    if _is_free_run(memo_model):
+    if stub_dry_run:
+        # Offline StubLLM run: no provider is contacted, so there is no money to protect. The hard cap
+        # still guards a runaway case count.
+        if len(arm_cases) > settings.eval_max_judged_cases:
+            print("\n  [blocked] exceeds the hard cap even for a stub dry run.\n")
+            return
+        print("\n  [stub dry run] offline StubLLM — $0, no memo/judge model contacted.\n")
+    elif _is_free_run(memo_model):
         if len(arm_cases) > settings.eval_max_judged_cases:
             print("\n  [blocked] exceeds the hard cap even for a free run.\n")
             return
@@ -198,18 +263,29 @@ def run_judged(
             f"judge={settings.judge_model}) — $0, skipping the spend confirmation.\n"
         )
     elif not confirm_spend(
-        description=f"judged eval tier, arm={arm} (generate memos + judge them)",
+        description=f"judged eval tier, arm={arm} (generate memos + judge them)"
+        + (f" + cross-judge {cross_judge_model}" if cross_judge_model else ""),
         units=len(arm_cases),
         cap=settings.eval_max_judged_cases,
-        est_cost_usd=len(arm_cases) * _est_per_case(arm),
+        est_cost_usd=est_cost,
     ):
         print("  Aborted — no tokens spent.\n")
         return
 
     memo_llm = build_llm(settings, memo_model)
     judge_llm = build_llm(settings, settings.judge_model)
+    # A different lab from the Opus primary judge — that difference is the entire point of the
+    # cross-check. Built once and reused across cases; None leaves cross-judging off (D1: built this
+    # phase, decided separately before it is run).
+    cross_judge_llm = build_llm(settings, cross_judge_model) if cross_judge_model else None
+    # Baseline arms count unresolvable citations as not-grounded (decision #2); patchwork keeps the
+    # skip so its arm stays byte-identical to today (the regression lock, §7.1).
+    count_unresolvable = arm != "patchwork"
     print("\n" + "=" * 64)
     print(f"  JUDGED TIER (paid)  —  arm={arm}  memo={memo_model}  judge={settings.judge_model}")
+    if cross_judge_llm is not None:
+        print(f"  cross-judge (~20% of obligations)  —  {cross_judge_model}")
+    print(f"  groundedness denominator: {'count-unresolvable' if count_unresolvable else 'skip'}")
     print("=" * 64)
     stamp = stamp or datetime.now(UTC).strftime("%Y%m%dT%H%M%SZ")
     memo_dir = RESULTS_DIR / f"memos-{stamp}-{arm}"
@@ -222,10 +298,14 @@ def run_judged(
         "cite_total": 0,
         "grounded_yes": 0,
         "grounded_judged": 0,
+        "grounded_unresolvable_counted": 0,  # of grounded_judged, how many were unresolvable "no"s
         "coverage_covered": 0,
         "coverage_total": 0,
         "obligations": 0,
+        "cross_compared": 0,  # obligations the second-lab judge re-scored (§10 trap 4)
+        "cross_agreed": 0,  # of those, how many matched the primary verdict
     }
+    cross_disagreements: list[dict] = []
     currency_probes: list[dict] = []
     for case in arm_cases:
         # Tolerate a per-case LLM failure (e.g. a transient free-tier 429) — report it and keep going
@@ -233,7 +313,14 @@ def run_judged(
         try:
             memo = _produce_memo(core, case, arm, memo_llm)
             cite = score_citation_exists(memo, core.sections, case.id)
-            grounded = score_groundedness(memo, core.section_texts, judge_llm, case.id)
+            grounded = score_groundedness(
+                memo,
+                core.section_texts,
+                judge_llm,
+                case.id,
+                count_unresolvable_as_ungrounded=count_unresolvable,
+                cross_judge_llm=cross_judge_llm,
+            )
             coverage = score_coverage(memo, case.expect.obligations, case_id=case.id)
             currency = score_currency(memo, case)  # None unless this case carries markers
             (memo_dir / f"{case.id.replace('/', '_')}.html").write_text(
@@ -247,9 +334,16 @@ def run_judged(
         agg["cite_total"] += cite.total
         agg["grounded_yes"] += grounded.grounded_yes
         agg["grounded_judged"] += grounded.judged
+        agg["grounded_unresolvable_counted"] += grounded.unresolvable_counted
         agg["coverage_covered"] += coverage.covered
         agg["coverage_total"] += coverage.total
         agg["obligations"] += sum(len(f.obligations) for f in memo.per_law)
+        agg["cross_compared"] += grounded.cross_compared
+        agg["cross_agreed"] += grounded.cross_agreed
+        cross_disagreements += [
+            {"case_id": case.id, "citation": c, "primary": p, "secondary": s}
+            for (c, p, s) in grounded.cross_disagreements
+        ]
         print(f"\n  {case.id}")
         print(
             f"    citations real: {cite.valid}/{cite.total}"
@@ -282,12 +376,27 @@ def run_judged(
     print("\n" + "-" * 64)
     print(f"  ARM SUMMARY  —  arm={arm}  ({len(arm_cases) - errors} case(s) scored)")
     print(f"    citations real:  {agg['cite_valid']}/{agg['cite_total']}")
-    print(f"    grounded(yes):   {agg['grounded_yes']}/{agg['grounded_judged']}")
+    denom_note = (
+        f"  ({agg['grounded_unresolvable_counted']} unresolvable counted as not-grounded)"
+        if count_unresolvable and agg["grounded_unresolvable_counted"]
+        else ""
+    )
+    print(f"    grounded(yes):   {agg['grounded_yes']}/{agg['grounded_judged']}{denom_note}")
     print(f"    coverage:        {agg['coverage_covered']}/{agg['coverage_total']}")
     print(f"    obligations:     {agg['obligations']} total")
     if currency_probes:
         flagged = sum(1 for p in currency_probes if p["stale"])
         print(f"    currency probes: {flagged}/{len(currency_probes)} stale-flagged (hand-verify)")
+    if agg["cross_compared"]:
+        # Report the ACTUAL sampled fraction (compared / total obligations) so no one has to trust a
+        # "~20%" label — the sample is the lead obligation of each case plus every stride-th after, so
+        # small memos are covered case-by-case rather than the sample clustering in the largest ones.
+        print(
+            f"    cross-judge:     {agg['cross_agreed']}/{agg['cross_compared']} agree "
+            f"with {cross_judge_model}  "
+            f"({agg['cross_compared']} of {agg['obligations']} obligations sampled"
+            + (f", {len(cross_disagreements)} split)" if cross_disagreements else ")")
+        )
     print("-" * 64)
 
     print(f"\n  memos written to {memo_dir}  (one .html per case — open them, not just the scores)")
@@ -307,19 +416,31 @@ def run_judged(
         json.dumps(
             {
                 "arm": arm,
+                "run_stamp": stamp,
+                "stub_dry_run": stub_dry_run,
+                "provenance": _run_provenance(core),
                 "memo_model": memo_model,
                 "judge_model": settings.judge_model,
+                "groundedness_denominator": "count-unresolvable" if count_unresolvable else "skip",
+                "cross_judge_model": cross_judge_model,
                 "cases": [c.id for c in arm_cases],
                 "cases_scored": len(arm_cases) - errors,
                 "errors": errors,
                 "aggregate": agg,
+                "cross_disagreements": cross_disagreements,
                 "currency_probes": currency_probes,
                 "cost_usd": cost_summary()["cost_usd"],
             },
             indent=2,
         )
     )
-    print(f"  wrote {scorecard.relative_to(Path.cwd())}\n")
+    # Prefer a repo-relative path for readability, but never let a cosmetic print crash a run that has
+    # already written its scorecard (e.g. RESULTS_DIR pointed outside cwd).
+    try:
+        shown = scorecard.relative_to(Path.cwd())
+    except ValueError:
+        shown = scorecard
+    print(f"  wrote {shown}\n")
 
 
 def _retrieval(core, cases, k: int, mode: str) -> tuple[float, int, list[str]]:
@@ -387,6 +508,23 @@ def main() -> int:
         default=None,
         help="restrict judged tier to a case set: 'phase14' (the 13-case publish set) or a "
         "comma-separated list of gold case ids",
+    )
+    parser.add_argument(
+        "--cross-judge",
+        action="store_true",
+        help="also re-judge ~20%% of obligations with a second-lab judge and report inter-judge "
+        "agreement (§10 trap 4); paid",
+    )
+    parser.add_argument(
+        "--cross-judge-model",
+        default=_DEFAULT_CROSS_JUDGE_MODEL,
+        help=f"second judge model for --cross-judge (default {_DEFAULT_CROSS_JUDGE_MODEL})",
+    )
+    parser.add_argument(
+        "--stub-judged",
+        action="store_true",
+        help="run the judged tier end-to-end on StubLLM at $0 (offline dry run; requires "
+        "LLM_PROVIDER=stub). Exercises arm dispatch, scoring, artifacts, provenance before a paid run",
     )
     args = parser.parse_args()
 
@@ -480,7 +618,7 @@ def main() -> int:
     )
     print(f"  wrote {out.relative_to(Path.cwd())}\n")
 
-    if args.judge or settings.eval_use_judge:
+    if args.judge or args.stub_judged or settings.eval_use_judge:
         run_judged(
             core,
             cases,
@@ -490,6 +628,8 @@ def main() -> int:
             limit=args.limit,
             offset=args.offset,
             stamp=stamp,
+            cross_judge_model=args.cross_judge_model if args.cross_judge else None,
+            stub_dry_run=args.stub_judged,
         )
 
     if args.strict and scope_correct < scope_total:

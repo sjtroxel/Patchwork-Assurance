@@ -1,6 +1,6 @@
 VENV := .venv
 
-.PHONY: install dev test lint eval eval-judge sweep-knobs mcp pause resume
+.PHONY: install dev test lint eval eval-judge eval-dryrun sweep-knobs mcp pause resume
 
 install:
 	python -m venv $(VENV)
@@ -25,6 +25,15 @@ eval:
 # Needs LLM_PROVIDER=anthropic + ANTHROPIC_API_KEY in .env.
 eval-judge:
 	$(VENV)/bin/python -m eval.run --judge
+
+# Phase 14 offline dry run — the whole judged pipeline (arm dispatch, currency, groundedness,
+# cross-judge, artifacts, provenance) on StubLLM at $0, over the built arms + the 13-case publish set.
+# No API key, nothing contacted. Exercises the wiring before any paid run (build-order step 5).
+eval-dryrun:
+	@for arm in patchwork baseline-open baseline-primed; do \
+		LLM_PROVIDER=stub $(VENV)/bin/python -m eval.run --stub-judged --arm $$arm \
+			--baseline-model openai/gpt-5.6-sol --cases phase14 --cross-judge; \
+	done
 
 mcp:  ## run the MCP server over stdio
 	$(VENV)/bin/python -m patchwork_assurance.mcp.server

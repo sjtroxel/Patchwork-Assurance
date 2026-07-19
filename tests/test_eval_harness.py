@@ -4,8 +4,11 @@ Locks the gold set against the real scope screen (the throwaway verify script, n
 and tests the retrieval-metric aggregation with a stub retriever.
 """
 
+import json
 from pathlib import Path
 
+import eval.run
+import pytest
 from eval.harness import Core
 from eval.judge import JudgeVerdict, score_groundedness
 from eval.loader import RetrievalQueryCase, load_gold, load_retrieval_gold
@@ -16,6 +19,7 @@ from eval.metrics import (
     score_retrieval,
     score_scope,
 )
+from eval.run import run_judged
 from eval.safety import confirm_spend
 
 from patchwork_assurance.core.contracts import ComplianceMemo, LawFinding, MemoObligation
@@ -252,7 +256,95 @@ def test_groundedness_skips_unlocatable_citation():
     out = score_groundedness(
         memo, {"Colorado": {"6-1-1704": "t"}}, _StubJudge(JudgeVerdict(grounded="yes", reason=""))
     )
+    # Default (the patchwork arm): unresolvable cites are skipped AND not counted — the regression lock.
     assert out.judged == 0
+    assert out.unresolvable_counted == 0
+
+
+# --- Phase 14 §10 / decision #2: baseline-arm groundedness denominator ---
+
+
+def test_groundedness_counts_unresolvable_as_ungrounded_for_baseline_arms():
+    memo = _memo("Colorado § 6-1-9999")  # fabricated / out-of-corpus section
+    out = score_groundedness(
+        memo,
+        {"Colorado": {"6-1-1704": "t"}},
+        _StubJudge(JudgeVerdict(grounded="yes", reason="")),
+        count_unresolvable_as_ungrounded=True,
+    )
+    # The unresolvable cite lands in the denominator as a "no" — a model can't delete its worst
+    # (fabricated / repealed-section) output from its own groundedness score.
+    assert (out.judged, out.grounded_yes, out.unresolvable_counted) == (1, 0, 1)
+    assert out.verdicts == [("Colorado § 6-1-9999", "no")]
+
+
+# --- Phase 14 §10 trap 4: the second-lab cross-judge ---
+
+
+def test_cross_judge_off_by_default():
+    memo = _memo("Colorado § 6-1-1704")
+    out = score_groundedness(
+        memo,
+        {"Colorado": {"6-1-1704": "notice text"}},
+        _StubJudge(JudgeVerdict(grounded="yes", reason="")),
+    )
+    assert (out.cross_compared, out.cross_agreed, out.cross_disagreements) == (0, 0, [])
+
+
+def test_cross_judge_agrees_when_verdicts_match():
+    memo = _memo("Colorado § 6-1-1704")
+    out = score_groundedness(
+        memo,
+        {"Colorado": {"6-1-1704": "notice text"}},
+        _StubJudge(JudgeVerdict(grounded="yes", reason="")),
+        cross_judge_llm=_StubJudge(JudgeVerdict(grounded="yes", reason="")),
+        cross_judge_stride=1,
+    )
+    assert (out.cross_compared, out.cross_agreed) == (1, 1)
+    assert out.cross_disagreements == []
+
+
+def test_cross_judge_records_disagreement():
+    memo = _memo("Colorado § 6-1-1704")
+    out = score_groundedness(
+        memo,
+        {"Colorado": {"6-1-1704": "notice text"}},
+        _StubJudge(JudgeVerdict(grounded="yes", reason="")),
+        cross_judge_llm=_StubJudge(JudgeVerdict(grounded="no", reason="x")),
+        cross_judge_stride=1,
+    )
+    assert (out.cross_compared, out.cross_agreed) == (1, 0)
+    assert out.cross_disagreements == [("Colorado § 6-1-1704", "yes", "no")]
+
+
+def test_cross_judge_stride_samples_a_subset():
+    # 5 locatable obligations, stride 5 -> only the 1st (index 0) is cross-judged (~20%).
+    memo = _memo(*(["Colorado § 6-1-1704"] * 5))
+    out = score_groundedness(
+        memo,
+        {"Colorado": {"6-1-1704": "notice text"}},
+        _StubJudge(JudgeVerdict(grounded="yes", reason="")),
+        cross_judge_llm=_StubJudge(JudgeVerdict(grounded="yes", reason="")),
+        cross_judge_stride=5,
+    )
+    assert out.judged == 5
+    assert out.cross_compared == 1
+
+
+def test_cross_judge_skips_unresolvable_cites():
+    # An unresolvable cite has no statute text to hand a judge, so it is never cross-judged even when
+    # it is counted in the groundedness denominator.
+    memo = _memo("Colorado § 6-1-1704", "Colorado § 6-1-9999")
+    out = score_groundedness(
+        memo,
+        {"Colorado": {"6-1-1704": "notice text"}},
+        _StubJudge(JudgeVerdict(grounded="yes", reason="")),
+        count_unresolvable_as_ungrounded=True,
+        cross_judge_llm=_StubJudge(JudgeVerdict(grounded="yes", reason="")),
+        cross_judge_stride=1,
+    )
+    assert (out.judged, out.unresolvable_counted) == (2, 1)
+    assert out.cross_compared == 1  # only the locatable obligation
 
 
 # --- spending guardrails ---
@@ -319,3 +411,44 @@ def test_judged_dump_routes_through_shared_renderer():
     assert "eval co/basic" in out
     assert "citations real 2/2" in out
     assert "raw memo JSON" in out
+
+
+# --- Phase 14 §13 / build-order step 5: the offline stub dry run of the judged tier ---
+
+
+def test_stub_dry_run_guard_rejects_paid_provider(monkeypatch):
+    # A "dry run" that quietly reached a paid provider would be the worst outcome — fail loud, before
+    # anything is generated.
+    monkeypatch.setattr(eval.run.settings, "llm_provider", "anthropic")
+    with pytest.raises(SystemExit):
+        run_judged(
+            Core(retriever=None, laws=LAWS, section_texts=SECTION_TEXTS),
+            load_gold(),
+            arm="baseline-open",
+            stub_dry_run=True,
+        )
+
+
+def test_stub_dry_run_is_offline_free_and_keeps_provenance(monkeypatch, tmp_path):
+    # The whole judged pipeline runs on StubLLM at $0 (build-order step 5). Baseline arm so no retriever
+    # is needed; the negative control is kept (baseline arms score all-"no" cases, §7.2).
+    monkeypatch.setattr(eval.run.settings, "llm_provider", "stub")
+    monkeypatch.setattr(eval.run, "RESULTS_DIR", tmp_path)
+    core = Core(retriever=None, laws=LAWS, section_texts=SECTION_TEXTS)
+    run_judged(
+        core,
+        load_gold(),
+        arm="baseline-open",
+        baseline_model="openai/gpt-5.6-sol",
+        case_ids=("co-employment-deployer", "no-regulating-nexus"),
+        stub_dry_run=True,
+        stamp="TESTSTAMP",
+    )
+    scorecard = tmp_path / "judged-TESTSTAMP-baseline-open.json"
+    assert scorecard.exists()
+    data = json.loads(scorecard.read_text())
+    assert data["stub_dry_run"] is True
+    assert data["cost_usd"] == 0.0  # deliberate offline-ness check, not assumed (§13)
+    assert data["cases_scored"] == 2  # negative control kept for the baseline arm
+    assert data["provenance"]["git_sha"]
+    assert len(data["provenance"]["corpus_laws"]) == len(LAWS)
