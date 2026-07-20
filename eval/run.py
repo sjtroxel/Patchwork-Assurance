@@ -475,11 +475,21 @@ def run_judged(
     print(f"\n  memos written to {memo_dir}  (one .html per case — open them, not just the scores)")
     # Self-report spend so a run never depends on a captured tee log (obs tracks the running total).
     totals = cost_summary()
+    unpriced = int(totals.get("unknown_rate_calls", 0))
     print(
-        f"\n  run cost:  ${totals['cost_usd']:.4f}  "
+        f"\n  run cost:  ${totals['cost_usd']:.4f}"
+        f"{' (FLOOR — see warning below)' if unpriced else ''}  "
         f"({totals['llm_calls']} LLM calls, "
         f"{totals['input_tokens']:,} in / {totals['output_tokens']:,} out tokens)"
     )
+    if unpriced:
+        # A model missing from pricing.RATES books $0.00 per call, so an unpriced run looks free.
+        # Loud, because §12 makes this number the provenance record for the whole benchmark.
+        print(
+            f"  WARNING: {unpriced} of {totals['llm_calls']} calls used a model with NO rate in "
+            f"core/pricing.py — the cost above is a FLOOR, not the bill. Add the model id (in the "
+            f"exact form the provider reports it) before trusting this figure."
+        )
 
     # Persist the arm's aggregate + currency probes so the paid numbers are reproducible in the repo
     # (§3.3 — the full selection and every raw output live in the repo), arm-tagged so arms don't
@@ -507,7 +517,12 @@ def run_judged(
                 "aggregate": agg,
                 "cross_disagreements": cross_disagreements,
                 "currency_probes": currency_probes,
-                "cost_usd": cost_summary()["cost_usd"],
+                "cost_usd": totals["cost_usd"],
+                # Nonzero => cost_usd is a floor, not the bill. Persisted so a scorecard can never
+                # be read later as an authoritative $0.00 (the 2026-07-20 smoke-test failure).
+                "unknown_rate_calls": unpriced,
+                "input_tokens": totals["input_tokens"],
+                "output_tokens": totals["output_tokens"],
             },
             indent=2,
         )

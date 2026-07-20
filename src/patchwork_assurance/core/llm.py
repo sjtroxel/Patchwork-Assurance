@@ -328,6 +328,24 @@ class OpenRouterLLM:
             {"role": m.role, "content": m.content} for m in messages
         ]
 
+    @staticmethod
+    def _first_choice(resp):
+        """Return resp.choices[0], or raise LLMError carrying the provider's reason.
+
+        OpenRouter answers HTTP 200 with an ERROR PAYLOAD when an upstream provider errors, refuses,
+        or moderates a request — the SDK deserializes that to choices=None, so indexing [0] raised a
+        bare TypeError that told you nothing about which model failed or why. The reason lives in a
+        non-standard top-level `error` field the SDK parks in model_extra. Surface it: a model that
+        cannot produce the schema is a REPORTABLE production fact (phase-14 §12), not a crash.
+        """
+        choices = getattr(resp, "choices", None)
+        if choices:
+            return choices[0]
+        extra = getattr(resp, "model_extra", None) or {}
+        err = extra.get("error") or getattr(resp, "error", None)
+        detail = json.dumps(err, default=str) if err else "no `error` field on the response"
+        raise LLMError(f"provider returned no choices ({detail})")
+
     def complete(self, system, messages, max_tokens=16000) -> str:
         start = time.perf_counter()
         try:
@@ -345,7 +363,7 @@ class OpenRouterLLM:
             (time.perf_counter() - start) * 1000,
             surface="complete",
         )
-        return resp.choices[0].message.content or ""
+        return self._first_choice(resp).message.content or ""
 
     def complete_structured(self, system, messages, schema, max_tokens=16000):
         # JSON-object mode + the schema in the system prompt + client-side validation — the broadest
@@ -391,8 +409,12 @@ class OpenRouterLLM:
                 (time.perf_counter() - start) * 1000,
                 surface="complete_structured",
             )
-            content = resp.choices[0].message.content or ""
             try:
+                # An error-payload response (choices=None) consumes an ATTEMPT rather than crashing,
+                # so a refusal is retried on exactly the same budget as malformed JSON. Deliberate:
+                # phase-14 §12 forbids retries the baselines don't also get, so this must not become
+                # a special extra attempt for one arm.
+                content = self._first_choice(resp).message.content or ""
                 # json.loads(strict=False) tolerates literal control chars (e.g. unescaped newlines)
                 # INSIDE string values — weak free models emit those constantly, and Pydantic's
                 # strict JSON parser rejects them ("control character found while parsing a string").
@@ -400,6 +422,11 @@ class OpenRouterLLM:
                 # is a parser fix, not a model-quality fix.)
                 data = json.loads(_strip_json_fence(content), strict=False)
                 return schema.model_validate(data)
+            except LLMError as e:
+                last_err = e
+                if attempt < self._max_retries:
+                    continue
+                raise
             except (ValidationError, json.JSONDecodeError) as e:
                 # Empty / truncated / malformed JSON — a weak free model often succeeds on a fresh
                 # attempt, so regenerate. The final failure surfaces as LLMError (web layer → 502).
@@ -471,7 +498,7 @@ class OpenRouterLLM:
                 (time.perf_counter() - start) * 1000,
                 surface="run_tools",
             )
-            msg = resp.choices[0].message
+            msg = self._first_choice(resp).message
             tool_calls = getattr(msg, "tool_calls", None)
             if not tool_calls:
                 return ToolRunResult(text=msg.content or "", tools_called=called)

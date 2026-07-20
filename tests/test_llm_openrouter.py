@@ -164,6 +164,80 @@ def test_structured_non_rate_limit_error_does_not_retry():
     assert comp.calls == 1 and sleeps == []
 
 
+# --- error-payload responses (choices=None) --------------------------------------------------------
+# OpenRouter answers 200-with-an-error-body when an upstream provider errors or refuses. The SDK
+# deserializes that to choices=None. Indexing [0] used to raise a bare TypeError that named neither
+# the model nor the reason — it crashed the phase-14 smoke test mid-run on 2026-07-20.
+
+_ERR = {"message": "upstream provider error", "code": 502}
+
+
+class _NoChoicesCompletions:
+    """create() returns an error-payload response (choices=None) for the first `n` calls, then a
+    normal one. Mirrors the SDK, which parks non-standard top-level fields in model_extra."""
+
+    def __init__(self, n_bad, content='{"name": "x", "n": 3}'):
+        self._n_bad = n_bad
+        self._content = content
+        self.calls = 0
+
+    def create(self, **kwargs):
+        self.calls += 1
+        usage = SimpleNamespace(prompt_tokens=0, completion_tokens=0)
+        if self.calls <= self._n_bad:
+            return SimpleNamespace(choices=None, usage=usage, model_extra={"error": _ERR})
+        msg = SimpleNamespace(content=self._content)
+        return SimpleNamespace(choices=[SimpleNamespace(message=msg)], usage=usage)
+
+
+def _no_choices_llm(n_bad, max_retries=2):
+    comp = _NoChoicesCompletions(n_bad)
+    client = SimpleNamespace(chat=SimpleNamespace(completions=comp))
+    return OpenRouterLLM("m", client=client, max_retries=max_retries, sleep=lambda _: None), comp
+
+
+def test_structured_error_payload_raises_llmerror_naming_the_reason():
+    llm, _ = _no_choices_llm(n_bad=99)
+    with pytest.raises(LLMError) as exc:
+        llm.complete_structured("sys", [Msg(role="user", content="q")], _Mini)
+    # The provider's reason must survive into the message — a bare TypeError told us nothing.
+    assert "no choices" in str(exc.value)
+    assert "upstream provider error" in str(exc.value)
+
+
+def test_structured_error_payload_consumes_retries_not_extra_ones():
+    # phase-14 §12 forbids retries one arm gets and another doesn't: a refusal must spend the SAME
+    # budget as malformed JSON, no more.
+    llm, comp = _no_choices_llm(n_bad=99, max_retries=2)
+    with pytest.raises(LLMError):
+        llm.complete_structured("sys", [Msg(role="user", content="q")], _Mini)
+    assert comp.calls == 3  # 1 initial + 2 retries, identical to the malformed-JSON path
+
+
+def test_structured_recovers_when_a_retry_returns_choices():
+    llm, comp = _no_choices_llm(n_bad=1)
+    out = llm.complete_structured("sys", [Msg(role="user", content="q")], _Mini)
+    assert out.name == "x" and comp.calls == 2
+
+
+def test_complete_error_payload_raises_llmerror():
+    comp = _NoChoicesCompletions(n_bad=99)
+    llm = OpenRouterLLM("m", client=SimpleNamespace(chat=SimpleNamespace(completions=comp)))
+    with pytest.raises(LLMError):
+        llm.complete("sys", [Msg(role="user", content="q")])
+
+
+def test_error_payload_without_error_field_still_raises_llmerror():
+    # Defensive: some gateways return an empty body. Must still be an LLMError, not a TypeError.
+    comp = _NoChoicesCompletions(n_bad=99)
+    comp.create = lambda **kw: SimpleNamespace(  # type: ignore[method-assign]
+        choices=None, usage=SimpleNamespace(prompt_tokens=0, completion_tokens=0)
+    )
+    llm = OpenRouterLLM("m", client=SimpleNamespace(chat=SimpleNamespace(completions=comp)))
+    with pytest.raises(LLMError):
+        llm.complete("sys", [Msg(role="user", content="q")])
+
+
 # --- run_tools: the agentic tool-use loop (Phase 8 batch 4) ----------------------------------------
 
 

@@ -66,6 +66,33 @@ def test_cost_usd_formula_and_unknown_model():
     assert not pricing.is_known("mystery")
 
 
+def test_openrouter_form_ids_are_priced():
+    """Regression, 2026-07-20: under LLM_PROVIDER=openrouter every id arrives prefixed, and Opus is
+    dot-versioned. The native-only table returned is_known()=False for all of them, so the phase-14
+    smoke test billed $0.87 while cost_summary() reported $0.00."""
+    for model in (
+        "anthropic/claude-sonnet-5",
+        "anthropic/claude-opus-4.8",
+        "anthropic/claude-haiku-4.5",
+        "anthropic/claude-fable-5",
+        "openai/gpt-5.6-sol",
+        "google/gemini-3.5-flash",
+        "google/gemini-3.1-pro-preview",
+        "x-ai/grok-4.5",
+        "deepseek/deepseek-v4-pro",
+    ):
+        assert pricing.is_known(model), f"{model} has no rate — its cost would book as $0.00"
+        assert pricing.cost_usd(model, 1000, 1000) > 0.0
+
+    # The prefixed Anthropic ids must agree with their native twins — same model, same bill.
+    assert pricing.cost_usd("anthropic/claude-sonnet-5", 1000, 500) == pytest.approx(
+        pricing.cost_usd("claude-sonnet-5", 1000, 500)
+    )
+    assert pricing.cost_usd("anthropic/claude-opus-4.8", 1000, 500) == pytest.approx(
+        pricing.cost_usd("claude-opus-4-8", 1000, 500)
+    )
+
+
 # ---- usage/cost capture ----
 
 
@@ -90,6 +117,17 @@ def test_cost_summary_accumulates(cap):
     before = obs.cost_summary()["llm_calls"]
     obs.log_llm_call("claude-haiku-4-5", _Usage(), 1.0, surface="complete")
     assert obs.cost_summary()["llm_calls"] == before + 1
+
+
+def test_cost_summary_counts_unpriced_calls(cap):
+    """An unpriced call books $0.00, so without this counter a fully-unpriced run is
+    indistinguishable from a free one — the failure mode that hid $0.87 of real spend."""
+    before = obs.cost_summary()["unknown_rate_calls"]
+    obs.log_llm_call("claude-haiku-4-5", _Usage(), 1.0, surface="complete")
+    assert obs.cost_summary()["unknown_rate_calls"] == before  # priced: no bump
+    obs.log_llm_call("some/unpriced-model", _Usage(), 1.0, surface="complete")
+    assert obs.cost_summary()["unknown_rate_calls"] == before + 1
+    assert cap.records[-1].fields["known_rate"] is False
 
 
 # ---- privacy: logs NEVER contain user content ----

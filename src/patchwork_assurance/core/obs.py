@@ -29,6 +29,11 @@ _totals: dict[str, float] = {
     "cost_usd": 0.0,
     "input_tokens": 0,
     "output_tokens": 0,
+    # Calls whose model is absent from pricing.RATES. Their cost books as 0.0, so without this
+    # counter a fully-unpriced run is indistinguishable from a free one — exactly the 2026-07-20
+    # failure, where the phase-14 smoke billed $0.87 against a cost_summary() reading $0.00.
+    # cost_usd is a FLOOR whenever this is nonzero; §12 makes cost_summary() the provenance record.
+    "unknown_rate_calls": 0,
 }
 
 
@@ -96,17 +101,20 @@ def log_llm_call(model: str, usage, latency_ms: float, *, surface: str) -> None:
     cache_read = _usage_field(usage, "cache_read_input_tokens")
     cache_write = _usage_field(usage, "cache_creation_input_tokens")
     cost = pricing.cost_usd(model, input_tokens, output_tokens, cache_read, cache_write)
+    known = pricing.is_known(model)
 
     _totals["llm_calls"] += 1
     _totals["cost_usd"] += cost
     _totals["input_tokens"] += input_tokens
     _totals["output_tokens"] += output_tokens
+    if not known:
+        _totals["unknown_rate_calls"] += 1
 
     log_event(
         "llm_call",
         surface=surface,
         model=model,
-        known_rate=pricing.is_known(model),
+        known_rate=known,
         input_tokens=input_tokens,
         output_tokens=output_tokens,
         cache_read_tokens=cache_read,

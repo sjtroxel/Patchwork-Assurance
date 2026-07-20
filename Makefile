@@ -1,6 +1,6 @@
 VENV := .venv
 
-.PHONY: install dev test lint eval eval-judge eval-dryrun sweep-knobs mcp pause resume
+.PHONY: install dev test lint eval eval-judge eval-dryrun eval-smoke sweep-knobs mcp pause resume
 
 install:
 	python -m venv $(VENV)
@@ -38,6 +38,34 @@ eval-dryrun:
 		LLM_PROVIDER=stub $(VENV)/bin/python -m eval.run --stub-judged --arm $$arm \
 			--baseline-model $$model --cases phase14 --cross-judge; \
 	done
+
+# Phase 14 paid smoke test — build-order step 7. SPENDS ~$0.45-0.50 (measured 2026-07-20; the build
+# order's "~$0.10" predates the §1.2 amendment that made every arm read all twelve statutes). One case
+# through each of the seven rows the §2.1 run list actually pays for, to catch structured-output
+# refusals and auth/id errors before the full run. --no-groundedness: this exercises memo PRODUCTION,
+# not judging. Each row is a separate process, so each hits confirm_spend separately: seven prompts.
+# A failing row does NOT abort the rest — finding out WHICH models fail is the point of the step.
+eval-smoke:
+	@for row in \
+		"patchwork:" \
+		"grounded-single:openai/gpt-5.6-sol" \
+		"grounded-single:anthropic/claude-fable-5" \
+		"grounded-single:deepseek/deepseek-v4-pro" \
+		"baseline-open:openai/gpt-5.6-sol" \
+		"baseline-open:anthropic/claude-fable-5" \
+		"baseline-open:google/gemini-3.5-flash" \
+	; do \
+		arm=$${row%%:*}; model=$${row#*:}; \
+		echo "=== smoke: $$arm $$model ==="; \
+		$(VENV)/bin/python -m eval.run --judge --no-groundedness --arm $$arm \
+			$${model:+--baseline-model $$model} --cases phase14 --limit 1 \
+			|| failed="$$failed\n  $$arm $$model"; \
+	done; \
+	if [ -n "$$failed" ]; then \
+		printf "\nSMOKE FAILURES (report these, do not paper over them - phase-14 s12):$$failed\n"; \
+		exit 1; \
+	fi; \
+	printf "\nAll smoke rows passed.\n"
 
 mcp:  ## run the MCP server over stdio
 	$(VENV)/bin/python -m patchwork_assurance.mcp.server

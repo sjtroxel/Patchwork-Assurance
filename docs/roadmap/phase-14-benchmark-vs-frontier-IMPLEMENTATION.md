@@ -1162,7 +1162,39 @@ plan got wrong.*
     are a strictly stronger steelman than priming with law IDs.
   - **§15 repriced from measurement, not memory:** grounded prompts average **16,284** input tokens per
     case vs **553** for a baseline — 30x. Core run ~$7–10; judged tier deferred at ~$8–14.
-- Smoke test result:
+- **Smoke test result — Step 7 PARTIAL, 2026-07-20. Two real bugs found; this is the step paying for
+  itself.** Four of seven rows completed (patchwork, grounded-single on sol / fable-5 / deepseek);
+  row 5 (`baseline-open`/sol) crashed and rows 6–7 never ran. Actual spend **$0.87** (OpenRouter
+  balance $20.00 → $19.13), against ~$0.37 of `confirm_spend` estimates for the rows that ran.
+  - **Bug 1 — error-payload responses crashed the run (`core/llm.py`).** OpenRouter answers HTTP 200
+    with an error body when an upstream provider errors or refuses; the SDK deserializes that to
+    `choices=None`, and `resp.choices[0]` raised a bare `TypeError` naming neither model nor reason.
+    Three unguarded sites (`complete`, `complete_structured`, `run_tools`); the streaming path already
+    guarded correctly. Fixed with a `_first_choice` helper that raises `LLMError` carrying the
+    provider's `error` payload. In `complete_structured` a refusal now **consumes a normal retry
+    attempt** rather than crashing — deliberately the same budget as malformed JSON, because §12
+    forbids retries one arm gets and another doesn't.
+  - **Bug 2 — the worse one: `cost_summary()` reported `$0.00` while OpenRouter billed $0.87.**
+    `core/pricing.py` was keyed by NATIVE Anthropic ids (`claude-sonnet-5`, `claude-opus-4-8`), but
+    under `LLM_PROVIDER=openrouter` every id arrives prefixed and Opus is dot-versioned
+    (`anthropic/claude-opus-4.8`). Nothing matched, `is_known()` was False, every call booked $0.00.
+    Latent since the Phase 8 interlude and harmless while Phase 12 ran on native ids. **§12 makes
+    `cost_summary()` the provenance record for this phase**, so shipping the core run would have
+    produced a benchmark with no cost data at all — the Phase 12 lost-log problem in a new costume.
+    Fixed: all nine OpenRouter-form ids added with prices pulled live 2026-07-20 (they match the §2.1
+    locked table to the cent); `obs` now counts `unknown_rate_calls`; the run prints a FLOOR warning
+    and persists the counter plus per-arm token counts to the scorecard. `stub` and `:free` ids are
+    priced as genuinely-zero so dry runs don't cry wolf.
+  - **Process note:** the `make eval-smoke` target originally aborted the whole loop on the first
+    failure, which is backwards for a step whose purpose is discovering *which* models can't hold the
+    schema. It now runs all seven and prints a failure list.
+  - **Still open:** *why* sol returned an error payload on `baseline-open` when it succeeded on
+    `grounded-single` at $0.12. The short no-excerpt baseline prompt is the only difference. The fix
+    surfaces the provider's reason, so the re-run answers it. Record the answer here — per §12 a model
+    that cannot produce the schema is a reportable fact, not a model to quietly drop.
+  - **Cost lesson for §15.1:** the four completed rows cost ~2.3x their `confirm_spend` estimates,
+    outside the ±50% band §12 allowed for unmodelled reasoning tokens. Recompute Step 8 from
+    OpenRouter's Activity page (authoritative per-call cost) rather than from the pre-run estimates.
 - Actual core-run cost vs. the $8.50 estimate:
 - Adjudication buckets (fabricated / repealed / out-of-corpus):
 - Deviations from this plan:
