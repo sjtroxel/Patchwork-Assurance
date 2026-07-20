@@ -416,6 +416,27 @@ def test_judged_dump_routes_through_shared_renderer():
 # --- Phase 14 §13 / build-order step 5: the offline stub dry run of the judged tier ---
 
 
+def test_no_groundedness_skips_the_judge_entirely(monkeypatch, tmp_path):
+    """D1's core run must be executable: generate + score deterministically, pay no judge. If
+    score_groundedness is reached at all, the judge was billed on a run that asked not to be."""
+    import eval.run as run_mod
+
+    def _boom(*a, **k):
+        raise AssertionError("--no-groundedness must not call the groundedness judge")
+
+    monkeypatch.setattr(run_mod, "score_groundedness", _boom)
+    monkeypatch.setattr(run_mod, "RESULTS_DIR", tmp_path)
+    monkeypatch.setattr(run_mod.settings, "llm_provider", "stub")
+    core = run_mod.build_core()
+    cases = [c for c in run_mod.load_gold() if c.id == "co-employment-deployer"]
+    run_mod.run_judged(core, cases, stub_dry_run=True, score_grounded=False)
+
+    card = json.loads(next(tmp_path.glob("judged-*.json")).read_text())
+    assert card["groundedness_scored"] is False
+    assert card["groundedness_denominator"] is None
+    assert card["aggregate"]["grounded_judged"] == 0
+
+
 def test_stub_dry_run_guard_rejects_paid_provider(monkeypatch):
     # A "dry run" that quietly reached a paid provider would be the worst outcome — fail loud, before
     # anything is generated.

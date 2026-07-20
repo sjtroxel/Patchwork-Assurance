@@ -30,9 +30,13 @@ eval-judge:
 # cross-judge, artifacts, provenance) on StubLLM at $0, over the built arms + the 13-case publish set.
 # No API key, nothing contacted. Exercises the wiring before any paid run (build-order step 5).
 eval-dryrun:
-	@for arm in patchwork baseline-open baseline-primed; do \
+	@for arm in patchwork baseline-open baseline-primed grounded-single; do \
+		case $$arm in \
+			grounded-single) model=deepseek/deepseek-v4-pro ;; \
+			*) model=openai/gpt-5.6-sol ;; \
+		esac; \
 		LLM_PROVIDER=stub $(VENV)/bin/python -m eval.run --stub-judged --arm $$arm \
-			--baseline-model openai/gpt-5.6-sol --cases phase14 --cross-judge; \
+			--baseline-model $$model --cases phase14 --cross-judge; \
 	done
 
 mcp:  ## run the MCP server over stdio

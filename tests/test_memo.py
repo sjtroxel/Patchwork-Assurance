@@ -295,6 +295,30 @@ def test_single_pipeline_generates(monkeypatch):
     assert isinstance(memo, ComplianceMemo)
 
 
+def test_pipeline_argument_overrides_the_configured_default(monkeypatch):
+    # Phase 14: the grounded-single arm needs the single-call path while production stays on
+    # multi_agent. The override is per call and must beat the setting in BOTH directions, without the
+    # caller mutating global config (which would leak into every other arm of the same run).
+    calls = []
+    monkeypatch.setattr(
+        "patchwork_assurance.core.memo._generate_single",
+        lambda *a, **k: calls.append("single") or CANNED_MEMO,
+    )
+    monkeypatch.setattr(
+        "patchwork_assurance.core.memo._generate_multi_agent",
+        lambda *a, **k: calls.append("multi") or CANNED_MEMO,
+    )
+    retriever, llm = _StubRetriever([CHUNK]), StubLLM(structured=CANNED_MEMO)
+
+    monkeypatch.setattr("patchwork_assurance.core.memo.settings.memo_pipeline", "multi_agent")
+    generate_memo(SITUATION, SCOPE, retriever, llm, pipeline="single")
+    generate_memo(SITUATION, SCOPE, retriever, llm)  # None -> the configured default
+    monkeypatch.setattr("patchwork_assurance.core.memo.settings.memo_pipeline", "single")
+    generate_memo(SITUATION, SCOPE, retriever, llm, pipeline="multi_agent")
+
+    assert calls == ["single", "multi", "multi"]
+
+
 def test_multi_agent_pipeline_runs_end_to_end(monkeypatch):
     # Flip the flag: generate_memo now runs the real analyst->reviewer pipeline offline on a bare stub
     # (analyst + the internally-built reviewer are both StubLLM; section_texts read from the real

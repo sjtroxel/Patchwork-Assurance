@@ -40,6 +40,7 @@ def generate_memo(
     laws: list[LawMetadata] | None = None,
     *,
     on_event: Callable | None = None,
+    pipeline: str | None = None,
 ) -> ComplianceMemo:
     """The one public entry point (the keystone: api/, ui/, eval/, mcp/ all call this name). Phase 12
     splits the middle GENERATION step behind a config flag; the deterministic overlays and the output
@@ -47,9 +48,15 @@ def generate_memo(
 
     `on_event` is an optional progress hook (an AgentEvent callback) the streaming surface
     (`/analyze/stream`, Phase 12 §9) drives the live panel with. Only the multi_agent pipeline emits
-    events; the single path ignores it. None everywhere else (eval/MCP/CLI/the non-streaming /analyze)."""
+    events; the single path ignores it. None everywhere else (eval/MCP/CLI/the non-streaming /analyze).
+
+    `pipeline` overrides `settings.memo_pipeline` for ONE call ("single" | "multi_agent"); None keeps
+    the configured default, so every production caller is unchanged. Added for the Phase 14
+    grounded-single arm, which needs the single-call path while production runs multi_agent — the
+    same lesson as the LLM client: an experiment should inject what it wants, not mutate ambient global
+    config and hope nothing else reads it mid-run."""
     laws_by_id = {law.law_id: law for law in (laws or [])}
-    if settings.memo_pipeline == "multi_agent":
+    if (pipeline or settings.memo_pipeline) == "multi_agent":
         memo = _generate_multi_agent(
             situation, scope, retriever, llm, laws_by_id, on_event=on_event
         )

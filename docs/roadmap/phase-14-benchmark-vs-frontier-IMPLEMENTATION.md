@@ -61,9 +61,9 @@ build reviews decisions rather than trusting them, and so each can be revisited 
 | **D2** | ~~12 cases~~ → **13 cases**, composed to span the traps, selection rule disclosed. | sjtroxel, 7/16; **amended same day** | A deliberately composed set beats random sampling at this N, provided the rule is published. **Amended to 13 after reading the gold data: the 12-case set left the TX currency probe — half the centerpiece metric — uninstrumented. `tx-employment-deployer` added. See §3.2.** NYC considered and cut; disclosed. |
 | **D3** | **Both Gemini variants** (`gemini-3.5-flash` GA + `gemini-3.1-pro-preview`). | sjtroxel, 7/16 | Google has no GA Pro model in the 3.x line (`01` §3–4). Flash-only invites "you sandbagged Google." ~$0.41 buys that objection's removal. Headline the GA one, footnote the preview one. |
 | **D4** | **The grounded-cheap ablation is IN.** | sjtroxel, 7/16 | Six cents. The arm a serious reviewer would demand, and the only one separating "the corpus is the moat" from "the agents are the moat." **Accepted with eyes open that it may deflate the Phase-12 multi-agent narrative** (see §1.1). |
-| **D5** | **No tool-augmented/browsing arm. Scoped out and disclosed prominently.** | sjtroxel, 7/16 | Design doc §7 explicitly permits this. Browsing multiplies cost and variance and isn't reproducible. **Disclosure burden accepted: the post must be very clear the currency claim is about raw queries only.** |
+| **D5** | **No tool-augmented/browsing arm. Scoped out and disclosed.** | sjtroxel, 7/16; **pressure relieved 7/19** | Design doc §7 explicitly permits this. Browsing multiplies cost and variance and isn't reproducible. **§1.2 largely defuses this:** browsing was a threat only because currency was the headline. Now that both sides read identical statutes, "but it would have searched" no longer touches the main result — search fixes staleness, not conflation. Still disclose, but it is a footnote's caveat, not a load-bearing one. Verified 7/19: web search is a tool the caller passes in `tools`, never on by default, and our client sends none — so the raw arms genuinely cannot search. |
 | **D6** | **N=1 full set, N=3 on a 4-case subset** (~+$1.50). | sjtroxel, 7/16 | Cheap insurance against "are your differences bigger than noise?" If the gaps turn out to be inside the noise, that's a publishable finding (`09` §3). |
-| **Thesis** | **Reframe to grounding vs. no grounding**, per `09` §1. | sjtroxel, 7/16 | Supersedes design doc §1's "Patchwork vs. frontier models." More true, better optics, generalizes past this app, and makes D4 the thesis rather than a threat. **Note: this changes the claim, not the headline** — the results table still names Sol, Fable 5, Gemini, and Grok, and the currency finding is still the lead. |
+| **Thesis** | ~~Reframe to grounding vs. no grounding~~ → **SUPERSEDED 7/19 by §1.2.** | sjtroxel, 7/16; **superseded 7/19** | The 7/16 reframe kept currency as the lead. That no longer survives scrutiny — see §1.2. The claim is now **equal-information precision**: same statutes on both sides, measured on harmonization and fabrication rather than recency. |
 
 ### 1.1 The D4 risk, and why it does not retract the launch post
 
@@ -96,18 +96,113 @@ worse than single at equal grounding, and no arm in this experiment tests that.
 
 ---
 
+### 1.2 The 2026-07-19 amendment — currency demoted, the equal-information head-to-head promoted
+
+**This supersedes the 7/16 Thesis row, doc `05`'s rank-1 currency ranking, and the design doc's §1.
+It is the most important decision in the phase and it arrived late — after steps 1–6 were built.**
+
+**The challenge (sjtroxel, 7/19).** Stated plainly, the currency finding reduces to: *"Patchwork is more
+accurate than a frontier model because Patchwork reads the law as of July 2026 and the model was
+trained through January 2026."* That is a database-freshness claim wearing a benchmark costume. It is
+true, it is trivial, and it is not evidence of engineering. A reader's honest reaction is "well,
+obviously." Worse, it invites a fatal objection: **a person querying a frontier model through a product
+gets web search**, so the staleness we measure is an artifact of calling the API rather than a property
+of the model.
+
+**Why it was right to demote, and what survives.** The correction is that *most of this experiment was
+never a currency test.* Signing dates pulled from the corpus on 7/19:
+
+| Postdates every model's cutoff | Inside every model's training window |
+|---|---|
+| CO SB 26-189 (2026-05-14), CT SB 5 (2026-05-27) | IL AIVIA (2019), NYC LL 144 (2021), NJDPA (2024-01), IL HB 3773 (2024-08), TX TRAIGA (2025-06), CA FEHA ADS (2025-06), CA CCPA ADMT (2025-09), CO CPA, CT CTDPA, NJ N.J.A.C. 13:16 |
+
+**Ten of twelve laws sit inside every model's training window.** So when the 13-case set asks whether a
+model conflates the Colorado Privacy Act with the Colorado AI Act, blends AIVIA's procedural notice
+rule into HB 3773's effect-based test, fabricates a section number, or asserts obligations on a
+business with no regulating nexus — none of that is a staleness question. The model has the
+information. The question is whether it keeps twelve similar statutes straight.
+
+**That distinction is what makes the finding durable: web search fixes staleness; it does not fix
+conflating two statutes from the same state.** A browsing-enabled model that pulls up both Colorado
+laws can still blur their operative terms, because the failure is precision, not recency.
+
+**The new headline arm.** Point `grounded-single` at a frontier model instead of DeepSeek. Both sides
+then read the **identical retrieved excerpts from all twelve statutes**, and the question becomes:
+
+> Given the identical statutes my system retrieves, does a curated corpus plus a multi-agent pipeline
+> still beat just handing the best frontier model the same text?
+
+Non-obvious answer, no calendar advantage, and **nobody can say "you just had newer data" because both
+sides read the same data.** sjtroxel's framing: *all* the statutes, universally available to every arm,
+as a control.
+
+**Zero new code.** The arm already accepts any model id — this is a model-selection change, not a
+build. (It was named `grounded-cheap`; renamed to `grounded-single` on 7/19, since an arm running
+Fable 5 is not "cheap." The name now describes what it is: grounded, single-pass, any model.)
+
+**The rejected alternative, and why.** The first proposal was to hand the models only the **two**
+post-cutoff statutes (CO, CT). That removes staleness but creates an information asymmetry: grounded on
+two laws, ungrounded on ten. `co-cpa-lending-deployer` would then test conflation between a law whose
+real text the model was handed and one it only remembers — so a conflation error could be an artifact
+of the asymmetry rather than genuine confusion. Grounding **every** arm on **all twelve** laws avoids
+the confound entirely and is simpler to describe.
+
+**What the raw arms are now for.** `baseline-open` / `baseline-primed` are **not deleted** — they are
+demoted to the supporting contrast: what you get building on a raw model API with no corpus. They are
+built, cheap, and answer "why bother retrieving at all." They are no longer the headline, and the
+currency numbers they produce become a footnote with the date table, not the lead.
+
+**The risk this creates, named before spending.** The headline now rests on an **untested** result. We
+do not yet know that frontier models fail the harmonization probes. If Sol and Fable keep all five
+do-not-harmonize pairs straight on identical excerpts, the honest write-up is *"frontier models handled
+this better than I expected, and the pipeline's contribution is small"* — publishable under §19, but a
+much thinner post. The old currency headline was safe because it was nearly guaranteed; that is exactly
+what made it worthless. **Accepted with eyes open.**
+
+---
+
 ## 2. The arms
 
 Eight arms. Every arm produces a real `ComplianceMemo` and is scored by the **identical** downstream
 path. That is what makes the comparison mean anything, and it's the design doc §7 DoD ("not a parallel
 script") plus the `rag.md` rule ("evals that test a different path than production are worthless").
 
-| Arm | Producer | Model | Scored on |
+**Restructured 7/19 per §1.2.** The grounded rows are now the headline; the raw rows are the contrast.
+
+| Arm | Producer | Model | Role |
 |---|---|---|---|
-| `patchwork` (default) | `generate_memo(...)`, production path unchanged | Sonnet 5 analysts + Opus 4.8 reviewer, grounded | everything |
-| `baseline-open` | one structured call, **no law list** | each baseline model | currency, citation validity, harmonization |
-| `baseline-primed` | one structured call, **given the 12 law IDs** | each baseline model | scope (caveated), coverage, citations, groundedness |
-| `grounded-cheap` | retrieval + one structured call | `deepseek-v4-pro` + corpus | everything |
+| `patchwork` (default) | `generate_memo(...)`, production path unchanged | Sonnet 5 analysts + Opus 4.8 reviewer, grounded | **The control.** Corpus + multi-agent |
+| `grounded-single` | retrieval + one structured call, production prompt | **`gpt-5.6-sol`**, **`claude-fable-5`** | **THE HEADLINE.** Frontier model, identical statutes, no calendar advantage |
+| `grounded-single` | same producer, same everything | `deepseek-v4-pro` | The D4 ablation: is the pipeline worth anything over one cheap grounded call? |
+| `baseline-open` | one structured call, **no law list**, no excerpts | each baseline model | Supporting contrast: what a raw API call gives you |
+| `baseline-primed` | one structured call, **given the 12 law IDs**, no excerpts | each baseline model | The raw steelman |
+
+The three grounded rows share one producer and one code path; only `--baseline-model` differs. That is
+what makes the head-to-head and the ablation the *same* experiment read at two model tiers.
+
+### 2.1 Which arm-rows actually run (TRIMMED 7/19 — finishing the §1.2 amendment)
+
+The original plan ran **six baseline models × two sub-arms = 12 paid baseline runs**, sized when the
+baselines were the headline. After §1.2 they are the supporting contrast, and 12 runs is more paid work
+than the entire grounded block that now carries the post. Measured 7/19: a baseline prompt is ~553
+input tokens against a grounded prompt's ~16,284, so the baselines are cheap per call but numerous.
+
+**The run list:**
+
+| Block | Rows | Why |
+|---|---|---|
+| **Grounded (headline)** | `patchwork` · `grounded-single`/sol · `grounded-single`/fable-5 · `grounded-single`/deepseek | The whole thesis. 12 cases each (gate drops the negative control) |
+| **Raw (contrast)** | `baseline-open` on sol · fable-5 · gemini-3.5-flash | "What a raw API call gives you." 13 cases each, incl. the negative control |
+| **Cut** | `baseline-primed` on all six · `baseline-open` on gemini-3.1-pro, grok, deepseek | ~$7 for rows the post no longer leans on. Restore only if the head-to-head is close and the raw contrast needs more models |
+
+**`baseline-primed` is cut, not deleted.** It stays built and tested; it was the raw *steelman*, which
+mattered when the raw arms were the headline. Under §1.2 the grounded rows are a far stronger steelman
+— they hand the model the actual statutes, not just the law IDs. Note the loss honestly in the write-up
+rather than implying the raw arms got every advantage.
+
+**The comparison that carries the post** is `patchwork` vs. `grounded-single/sol` and
+`grounded-single/fable-5`: same corpus, same gate, same retrieval, same law facts, same prompt,
+same twelve statutes. What varies is the model and the pipeline. Any gap is precision, not recency.
 
 Baseline models (locked; **re-verify every ID and price the day the build starts** — `01` §7):
 
@@ -396,9 +491,16 @@ baselines' errors **absolutely**, against the statute, rather than against our o
 
 ---
 
-## 8. `score_currency` — the headline metric
+## 8. `score_currency` — a footnote metric (DEMOTED 7/19, was the headline)
 
-Deterministic, free, no judge. The headline finding costs nothing. (`05` §2.)
+**Read §1.2 first.** This section is kept because the metric is built, tested, and still worth
+reporting — but it is **no longer the lead**, and doc `05` §1–2's rank-1 ranking is superseded. Report
+it as a short, honest footnote alongside the cutoff/signing-date table: two of twelve laws postdate
+every model's training cutoff, raw arms miss them, this is unremarkable, here is the data. Do not build
+the post on it. **Currency applies only to the raw arms** — the grounded arms read the current statute
+text by construction, which is the entire point of the amendment.
+
+Deterministic, free, no judge. (`05` §2.)
 
 ```python
 def score_currency(memo: ComplianceMemo, case: GoldCase) -> CurrencyOutcome:
@@ -595,12 +697,36 @@ paid eval in this project.
 
 ## 15. Cost
 
-| Scope | Estimate | Realistic range (±50%) |
+**REPRICED 2026-07-19** against measured prompt sizes and the §2.1 trimmed run list. The table below
+supersedes the pre-amendment estimate (which assumed one cheap grounded row and twelve baseline rows).
+
+**Measured, not guessed** (rendered offline at $0 over the 12 in-scope cases):
+
+| | mean input/case | total input |
 |---|---|---|
-| Core, 13 cases, 8 arm-rows | ~$7.50 | |
-| D6 variance subset (N=3 × 4 cases) | ~+$1.50 | |
-| **Core as ratified (13 cases)** | **~$9.00** | **$6–13** |
-| *Deferred: judged tier + cross-check* | *~$8* | *$5–13* |
+| grounded arms (statute excerpts + law facts) | **16,284 tok** | 195,412 tok |
+| baseline arms (prose only) | **553 tok** | ~7,200 tok |
+
+A grounded prompt is **~30x** a baseline prompt. Range 11.5k (`ca-ccpa-housing`) to 24.4k
+(`ct-employment`, four in-scope laws). Output tokens remain the large unknown — that is what step 7's
+smoke test buys.
+
+| Block | Estimate | Notes |
+|---|---|---|
+| Grounded headline (4 rows × 12 cases), generation only | **~$5–8** | Fable's $10/M input is the single biggest line |
+| Raw contrast (3 open rows × 13 cases), generation only | **~$2** | Trimmed from ~$9 per §2.1 |
+| **Core run subtotal (`--no-groundedness`)** | **~$7–10** | This is D1's "core run", now actually executable |
+| *Deferred: Opus groundedness judge across all rows* | *~$8–14* | Separate gated decision, with real data in hand |
+| *Deferred: cross-judge + D6 variance subset* | *~+$2* | |
+
+**Fund in stages.** The core run fits inside **$20** with headroom for a re-run if a prompt breaks
+(OpenRouter adds **5.5%** on credit purchase). The judged tier is a *later, separate* decision that may
+never be made — D1 built it precisely so the spend could be deferred until the core numbers say whether
+it is worth it. Do not fund for the judged tier up front.
+
+**Every figure here is a gate input, not a budget.** `confirm_spend`'s hard cap, `--limit`/`--offset`
+batching, and `obs.cost_summary()` self-reporting are what actually protect the money — the estimate
+was wrong in Phase 12 and the cap is what held.
 
 Add **5.5%** on OpenRouter credit purchase. Per-arm detail in `07` §2 (per-case sum across all rows:
 **~$0.58**).
@@ -674,13 +800,29 @@ wanting to tune, that's a finding for a later phase, not a change to this one.
 
 The design doc §5 makes this a rule. Named in advance so they get published rather than quietly dropped:
 
-- **A model gets Colorado right** because its cutoff postdates May 2026. Publish it, and use it for the
-  sharper point: getting it right by luck of timing isn't the same as knowing to check.
-- **A raw model matches Patchwork** on some scenario — likely single-state, well-known cases. Publish it.
-  "Grounding matters most where the law is new or changed" is *more* useful than "grounding always wins,"
-  and it's true.
-- **The ablation shows the pipeline isn't the moat** (§1.1). Publish it.
+**Rewritten 7/19 for the §1.2 thesis.** The old list was built around currency and is superseded.
+
+- **A grounded frontier model matches or beats Patchwork.** This is now the headline risk, not a side
+  note: hand Sol or Fable 5 the same twelve statutes and they may keep the do-not-harmonize pairs
+  straight as well as the multi-agent pipeline does. If so, publish it plainly — *"given the same
+  statutes, the frontier model did just as well; the corpus is the moat, not the pipeline."* That is a
+  genuinely useful engineering result and it is the honest version of §1.1's D4 risk, now promoted to
+  the main event.
+- **The pre-registered Colorado non-finding.** Every model's cutoff predates SB 26-189 (2026-05-14),
+  so no raw model can get Colorado right by luck of timing — the §19 "lucky cutoff" loss cannot occur.
+  Disclose this *before* presenting any currency number, because a fair critic will otherwise say the
+  probe was picked to be unwinnable. It wasn't picked to be unwinnable; it's unwinnable because
+  legislatures move faster than training runs, which is the ordinary condition.
+- **A raw model matches Patchwork** on a well-known single-state case. Publish it. "Grounding matters
+  most where the law is new, narrow, or easily confused with a sibling statute" is more useful and more
+  true than "grounding always wins."
+- **Patchwork makes a harmonization error of its own.** Entirely possible, and the most valuable single
+  finding available if it happens: it would be our own product failing the test we built to catch other
+  people's products.
 - **Differences fall inside run-to-run variance** (D6). Publish it. Almost nobody publishes this.
+
+A clean sweep would be **less** believable than a mixed result — and under the new thesis a clean sweep
+is also much less likely, which is a point in the new thesis's favor.
 
 A clean sweep would be **less** believable than a mixed result.
 
@@ -696,6 +838,9 @@ A clean sweep would be **less** believable than a mixed result.
 | 3 | **Negative control scoring** — qualitative-only, since Patchwork generates no memo for it? (§7.2) | Qualitative, reported absolutely. It's a stronger result than a percentage | Step 3 |
 | 4 | **Mistral** — fold in as a 9th arm? | No. Parked. Web-check its real flagship first if it ever goes in | After results |
 | 5 | **Post format** — one post, thread, carousel? Chart? (`09` §6) | Defer. Doesn't block the build | After results |
+| **7** | **Which models get a `grounded-single` row?** (§1.2). Sol + Fable 5 are the headline pair (best OpenAI, best Anthropic). DeepSeek is the ablation. **Do Gemini/Grok need grounded rows too?** Their cutoffs (2025-01, 2026-02) no longer matter once grounded, so a row is about model quality, not currency | **Sol + Fable + DeepSeek only.** Three grounded rows keeps the headline table readable and the bill bounded; Gemini and Grok still appear in the raw contrast rows. Add them later if the head-to-head is close | Before step 8 |
+| **8** | **Does the 13-case set still fit the new thesis?** It was composed with currency as rank-1. The 5 do-not-harmonize pairs are now the centerpiece and are well covered; `co-employment-deployer` and `tx-employment-deployer` were chosen as *currency* probes | **Keep all 13 unchanged.** Both currency cases are also operative-term probes (CO "materially influence", TX intent-vs-effect) and earn their slots on the new thesis. Changing the set after seeing the amendment would also be a selection-rule change to disclose | Before step 8 |
+| **9** | **Cost — the grounded rows are the expensive ones now.** Statute excerpts make grounded input 10x a baseline prompt; Sol at $5/M in and Fable at $10/M in bill on that input, not the generation. §15's ~$9 assumed one cheap grounded row | **Recompute at step 8 before `confirm_spend`** (already required by §15.1). `_EST_USD_PER_GROUNDED_CASE = 0.30` is a conservative placeholder, not a measurement | Before the paid run |
 | ~~6~~ | ~~The TX currency probe is a screen, not a deterministic metric~~ | **RESOLVED 7/17: two-sided validity bar** (§21 step 2). A marker must be absent from the current statute **and** from the case's own gold answer — a phrase the correct answer uses is *disqualified*, not hand-adjudicated. Ejects one TX marker; recall trade errs toward false negatives (under-claiming), pinned by test. Negation-aware matching rejected: a parser that would itself need defending in the write-up **adds** technical surface rather than removing it. The premise was also partly wrong — §8 hand-verifies **both** probes' hits, so there was never an output asymmetry to disclose | — |
 
 ---
@@ -705,7 +850,9 @@ A clean sweep would be **less** believable than a mixed result.
 *Left empty on purpose. Filled in as the phase runs — deviations, surprises, the actual numbers, what the
 plan got wrong.*
 
-- Model landscape re-verified on: **[date]** — changes from `01`'s 7/15 check:
+- Model landscape re-verified on: **2026-07-19** — changes from `01`'s 7/15 check: **none.** All six
+  locked ids resolve on the live OpenRouter catalog and every price holds to the cent. See the Step 6
+  note at the bottom of this section for the cutoffs table and what it predicts.
 - Prose renderer review notes: **Step 1 done 2026-07-16.** `eval/prose.py` + `tests/test_prose.py`
   (48 tests; suite 393 → 441 green, regression bar held). All 13 renderings read by eye. Deviation
   from §5's example wording: the example renders role as *"We are the deployer of the system, not its
@@ -893,8 +1040,128 @@ plan got wrong.*
     producer paths (stub ignores the model id), so the dry run exercises every producer that EXISTS;
     it cannot exercise one that doesn't. Build grounded-cheap next, then re-run `make eval-dryrun` to
     truly close step 5.
+- **The grounded-cheap ablation (D4) + Step 5 CLOSED — 2026-07-19.** `core/memo.py` (`pipeline`
+  override), `eval/run.py` (`_GATED_ARMS`, the `grounded-cheap` branch), `Makefile`,
+  `tests/test_baseline.py` + `tests/test_memo.py` (5 tests; suite 477 → **482 green**, regression bar
+  held). No paid call.
+  - **Not a new producer — the production path with one variable flipped.** The step-5 gap note
+    predicted grounded-cheap would need "a frozen prompt template, retrieval integration, an `--arm`
+    branch, and tests," i.e. a step-3-sized build. It needed none of the first two. The single-call
+    path (`_generate_single`) is still live production code behind `memo_pipeline`, so the arm calls
+    `generate_memo` with the same gate, retriever, laws, law facts, frozen production prompt, and
+    deterministic overlays as patchwork, and changes only the pipeline. **Writing a fresh prompt would
+    have been the wrong build**: it adds a second variable and makes the ablation unreadable — the
+    thing D4 exists to isolate is the pipeline, not a prompt.
+  - **The pipeline is injected, not mutated into settings.** `generate_memo` grew a keyword-only
+    `pipeline: str | None = None` (None = the configured default, so every production caller is
+    untouched). Mutating `settings.memo_pipeline` would have leaked into every other arm of the same
+    run — the same ambient-global-config trap recorded in §13. Pinned in both directions by
+    `test_pipeline_argument_overrides_the_configured_default`.
+  - **The patchwork regression lock is literally unchanged**: the `--arm patchwork` call site was not
+    edited at all (no `pipeline=` argument), so the existing production-args assertion still guards it
+    byte-for-byte.
+  - **Two rules follow from `_GATED_ARMS = (patchwork, grounded-cheap)`, both anti-bias.** (1) Case
+    selection: both grounded arms run the gate, so both skip the all-"no" negative control and the D4
+    pair compares identical case sets (12 of the 13). (2) Groundedness denominator: decision #2's
+    strict count-unresolvable rule applies to **raw** arms, not to grounded-cheap. Applying it to the
+    ablation while patchwork kept the skip would handicap the ablation in precisely the comparison D4
+    exists to make — the "fix only the traps that hurt us" failure §11 warns about. Pinned by
+    `test_grounded_arms_share_a_groundedness_denominator`.
+  - **Step 5 is now genuinely closed.** `make eval-dryrun` runs all four producer paths offline; the
+    loop carries each arm's real model id (deepseek for the ablation, Sol for the baselines) so the
+    dry-run scorecards don't misreport `memo_model`. Verified across the four persisted scorecards:
+    gated arms 12 cases / `skip`, raw arms 13 cases / `count-unresolvable`, all `cost_usd: 0.0`,
+    `stub_dry_run: true`, provenance (sha + 12 laws + `corpus_as_of: 2026-07-03`) on every one.
+  - **The honest caveat on §1.1's "clean pair."** §1.1 calls `deepseek-v4-pro` raw vs. `deepseek-v4-pro`
+    + corpus a one-variable pair. It is not *quite*: grounded-cheap also gets the deterministic gate,
+    the human-verified law facts, and the deterministic overlays, and it runs the production memo
+    prompt rather than the baseline prompt. The variable is really **"grounding" as a whole system**,
+    not retrieval alone. That is still the thesis (§1 Thesis is "grounding vs. no grounding"), but the
+    write-up should say *grounded pipeline* rather than imply retrieval is the only difference.
 - Structured-output support per model (which needed the lenient fallback):
-- Training cutoffs recorded:
+- **Training cutoffs + model landscape — Step 6 done 2026-07-19.** Catalog re-pulled live from
+  `https://openrouter.ai/api/v1/models` (338 models). **Every one of the six locked ids resolves and
+  every price holds exactly** as pinned on 7/15 — no re-pricing, no deprecations, no id churn.
+  - **D3 stands unchanged: Google still has no GA Pro model in the 3.x line.** The full live 3.x
+    lineup is flash/flash-lite/image variants plus `gemini-3.1-pro-preview` (still preview, listed
+    2026-02-19). `gemini-3.5-flash` (listed 2026-05-19) remains the only GA headline Google row, so
+    both-variants is still the right call.
+  - **Cutoffs, from each lab's own documentation where it exists:**
+
+    | Model | Stated cutoff | Source quality |
+    |---|---|---|
+    | `openai/gpt-5.6-sol` | **2026-02-16** | Official (OpenAI API model page). Third-party sites disagree (some claim ~May 2026) — the official field governs |
+    | `anthropic/claude-fable-5` | **2026-01** | Official (Anthropic support) |
+    | `google/gemini-3.5-flash` | **2025-01** | Official (ai.google.dev). Some aggregators say 2026-01 and are wrong |
+    | `google/gemini-3.1-pro-preview` | **2025-01** | Google docs / DeepMind pages |
+    | `x-ai/grok-4.5` | **2026-02-01** | Vendor-reported |
+    | `deepseek/deepseek-v4-pro` | **~2026-04** | **Unofficial** — DeepSeek does not publish cutoffs; inferred from release timing. Report it as inferred, never as stated |
+
+  - **The pre-registration, written before any paid call (§19 discipline).** Cross the cutoffs against
+    the two probes' real dates and the results are largely predictable, which is worth committing to in
+    advance rather than discovering afterward:
+    - **Colorado (SB 26-189, signed 2026-05-14): every single model's cutoff predates it.** The latest
+      is DeepSeek's inferred ~April 2026, still ~6 weeks short. So the expected CO outcome is that
+      **no** raw model knows the current Act, and the §19 "a model gets Colorado right by luck of
+      timing" loss most likely **cannot occur here**. That has to be disclosed loudly, because a fair
+      critic will say the probe was picked to be unwinnable. The honest framing: this is not a gotcha,
+      it is the ordinary condition — a law that changed after every frontier model shipped is exactly
+      the case grounding exists for, and it will keep recurring as long as legislatures move faster
+      than training runs.
+    - **Texas is the discriminating probe, which vindicates the D2 amendment.** TRAIGA was signed
+      2025-06-22, so Sol, Fable 5, Grok, and DeepSeek all have cutoffs *after* enactment and **could**
+      get it right; only the two Geminis (2025-01) predate the signature entirely. TX is therefore the
+      probe that can produce both passes and failures, i.e. the one capable of a publishable loss.
+      Shipping the 12-case set would have left the only discriminating currency probe uninstrumented.
+    - **The finding that makes the thesis internal rather than promotional:** Patchwork's own stack —
+      Sonnet 5 analysts, Opus 4.8 reviewer — carries a **January 2026** cutoff, also months before
+      Colorado was signed. If the control gets CO right, it does so with models that individually
+      cannot know the answer. That is the cleanest available statement of "the corpus is doing the
+      work, not the model," and it is measured on our own arm rather than asserted about someone
+      else's.
+  - **Model-landscape aside, not acted on:** the catalog now describes Grok as "SpaceXAI's" model
+    while the id stays `x-ai/grok-4.5`. Cosmetic vendor-naming churn; no effect on the run. Record the
+    lab as xAI/SpaceXAI in the write-up if it still reads that way at publish time.
+- **THESIS AMENDED — 2026-07-19, after steps 1–6 were built.** Full rationale in §1.2; recorded here as
+  the as-built event. sjtroxel challenged the currency headline as trivial ("not exactly anything
+  impressive to tell people our app is better than a single frontier model just because it's more up to
+  date") and proposed removing staleness as a variable by giving the frontier models the statutes.
+  Landed as: **all arms read all twelve statutes**, headline becomes `patchwork` vs. `grounded-single`
+  on Sol and Fable 5, currency demoted to a footnote, raw arms kept as the supporting contrast.
+  - **Cost of the late catch: near zero.** No paid call had been made, and the grounded arm needed no
+    new code — it already accepted any model id. Steps 1–5 (prose renderer, currency screen, baseline
+    producer, judged tier, dry run) all survive; only what we *lead with* changed. The currency machinery
+    stays built and reported, just not as the headline.
+  - **What actually caused the miss:** the plan encoded raw-model arms as a principle
+    (`eval/baseline.py`: handing them excerpts "makes them a RAG system, not a raw model, and erases the
+    comparison") and doc `05` ranked currency rank-1, so every subsequent step built faithfully toward a
+    headline nobody had stress-tested by asking what it would *sound like* to a reader. The lesson is
+    not "verify the implementation" — that was done — it's **re-derive the headline's value at the step
+    that implements it**, not just its correctness.
+  - Code changes: arm renamed `grounded-cheap` → `grounded-single` (an arm running Fable 5 is not
+    cheap), `_EST_USD_PER_GROUNDED_CASE = 0.30` added because grounded input is now the dominant cost on
+    a frontier model, `_est_per_case` split three ways. Suite still **482 green**, ruff clean.
+- **`--no-groundedness` + baseline trim + repricing — 2026-07-19.** `eval/run.py`, `tests/test_eval_harness.py`
+  (1 test; suite 482 → **483 green**). No paid call.
+  - **A D1 gap found while pricing the run, not while running it.** §14 splits spend into a ~$9 "core
+    run" with the judged tier deferred — but `run_judged` called `score_groundedness` unconditionally,
+    so `--judge` bought the Opus judge (~2/3 of a judged case) whether or not you wanted it. **D1 as
+    written was not executable.** `--no-groundedness` makes it so: generate memos, score citations /
+    coverage / currency, write the HTML and the scorecard, pay no judge. Pinned by a test that fails if
+    the judge function is reached at all.
+  - The skip emits an all-zero `GroundednessOutcome` rather than threading `None` through every
+    aggregate and artifact, so shapes stay identical; `judged=0` reads honestly as "not judged" beside
+    the §7.3 judged-N denominators. The scorecard records `groundedness_scored: false` and a null
+    denominator so no reader mistakes an unjudged run for a perfect one.
+  - `--no-groundedness` + `--cross-judge` is now a hard argparse error: the cross-judge re-scores the
+    primary judge's verdicts, so it is meaningless without one and would have quietly spent on a second
+    judge during a run that asked to skip judging.
+  - **§2.1 added** — the run list trimmed from 12 baseline sub-arms to 3, following §1.2 rather than
+    re-deciding it: the baselines are the contrast now, and 12 paid rows was more than the entire
+    grounded block that carries the post. Saves ~$7. `baseline-primed` stays built; the grounded rows
+    are a strictly stronger steelman than priming with law IDs.
+  - **§15 repriced from measurement, not memory:** grounded prompts average **16,284** input tokens per
+    case vs **553** for a baseline — 30x. Core run ~$7–10; judged tier deferred at ~$8–14.
 - Smoke test result:
 - Actual core-run cost vs. the $8.50 estimate:
 - Adjudication buckets (fabricated / repealed / out-of-corpus):

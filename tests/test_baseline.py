@@ -133,6 +133,67 @@ def test_patchwork_arm_delegates_to_generate_memo_with_production_args(monkeypat
     assert scope == applicable_laws(case.situation, core.laws)
 
 
+def test_grounded_single_uses_the_production_path_with_the_single_pipeline(monkeypatch):
+    """The D4 ablation must differ from the patchwork arm in ONE way: the single-pass pipeline. It goes
+    through the same production entry point with the same gate, retriever, and laws — anything else
+    (a second prompt, a hand-rolled producer) would add a variable and make the ablation unreadable."""
+    core = Core(retriever=object(), laws=LAWS)
+    case = _case("co-employment-deployer")
+    llm = StubLLM()
+    calls = {}
+
+    def _spy(situation, scope, retriever, memo_llm, laws, **kwargs):
+        calls["args"] = (situation, scope, retriever, memo_llm, laws)
+        calls["kwargs"] = kwargs
+        return "MEMO_SENTINEL"
+
+    monkeypatch.setattr("eval.run.generate_memo", _spy)
+    out = _produce_memo(core, case, "grounded-single", llm)
+
+    assert out == "MEMO_SENTINEL"
+    situation, scope, retriever, memo_llm, laws = calls["args"]
+    assert situation is case.situation
+    assert retriever is core.retriever
+    assert laws is core.laws
+    assert memo_llm is llm
+    assert scope == applicable_laws(case.situation, core.laws)
+    # The one variable, injected per call rather than mutated into global settings.
+    assert calls["kwargs"] == {"pipeline": "single"}
+
+
+def test_generate_memo_pipeline_override_does_not_touch_global_settings():
+    """Injecting the pipeline must not leak into the rest of the run — the next arm, and production,
+    still read the configured default."""
+    from patchwork_assurance.config import settings as live
+
+    before = live.memo_pipeline
+    core = Core(retriever=object(), laws=LAWS)
+    _produce_memo(core, _case("co-employment-deployer"), "baseline-open", StubLLM())
+    assert live.memo_pipeline == before
+
+
+def test_grounded_single_is_gated_like_patchwork_not_like_a_baseline():
+    """Both grounded arms run the deterministic gate, so both skip the all-'no' negative control (there
+    is no memo to generate). If they diverged here the D4 pair would be comparing different case sets."""
+    core = Core(retriever=None, laws=LAWS)
+    cases = load_gold()
+    patchwork = _select_cases(cases, core, "patchwork")
+    cheap = _select_cases(cases, core, "grounded-single")
+    assert [c.id for c in cheap] == [c.id for c in patchwork]
+    assert _case("no-regulating-nexus") not in cheap
+
+
+def test_grounded_arms_share_a_groundedness_denominator():
+    """Decision #2 applies the strict denominator to RAW arms. Applying it to grounded-single while
+    patchwork kept the skip would handicap the ablation in the very comparison it exists to make."""
+    from eval.run import _ARMS, _GATED_ARMS
+
+    assert set(_GATED_ARMS) == {"patchwork", "grounded-single"}
+    assert all(arm in _ARMS for arm in _GATED_ARMS)
+    raw = [a for a in _ARMS if a not in _GATED_ARMS]
+    assert raw == ["baseline-open", "baseline-primed"]
+
+
 def test_baseline_arms_never_call_generate_memo(monkeypatch):
     core = Core(retriever=object(), laws=LAWS)
     case = _case("co-employment-deployer")
