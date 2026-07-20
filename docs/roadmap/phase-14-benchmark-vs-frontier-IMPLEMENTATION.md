@@ -748,6 +748,47 @@ rather than guessed. It does **not** block anything: steps 1–7 of the build or
 Phase 12 too, and the cap is what held. **Recompute at step 8 and pass a true figure into the gate.**
 A gate that lies about the estimate trains you to ignore it (§7.3).
 
+**RESOLVED 2026-07-20 — recomputed from step 7's measured + reconstructed rows.** Item 1b is moot:
+the run list is §2.1's seven rows (4 grounded × 12 cases, 3 raw × 13), `baseline-primed` is cut, so
+there is no un-folded two-sub-arm split to price. The real error was elsewhere and much larger.
+
+*Recovering the lost measurements.* The four paid rows of 2026-07-20 06:25–06:31 ran BEFORE the Bug-2
+fix, so their scorecards persisted `cost=0.0` and no token counts — the Phase 12 lost-log problem,
+predicted in this doc and still landed, because the fix shipped after the run. The **memos survived**,
+so the output was reconstructed: calibrate bytes-per-token against the three baseline rows where the
+true counts ARE known (4.35 B/tok, spread 3.57–5.02), then apply to the grounded memos. Validation:
+reconstructed total for those four rows = **$0.834** vs the **$0.87** actually billed (4% off). Note
+this contradicts the "$0.12" recorded earlier for sol's grounded row; the aggregate only reconciles at
+~$0.24, so treat the $0.12 as unreliable.
+
+| Block | Row | ~$/case | cases | ~total |
+|---|---|---|---|---|
+| Grounded | `patchwork` (sonnet-5) | 0.259 * | 12 | 3.11 |
+| Grounded | `grounded-single`/sol | 0.244 | 12 | 2.93 |
+| Grounded | `grounded-single`/fable-5 | **0.513** | 12 | **6.15** |
+| Grounded | `grounded-single`/deepseek | 0.012 | 12 | 0.14 |
+| Raw | `baseline-open`/sol | 0.253 † | 13 | 3.29 |
+| Raw | `baseline-open`/fable-5 | 0.306 † | 13 | 3.98 |
+| Raw | `baseline-open`/gemini-3.5-flash | 0.051 † | 13 | 0.66 |
+| | | | **core run** | **~$20.30** |
+
+\* the doc's unverified figure. The byte reconstruction CANNOT price `patchwork`: its multi-agent
+fan-out makes analyst/reviewer calls whose output never reaches the final memo. Likely **understated**.
+† measured directly, but each on one CO case. Multi-state cases retrieve more and generate longer
+memos, so these skew low.
+
+**The core run is ~$20.30, not ~$7–10.** The raw block alone was estimated at ~$2 and reconstructs at
+~$7.93 — the same input-dominated error that made the baseline gate 5x low, still sitting in §15's
+table above. The grounded block is ~$12.33 of it, and **fable-5 is ~$10.13 across its two rows**
+purely on its $10/$50 rates; it is also half the headline comparison, so it is not cuttable.
+
+**Execution decision (2026-07-20):** do NOT pre-fund. Balance is $18.52. Run in this order —
+`patchwork`, grounded sol, grounded fable-5, grounded deepseek, raw gemini, raw sol, raw fable-5 —
+which puts rows 1–6 (~$16.28) inside the existing balance and leaves only the last row needing a
+top-up, by which point six rows of real cost data replace this arithmetic. Check the bill after each
+batch. **Do not resequence or drop rows after seeing results** — choosing what to report post-hoc is a
+selection-rule change that would have to be disclosed (§3.1).
+
 **The estimate will be wrong and that's expected.** Phase 12's `confirm_spend` estimate was
 single-calibrated and the multi-agent run came in **over**. The hard cap is what actually protected the
 budget, not the estimate. Backstops in place: `confirm_spend` hard cap, `--limit`/`--offset` batching,
@@ -1162,10 +1203,11 @@ plan got wrong.*
     are a strictly stronger steelman than priming with law IDs.
   - **§15 repriced from measurement, not memory:** grounded prompts average **16,284** input tokens per
     case vs **553** for a baseline — 30x. Core run ~$7–10; judged tier deferred at ~$8–14.
-- **Smoke test result — Step 7 PARTIAL, 2026-07-20. Two real bugs found; this is the step paying for
-  itself.** Four of seven rows completed (patchwork, grounded-single on sol / fable-5 / deepseek);
-  row 5 (`baseline-open`/sol) crashed and rows 6–7 never ran. Actual spend **$0.87** (OpenRouter
-  balance $20.00 → $19.13), against ~$0.37 of `confirm_spend` estimates for the rows that ran.
+- **Smoke test result — Step 7 COMPLETE, 2026-07-20. Two real bugs found; this is the step paying for
+  itself.** Ran in two sittings. First pass: four of seven rows completed (patchwork, grounded-single
+  on sol / fable-5 / deepseek); row 5 (`baseline-open`/sol) crashed and rows 6–7 never ran, at **$0.87**
+  against ~$0.37 of `confirm_spend` estimates. Second pass, after the two fixes below: rows 5–7 all
+  completed clean at **$0.61**. **Total step-7 spend $1.48.**
   - **Bug 1 — error-payload responses crashed the run (`core/llm.py`).** OpenRouter answers HTTP 200
     with an error body when an upstream provider errors or refuses; the SDK deserializes that to
     `choices=None`, and `resp.choices[0]` raised a bare `TypeError` naming neither model nor reason.
@@ -1188,13 +1230,90 @@ plan got wrong.*
   - **Process note:** the `make eval-smoke` target originally aborted the whole loop on the first
     failure, which is backwards for a step whose purpose is discovering *which* models can't hold the
     schema. It now runs all seven and prints a failure list.
-  - **Still open:** *why* sol returned an error payload on `baseline-open` when it succeeded on
-    `grounded-single` at $0.12. The short no-excerpt baseline prompt is the only difference. The fix
-    surfaces the provider's reason, so the re-run answers it. Record the answer here — per §12 a model
-    that cannot produce the schema is a reportable fact, not a model to quietly drop.
-  - **Cost lesson for §15.1:** the four completed rows cost ~2.3x their `confirm_spend` estimates,
-    outside the ±50% band §12 allowed for unmodelled reasoning tokens. Recompute Step 8 from
-    OpenRouter's Activity page (authoritative per-call cost) rather than from the pre-run estimates.
+  - **The sol open question — CLOSED as not-reproducible, cause unknown.** Re-run of the identical
+    command (`baseline-open` / `openai/gpt-5.6-sol`, same case, same prompt) completed clean at
+    $0.2528. The §12 concern is answered on the merits: **sol can hold the schema on the baseline
+    prompt** — 21 obligations, valid JSON, no retry consumed. It is not a model to drop.
+    What we did NOT learn is what the original error was: the crash predates the Bug-1 fix, so it
+    surfaced as a bare `TypeError` with the provider's `error` payload already discarded. Recording
+    that honestly rather than back-filling a cause. Standing hypothesis is a transient upstream
+    provider error, which is consistent with a clean re-run but is not evidence for it.
+    **Residual risk accepted, with mitigation:** an intermittent provider error during the 13-case
+    core run is now (a) legible — `LLMError` carries the provider's reason — and (b) survivable, since
+    `complete_structured` spends a normal retry attempt on it. If it recurs in the core run, the log
+    will name the reason and this bullet gets the answer it is missing.
+  - **Cost lesson for §15.1 — estimates are unfixable in kind; bound them instead.** Two separate
+    misses, and they fail differently:
+    - *The code's constants are structurally, one-directionally low.* `_EST_NO_JUDGE_FACTOR` (and the
+      `_EST_USD_PER_BASELINE_CASE` comment) reason about INPUT size — correct for a grounded arm, wrong
+      for a baseline. Measured on row 6: 1,715 input vs 5,785 output tokens, and at fable-5's $10/$50
+      split **generation was 94% of the bill**. Removing the corpus shrinks the prompt; it does not
+      shrink the memo. Every baseline row quoted $0.06 and billed $0.05–$0.31 (up to 5.1x).
+    - *Per-model hand-estimates missed in both directions* (sol −30%, gemini +37%), because output
+      length varies ~1.5x across models (5,467–8,229 tokens) and is the dominant cost term. It is not
+      knowable before the run.
+    - **Therefore §15.1 does not try to predict baseline cost — it bounds it.** Set the constant from
+      the worst OBSERVED row ($0.31), so the gate is conservative rather than accurate. A gate that is
+      reliably high is honest; a gate that is sometimes 5x low is worse than no gate. Still recompute
+      the reported totals from OpenRouter's Activity page, not from these constants.
+  - **Baseline-arm results (n=1 case, `co-employment-deployer`).** One case each — directional only,
+    not the benchmark. Recorded because the direction is already unambiguous:
+
+    | model | cost | out tok | obligations | citations unresolved | coverage | currency |
+    |---|---|---|---|---|---|---|
+    | `openai/gpt-5.6-sol` | $0.2528 | 8,229 | 21 | 9/21 | 0/2 | STALE |
+    | `anthropic/claude-fable-5` | $0.3064 | 5,785 | 11 | 1/11 | 1/2 | STALE |
+    | `google/gemini-3.5-flash` | $0.0510 | 5,467 | 8 | 1/8 | 0/2 | STALE |
+
+    - **The currency probe went 3-for-3.** Every baseline model, unprompted, described Colorado law as
+      SB 24-205 plus its repealed duty stack (impact assessments, the 90-day AG notification, the
+      reasonable-care standard). Unanimous across three labs, measured by a deterministic metric with
+      no judge in the loop and no marginal cost. This is the §8 thesis landing on the first paid case.
+    - **Verbosity tracks unreliability.** Sol emitted 21 obligations — ~2x fable-5, ~2.6x
+      gemini-flash — with the worst citation resolution (9 unresolved) and 0/2 coverage. The arm that
+      looks most thorough is the least trustworthy. Better and more honest than "bigger model wins."
+  - **The fairness control fired, and it is the most important result of step 7.** Currency outcome by
+    arm, n=1 case (`co-employment-deployer`) each:
+
+    | arm | gets the statute text? | currency |
+    |---|---|---|
+    | `patchwork` (sonnet-5) | yes | **clean** |
+    | `grounded-single`/sol | yes | **clean** |
+    | `grounded-single`/fable-5 | yes | **clean** |
+    | `grounded-single`/deepseek | yes | **clean** |
+    | `baseline-open` ×3 (sol, fable-5, gemini) | no | **stale, 3/3** |
+
+    The SAME models — sol and fable-5 — go stale without the statute and clean with it. That is the
+    §1.2 amendment doing its job: it rules out "Patchwork only wins because it alone has the current
+    text," because in `grounded-single` the frontier models read the identical CO/CT text Patchwork
+    retrieves, through the production `generate_memo` path (`eval/run.py:197`, `pipeline="single"`).
+    **Two distinct claims, and the write-up must keep them apart:**
+    1. *Raw* (`baseline-open`): a raw API call has no way to know the law changed. The obvious
+       objection — "you didn't give them the statute" — is correct and is the POINT of that arm
+       (`eval/baseline.py`: handing them excerpts "would make them a RAG system, not a raw model").
+       Disclose the asymmetry; do not lead with this claim alone, it is the attackable version.
+    2. *Grounded* (`grounded-single`): same statutes both sides, so any gap is pipeline and corpus
+       curation, on the merits. **This is the claim that answers "isn't this just a model query?"**
+    The honest headline is therefore NOT "frontier models are bad at new law" but "a raw API call
+    cannot know the law changed; grounding fixes it" — which this architecture demonstrates rather
+    than asserts. Caveat: n=1, CO probe only; the TX probe has not run on any arm yet.
+  - **TRAP for the writeup — "unresolved citation" is NOT "hallucinated citation."** The metric
+    (`score_citation_exists`, `eval/metrics.py`) is `locate_section(c, sections) is None` — it asks
+    whether a cite resolves to a section **in this corpus**, and the corpus is state-law-only. Real
+    statutes cited correctly but outside the corpus score as invalid. Confirmed in this very run:
+    gemini's flagged cite is `42 U.S.C. § 2000e-2(k)(1)(A)(i)` (Title VII's disparate-impact
+    provision — real, correctly cited, simply federal), and several of sol's are
+    `C.R.S. § 24-34-402` (the Colorado Anti-Discrimination Act — real Colorado law, not in corpus).
+    Publishing "sol fabricated 43% of its citations" would be a factual error a lawyer would catch on
+    the first spot-check, and would breach the `.claude/rules/legal-content.md` grounding rule.
+    The defensible unadjudicated claim is "**pointed outside the governing statute**." The three-way
+    split below is the gate before ANY public citation number.
+  - **Retrieval recall is intermittently non-deterministic — open, must close before the core run.**
+    Three identical offline deterministic-tier runs on the same SHA and corpus scored 100% / 98.5% /
+    100%; `nj-njdpa-insurance-deployer` lost `56:8-166.6` in the middle run only. That case sits on
+    the k=8 boundary and flips. A benchmark that reports a different headline number each time it is
+    run is a credibility problem, and this is the free tier — it costs nothing to reproduce. Suspect
+    HNSW tie-breaking / index-ordering. Diagnose before the core run, not after.
 - Actual core-run cost vs. the $8.50 estimate:
 - Adjudication buckets (fabricated / repealed / out-of-corpus):
 - Deviations from this plan:

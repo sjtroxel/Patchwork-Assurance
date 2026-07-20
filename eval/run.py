@@ -93,21 +93,41 @@ PHASE14_CASE_IDS = (
 # (§15.1) and pass the true figure into confirm_spend — a gate that lies about the estimate is worse
 # than no gate.
 _EST_USD_PER_JUDGED_CASE = 0.18
-_EST_USD_PER_BASELINE_CASE = 0.15
-# A grounded arm feeds the model every in-scope law's retrieved excerpts, so its INPUT is an order of
-# magnitude larger than a baseline arm's prose-only prompt (a multi-state case can run tens of
-# thousands of input tokens). On a frontier model at $5-10/M in, that input — not the generation — is
-# the bill. Deliberately the most conservative rate in the table; recompute with real token counts at
-# step 8 (§15.1) rather than trusting it.
-_EST_USD_PER_GROUNDED_CASE = 0.30
+# RECALIBRATED 2026-07-20 from step 7's three baseline rows (0.15 -> 0.43). The old value assumed a
+# baseline is cheap because its INPUT is small. It is — and that is beside the point: the memo is the
+# OUTPUT, output does not shrink when the corpus is removed, and output bills at 3-5x the input rate.
+# Measured: 1,180-1,715 input vs 5,467-8,229 output tokens; on fable-5's $10/$50 split GENERATION WAS
+# 94% OF THE BILL. Every baseline row quoted $0.06 and billed $0.05-$0.31, up to 5.1x low.
+# 0.43 = the worst observed generation ($0.31, fable-5) + the Opus judge share (~0.12, from the
+# patchwork calibration below). Deliberately set from the WORST row, not the mean: output length
+# varies ~1.5x across models and is not knowable before the run, so this gate BOUNDS cost rather than
+# predicting it. A gate that reads reliably high is honest; one that is sometimes 5x low is worse than
+# no gate at all. Report actual spend from cost_summary() / OpenRouter Activity, never from here.
+_EST_USD_PER_BASELINE_CASE = 0.43
+# RECALIBRATED 2026-07-20 from step 7 (0.30 -> 0.64). A grounded arm feeds the model every in-scope
+# law's retrieved excerpts, so its input IS large (~16,284 tok/case measured) — but the old comment
+# concluded from that "input, not the generation, is the bill," and that was wrong in the same way the
+# baseline constant was. Reconstructed worst row (fable-5 at $10/$50): ~$0.163 input vs ~$0.350
+# output. Output still dominates, because output is priced at 3-5x input on every model in the table.
+# 0.64 = worst observed generation (~0.513) + the Opus judge share (~0.12). Set from the WORST row,
+# not the mean: this bounds cost rather than predicting it (see _EST_USD_PER_BASELINE_CASE).
+_EST_USD_PER_GROUNDED_CASE = 0.64
 # Cross-judge (§10 trap 4) re-judges ~20% of locatable obligations with a second-lab judge — a modest
 # add-on of paid judge calls. A conservative +20% per-case bump keeps the spend gate honest; recompute
 # with real token counts at step 8 like everything else. Default second judge = a different lab from
 # the Opus primary, which is the whole point of the cross-check.
 _EST_CROSS_JUDGE_BUMP = 1.20
 # Share of a judged case that is NOT the Opus groundedness judge (generation + deterministic scoring).
-# Used only when --no-groundedness skips the judge. Rough; step 7's smoke test replaces it.
-_EST_NO_JUDGE_FACTOR = 0.40
+# Used only when --no-groundedness skips the judge. ARM-AWARE since step 7: one blanket 0.40 was a
+# second, compounding source of the 5x under-estimate. Only `patchwork` is judge-dominated (the Opus
+# per-obligation judge really is ~2/3 of that case). Every other arm is GENERATION-dominated, so
+# skipping the judge removes far less than 60% of the bill. Each figure = worst observed generation
+# divided by the full per-case estimate above, so `full x factor` reproduces the worst real row.
+_EST_NO_JUDGE_FACTOR = {
+    "patchwork": 0.40,  # Phase 12 calibration; judge is ~2/3 of the case
+    "grounded-single": 0.80,  # 0.513 generation / 0.64 full
+    "_baseline": 0.72,  # 0.306 generation / 0.43 full
+}
 _DEFAULT_CROSS_JUDGE_MODEL = "openai/gpt-5.6-sol"
 
 
@@ -295,10 +315,10 @@ def run_judged(
     # the estimate carries a conservative bump before it reaches the gate.
     est_cost = len(arm_cases) * _est_per_case(arm)
     if not score_grounded:
-        # The per-obligation Opus judge is roughly 2/3 of a judged case (see the calibration note on
-        # _EST_USD_PER_JUDGED_CASE), so generation + deterministic scoring is the remainder. Rough on
-        # purpose; the smoke test at step 7 replaces it with a measured figure.
-        est_cost *= _EST_NO_JUDGE_FACTOR
+        # Skipping the judge removes a much larger share of a judge-dominated patchwork case than of a
+        # generation-dominated grounded or baseline case — see the note on _EST_NO_JUDGE_FACTOR.
+        # Measured at step 7, not guessed.
+        est_cost *= _EST_NO_JUDGE_FACTOR.get(arm, _EST_NO_JUDGE_FACTOR["_baseline"])
     if cross_judge_model:
         est_cost *= _EST_CROSS_JUDGE_BUMP
 
