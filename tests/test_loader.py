@@ -67,3 +67,17 @@ def test_idempotent_double_load():
     first_count = store.count()
     load_corpus(FIXTURES, store, embedder)
     assert store.count() == first_count  # upsert, not append
+
+
+def test_chroma_collection_carries_high_ef_search(tmp_path):
+    """Regression lock (Phase 14): a fresh collection must be created with the generous HNSW
+    ef_search, not Chroma's default 100. The default under-reaches a boundary chunk on a
+    metadata-filtered query and made retrieval-recall non-deterministic across process runs."""
+    from patchwork_assurance.core.vectorstore import _HNSW_CONFIG, ChromaVectorStore
+
+    store = ChromaVectorStore(path=str(tmp_path / "chroma"), embedding_model_name="stub-model")
+    hnsw = store._collection.configuration_json["hnsw"]
+    assert hnsw["ef_search"] == _HNSW_CONFIG["ef_search"]
+    assert hnsw["ef_construction"] == _HNSW_CONFIG["ef_construction"]
+    # Head-room guard: exact-ish search needs ef_search comfortably above the corpus size.
+    assert _HNSW_CONFIG["ef_search"] >= 512

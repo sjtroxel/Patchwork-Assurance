@@ -1308,12 +1308,25 @@ plan got wrong.*
     the first spot-check, and would breach the `.claude/rules/legal-content.md` grounding rule.
     The defensible unadjudicated claim is "**pointed outside the governing statute**." The three-way
     split below is the gate before ANY public citation number.
-  - **Retrieval recall is intermittently non-deterministic — open, must close before the core run.**
-    Three identical offline deterministic-tier runs on the same SHA and corpus scored 100% / 98.5% /
-    100%; `nj-njdpa-insurance-deployer` lost `56:8-166.6` in the middle run only. That case sits on
-    the k=8 boundary and flips. A benchmark that reports a different headline number each time it is
-    run is a credibility problem, and this is the free tier — it costs nothing to reproduce. Suspect
-    HNSW tie-breaking / index-ordering. Diagnose before the core run, not after.
+  - **Retrieval recall was intermittently non-deterministic — CLOSED 2026-07-21.** Three identical
+    offline deterministic-tier runs scored 100% / 98.5% / 100%; `nj-njdpa-insurance-deployer` lost
+    `56:8-166.6` in the middle run only. Diagnosed to root cause (not tie-breaking): the query
+    embedding is byte-identical across processes, so the flip is not the embedder. The cause is
+    Chroma **HNSW `ef_search` under-reach** — the `.chroma` index was built incrementally as laws
+    were added over weeks (fragmented graph), and Chroma applies the metadata `where` filter *after*
+    the graph walk, so a low-similarity in-scope chunk whose global rank exceeds `ef_search` (default
+    100) is dropped, and *which* chunk drops varies per process load. Reproduced: `nj-njdpa`'s recall
+    flipped 1.0→0.5 in ~1/12 fresh processes; a per-law fetch of a 9-chunk law returned 7/8/9 chunks
+    even at `n_results=50`. This also defeated the key-obligation pin, since the pin's
+    section-filtered fetch rides the same under-reach. **Fix:** `core/vectorstore.py` creates the
+    collection with `configuration={"hnsw": {"ef_search": 1000, "ef_construction": 200}}` (`_HNSW_CONFIG`),
+    making search effectively exact on this ~187-chunk corpus and deterministic on every fresh build;
+    plus a one-time local `.chroma` rebuild (corpus source untouched) because Chroma ignores the
+    configuration when *getting* an existing collection. Chosen over a bare rebuild because the radar /
+    add-a-jurisdiction path upserts incrementally — the very thing that fragmented the graph — so the
+    fix must survive future incremental adds. Verified: njdpa case 24/24 fresh processes at recall 1.0
+    (166.6 present even without the pin); deterministic-tier `recall@8 = 100.0%` identical across 3
+    fresh runs, 0 MISS. Regression lock: `tests/test_loader.py::test_chroma_collection_carries_high_ef_search`.
 - Actual core-run cost vs. the $8.50 estimate:
 - Adjudication buckets (fabricated / repealed / out-of-corpus):
 - Deviations from this plan:
