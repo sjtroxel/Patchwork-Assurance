@@ -282,3 +282,21 @@ operative profiling-opt-out core is unchanged by the 2026 amendments — the hel
 represented. Corpus coverage cross-checked against external 2026 trackers (Akin, Brightmine, K&L Gates,
 Seyfarth): the major enacted automated-decision / employment + privacy-ADMT laws (CA×2, CO, IL×2, CT,
 NYC, TX) are all present — the corpus is current on its core thesis.
+
+### 7.7 Triage decisions — biometric-privacy candidates surfaced by the Phase 14 benchmark (2026-07-22)
+The Phase 14 raw-frontier arms cited two general biometric-privacy laws for the AI-video-interview /
+biometric-AI fact patterns; triaged through §7.2/§7.3 (see `phase-14-planning/11-citation-adjudication.md`).
+
+| Law | Call | Why |
+|---|---|---|
+| IL BIPA — 740 ILCS 14 (Biometric Information Privacy Act) | OUT | §7.2.1 fails / §7.3 **tech-neutral** — a 2008 biometric-consent regime that never mentions AI and governs all biometric capture (fingerprint clocks as much as facial-recognition AI). Regulates biometric *data*, not an AI *decision*. Same bucket as Title VII / FEHA. |
+| TX CUBI — Tex. Bus. & Com. Code § 503.001 | OUT | §7.2.1 fails / §7.3 tech-neutral. Also: the AI-relevant change already rides in-corpus — HB 149 (TRAIGA, held) amended § 503.001 eff. 2026-01-01 (AI training exemption). |
+
+**Note the reason they surfaced — a real §7 blind spot, flagged for a rubric amendment (PENDING, post-write-up):**
+both are *adjacent non-AI laws a fact pattern triggers* (BIPA for the in-corpus AIVIA video-interview case;
+CUBI for TX biometrics). §7 has no clause for how a memo should *disclose* a triggered adjacent law without
+carrying the full tech-neutral statute — the honest fix is a §7 amendment, not a corpus add. Web-checked
+2026-07-22: both are heavily litigated *as applied to* AI (BIPA — Clearview $51.75M, AI note-taker suits,
+Apr-2026 7th Cir. retroactivity ruling; CUBI — TX AG AI-focused enforcement), but *applied-to-AI ≠
+AI-specific statute*, which is exactly the §7.2.1 line. **QA follow-up:** verify our `tx-traiga` file carries
+the HB 149 § 503.001 amendment (the within-corpus section-coverage question the benchmark also raised).

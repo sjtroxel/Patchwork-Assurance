@@ -1327,6 +1327,182 @@ plan got wrong.*
     fix must survive future incremental adds. Verified: njdpa case 24/24 fresh processes at recall 1.0
     (166.6 present even without the pin); deterministic-tier `recall@8 = 100.0%` identical across 3
     fresh runs, 0 MISS. Regression lock: `tests/test_loader.py::test_chroma_collection_carries_high_ef_search`.
-- Actual core-run cost vs. the $8.50 estimate:
-- Adjudication buckets (fabricated / repealed / out-of-corpus):
-- Deviations from this plan:
+- **Step 8 — THE PAID CORE RUN COMPLETE, all seven arms, 2026-07-21.** Run in seven batches
+  (`--limit`/`--offset` per §14), each its own `confirm_spend` process, over two funding rounds. Total
+  spend **≈ $19.32 by `cost_summary()` / ≈ $19.75 by balance drawdown** (the ~$0.4 gap is the sol
+  input-price staleness noted below, plus OpenRouter settlement lag). Every batch reconciled to the cent
+  against the live balance before the next ran. Ending balance $8.77, untouched — no paid work remains.
+  - **The full seven-arm result.** Grounded arms ran the 12 in-scope cases; raw arms ran all 13 (the
+    negative control included — over-claiming on an unregulated business is a finding, not a skip, §7.2).
+    "Cites resolve" = resolves to a section **in the 12-law governing corpus** (NOT "not hallucinated" —
+    the step-9 adjudication below splits that; see the §9 / step-7 trap note).
+
+    | arm | model | grounded? | cites resolve | coverage | currency | obligations | cost (`cost_summary`) |
+    |---|---|---|---|---|---|---|---|
+    | `patchwork` | sonnet-5 (multi-agent) | yes | 88/88 (100%) | 22/24 | 0/2 clean | 88 | $1.9756 |
+    | `grounded-single` | gpt-5.6-sol | yes | 97/99 (98%) | 20/24 | 0/2 clean | 99 | $1.8044 |
+    | `grounded-single` | claude-fable-5 | yes | 115/115 (100%) | 23/24 | 0/2 clean | 115 | $5.6881 |
+    | `grounded-single` | deepseek-v4-pro | yes | 67/67 (100%) | 21/24 | 0/2 clean | 67 | $0.1139 |
+    | `baseline-open` | gemini-3.5-flash | no | 35/118 (30%) | 4/24 | 1/2 stale | 118 | $0.9867 |
+    | `baseline-open` | gpt-5.6-sol | no | 71/348 (20%) | 16/24 | 1/2 stale | 348 | $2.9261 |
+    | `baseline-open` | claude-fable-5 | no | 70/164 (43%) | 14/24 | 1/2 stale | 164 | $5.8296 |
+
+    Artifacts: `eval/results/memos-20260721T{202859-patchwork, 205802/214708/222057-grounded-single,
+    224638/230350/234300-baseline-open}/` + the matching `judged-*-<arm>.json` scorecards.
+  - **THE THESIS, PROVEN.** The separation is total and one has to reach to attack it: **every** grounded
+    arm posts 98–100% cite-resolution, 20–23 of 24 coverage, and 0/2 currency; **every** raw arm posts
+    20–43%, 4–16 of 24, and 1–2/2 stale. It holds across a 160x price range — from 4¢ deepseek to the
+    $50/M-output fable-5 — so the dividing line is **grounding (corpus + retrieval + gate), not model
+    tier.** The `grounded-single` rows are the load-bearing ones: they run the identical CO/CT statute
+    text through the production `generate_memo(pipeline="single")` path, so they answer "isn't this just
+    a model query?" on the merits (§1.2 amendment), not by the raw arms' disclosed information asymmetry.
+  - **Batch-by-batch reconciliation (the §12 provenance spine).** Each figure verified two ways —
+    `cost_summary()` from token math, and the OpenRouter balance drawdown — which agree:
+    - B1 `patchwork` $1.9756: matched the balance drop $18.52→$16.55 **to the cent**; validates the
+      Bug-2 pricing fix live (143 calls, 0 `unknown_rate_calls`, no FLOOR warning). Came in ~36% UNDER
+      the step-7 byte-reconstruction ($0.165 vs $0.259/case) — the reconstruction couldn't price the
+      multi-agent fan-out and OVER-shot, the opposite of the doc's "likely understated" worry. Do not
+      extrapolate that ratio to other rows.
+    - B2 `grounded-single`/sol $1.8044 (token math: 191,128 in × $5/M + 28,291 out × $30/M). Balance drop
+      read ~$0.06 lower = input caching on shared corpus excerpts (`cost_summary` over-reporting = the
+      safe direction).
+    - B3 `grounded-single`/fable-5 $5.6881 (313,080 in × $10/M + 51,147 out × $50/M) = balance drop
+      $14.50→$8.82 to the cent. The expensive grounded arm, as predicted; NOT cuttable (half the
+      headline comparison).
+    - B4 `grounded-single`/deepseek $0.1139 (194,662 in + 33,629 out on the `(0.435, 0.87)` table).
+      **The ablation, and the LinkedIn centerpiece:** a 4-cent model grounded in the corpus sits right in
+      the grounded pack. Honest double-edge — deepseek≈patchwork on these DETERMINISTIC PROXIES also asks
+      "does the multi-agent fan-out earn its cost?", and the proxies can't answer that (they can't see
+      reviewer hedge/prune quality); only the deferred groundedness judge can. Two separate findings:
+      *corpus-is-the-moat* (established here) vs *pipeline-worth-it* (open, judge-gated).
+    - B5 `baseline-open`/gemini $0.9867 = balance drop $8.53→$7.54. Token shape confirms step-7: raw =
+      tiny input (16,750, no corpus) / huge output (106,837 ≈ 8.2k/case) — output-dominated, why a
+      "cheap" model still costs ~$1.
+    - B6 `baseline-open`/sol $2.9261 = balance drop $7.54→$4.60. ~28 min at ~50 tok/s, 13 clean calls, no
+      retry. Sol input-underpricing is IMMATERIAL here (raw input is ~1,180 tok/case; the bill is
+      94,970 output tokens at $30/M).
+    - B7 `baseline-open`/fable-5 $5.8296 (24,099 in + 111,773 out): ran ABOVE the gate's $4.02 quote as
+      predicted — the one arm where the baseline constant under-quotes, because $50/M output dominates.
+      Required the $10 top-up (paid $10.80 incl. the 5.5% fee) before it could run: $4.60 would have died
+      mid-row on insufficient credits. Kept in the run — dropping the raw-vs-grounded same-model contrast
+      for its own model would have been post-hoc selection (disclosable, §7 discipline).
+  - **Write-up calibrations locked in (do not lose these to the post's simplification):**
+    1. **Raw coverage is verbosity-inflated — always pair it with cite-resolution + obligation count.**
+       Raw sol's 16/24 coverage is NOT "nearly matched grounded"; it is a firehose — 348 obligations
+       (~27/case vs grounded sol's ~8) padding the word-pool to clear the coverage threshold by sheer
+       volume, while only 20% of its citations resolve. Same model both sides, so the honest story is
+       "grounding DISCIPLINED it: 348 scattershot claims at 20% valid cites → 99 precise ones at 98%."
+       Raw fable (164 obl / 43%) and raw gemini (118 obl / 30%, 4/24 cov) tell the same story.
+    2. **"Cites don't resolve" ≠ "hallucinated."** Step-9 adjudication (below) is the gate before any
+       public citation number. Some raw cites are real out-of-corpus law (Title VII, C.R.S. § 24-34-402).
+    3. **Currency went 1/2 on all three raw arms, not 2/2 — hand-verify which probe "passed"** before
+       publishing. The consistency across three independent labs is itself a finding; the likely
+       explanation is a metric false-negative (a model stayed vague enough to dodge the stale-vocab
+       markers), not a genuinely current answer, but that must be confirmed by eye, not assumed. Recorded
+       as the currency-probe item below.
+    4. **Raw = not-browsing, disclosed (D5, his own objection).** A raw API call cannot know the law
+       changed; handing it excerpts makes it a RAG system. The grounded arms are the un-attackable claim.
+- **Actual core-run cost vs. the ~$7–10 §15 estimate.** Landed at **≈ $19.3** — roughly 2x the §15
+  headline, and this was *expected, not a miss*: step 7 already repriced the core run to ~$20.30 once the
+  output-dominated baseline cost was measured (the $7–10 figure predated that). The two fable-5 rows
+  alone ($5.69 grounded + $5.83 raw = $11.5) are 60% of the bill at its $10/$50 rates and were never
+  cuttable — they are half the headline same-model contrast. The `confirm_spend` hard cap plus per-batch
+  reconciliation, not the estimate, are what protected the money (the §7.3 / §15.1 lesson, holding).
+- **`core/pricing.py` sol/gemini staleness — flagged here, fix pending before the write-up.** The
+  `"openai/gpt-5.6-sol": (5.0, 30.0)` entry under-prices INPUT by ~12% against sol's actual OpenRouter
+  line-items (derived ~$6.3/M in; output ~$29–30/M matches), so `cost_summary()` under-reports the
+  grounded sol row (~$1.80 reported vs ~$2.02 billed). Immaterial to any raw arm (tiny input) and to the
+  thesis, but `cost_summary()` IS the §12 provenance record, so re-verify live sol + gemini prices and
+  correct the table before publishing any cost figure. The write-up itself is protected regardless — §12
+  says report cost from the Activity page, not the constants. Anthropic (sonnet/opus), fable `(10,50)`,
+  gemini `(1.5,9.0)`, and deepseek entries all reconciled to the cent; the staleness is sol-specific.
+- **Step 9 — `eval/adjudicate.py` built + validated; three-way split adjudicated (J.D. pass DONE
+  2026-07-22). Full provenance: `phase-14-planning/11-citation-adjudication.md`.** The tool re-derives
+  every unresolved citation from the persisted memo HTML (the embedded `model_dump_json`) through the
+  SAME `locate_section` the eval scores with, so it can never disagree with the number it adjudicates;
+  it groups by **(arm, model)**, de-dupes, and emits a bucketing worksheet with a manifest of exactly
+  which runs it read. `tests/test_adjudicate.py` (8 tests; suite 501 → **509 green**). Run for the core
+  run with `--since 20260721`.
+  - **A real bug caught by running it, not a cosmetic one.** The first cut grouped by *arm* and kept the
+    newest dir per arm — which silently collapsed all three `grounded-single` models to one and all three
+    `baseline-open` models to one, dropping two of every three core-run models from the adjudication. The
+    model is NOT in the dir name (`memos-<stamp>-<arm>`); it lives in the paired scorecard's `memo_model`.
+    Fixed to group by (arm, model) read from the scorecard, skip crashed/scorecard-less dirs, and reject
+    hand-named junk (`memos-multi-…`). A per-arm benchmark view would have been quietly wrong.
+  - **Validation: every group reconciles to the scored seven-arm table to the citation.** baseline-open
+    fable 94 unresolved (164−70), gemini 83 (118−35), sol 277 (348−71); grounded-single sol 2 (99−97),
+    fable 0, deepseek 0; patchwork 0. The grounded side being ~0 is itself a finding: grounded arms cite
+    the corpus, so they resolve by construction.
+  - **THE REFRAME the survey forces (and the reason §9 gates the number).** 343 unique unresolved
+    citations across the raw arms, and the overwhelming majority are **real, current, out-of-corpus
+    law**, not fabrications: ~63 federal (Title VII, the EEOC Uniform Guidelines 29 C.F.R. 1607, HUD
+    disparate-impact 24 C.F.R. 100.500, ECOA/Reg B 12 C.F.R. 1002), ~61 NJ (NJLAD / insurance / consumer
+    fraud), ~41 CA Civil (CCPA / FCRA / Unruh), plus CT anti-discrimination, CA FEHA, IL BIPA
+    (740 ILCS 14 — real, and distinct from the in-corpus AIVIA), TX Labor Code (TCHRA), and ~10 local
+    fair-chance / surveillance ordinances (Berkeley, Oakland, LA, SF Police Code, Richmond). Even a
+    Missouri MHRA cite (§ 213.055) appears. **Therefore raw sol's "20% resolve" must NOT be written as
+    "80% hallucinated."** The honest report is two separated facts: (1) *breadth* — a raw model ranges
+    across the entire universe of applicable law, most of it real, which is disclosed and excluded, not
+    scored as error; (2) the *actual model-error rate* — genuine fabrications + repealed/superseded
+    (SB 24-205, TRAIGA 1.0, and sol citing "Proposed 11 CCR § 7017/7018" as if binding) — a much smaller
+    subset. This does not weaken the thesis: grounding's value is a tight, current, **verifiable** answer
+    scoped to the governing AI statutes, versus a sprawling survey where the fabricated cannot be told
+    from the real without a lawyer. The `.claude/rules/legal-content.md` grounding boundary is exactly
+    what would have been breached by publishing the raw resolve-rate as a hallucination rate.
+  - **What still needs the human's statutory eye (the J.D. pass, ~343 unique but mostly obvious):** bulk-
+    bucket the clearly-real out-of-corpus families as `out-of-corpus`; then scrutinize the residue — the
+    ~74 "inspect" cites, any off-looking section numbers, "as amended by P.A. …" claims that may be
+    misremembered, TRAIGA §§ 551.104 / 551.151–152 (real TRAIGA sections we did not chunk vs. misnumbers),
+    and the known-repealed CO/TX vocabulary — to size the fabricated + repealed buckets. Report the
+    three-way split per (arm, model), never one percentage.
+  - **THE ADJUDICATED RESULT (2026-07-22) — the honest headline is NOT "raw models hallucinate."**
+    Across **454 raw-arm unresolved citations, only 5 are model errors**; the other 449 are real,
+    current, out-of-corpus law. Per arm: gemini 83 = 78 out-of-corpus / 2 repealed / 3 fabricated; sol
+    277 = 277 / 0 / 0; fable 94 = 94 / 0 / 0; grounded-sol 2 = 2 / 0 / 0; every other grounded arm 0.
+    The only errors in the whole run: gemini 3× **fabricated (misnumber)** — CUBI's duties cited to
+    `§ 501.001` (CUBI is § 503.001) — and 2× **repealed** — a superseded `Proposed 11 CCR § 7017/7018`
+    rulemaking draft. **So the raw models barely fabricate; their low resolve-rate is *breadth* (real
+    out-of-corpus law), not invention.** The write-up MUST NOT say "raw models make up citations" —
+    grounding's win is scope-discipline + currency, on the merits. Two caveats logged in the provenance
+    doc: (1) grounded-sol's 2 unresolved are CT SB 5's *internal* bill sections (`§§ 8–10`) — a
+    within-corpus **index-format** mismatch, NOT a fabrication (mis-bucketing them as fabricated would
+    have wrongly dinged a grounded arm — exactly the error §9 exists to prevent); (2) ~33 raw cites are
+    real sections of in-corpus laws (CO CPA, CCPA-ADMT, CTDPA, TRAIGA, FEHA-ADS, NJDPA) our chunking
+    didn't index — a within-corpus section-coverage QA question, separate from the thesis.
+  - **BIPA / CUBI §7 triage → both OUT** (tracker §7.7): tech-neutral biometric-privacy laws, fail
+    §7.2.1; the real finding is a §7 rubric blind spot (adjacent non-AI laws a fact pattern triggers),
+    flagged for a PENDING post-write-up amendment, not a corpus add.
+  - `core/pricing.py` sol input corrected 5.0 → 6.3 (bill-derived; the §12 provenance record now
+    matches the actual OpenRouter charge). Anthropic/fable/gemini/deepseek entries were already exact.
+- **Currency-probe hand-verify — DONE 2026-07-22 (free). The "1/2" decomposes cleanly, and the split is
+  itself a finding.** All three raw arms: **CO probe (`co-employment-deployer`) STALE 3/3; TX probe
+  (`tx-employment-deployer`) CLEAN 3/3.** Read every scorecard hit-context and every TX memo by eye (§8's
+  mandate). The TX clean is honest, not a marker false-negative, but for three *different* reasons:
+  - **gemini — clean by non-engagement (true no-op).** It never identified TRAIGA at all ("Texas does not
+    have a single civil statute named as an 'AI Employment Act'") and fell back to Title VII / ADA / Texas
+    Labor Code / CUBI / FCRA. Its ~2025-01 cutoff predates TRAIGA's enactment, so there was no stale
+    TRAIGA-1.0 duty-stack claim for the markers to catch — it said nothing current AND nothing stale.
+  - **sol — clean because genuinely correct on the ENACTED law.** "The enacted law… principally prohibits
+    intentional unlawful discrimination; it does not impose a general private-employer AI notice or
+    impact-assessment mandate," Tex. Bus. & Com. Code § 551.104, 60-day cure, AG-exclusive enforcement.
+  - **fable — same: correct on current TRAIGA.** § 552.056 as added by HB 149, "disparate impact alone is
+    not sufficient to demonstrate the required intent," intent-based, AG enforcement, 60-day cure.
+  - **The real finding is a CO/TX asymmetry, and it makes the write-up claim un-attackable.** Every raw
+    model is stale on **Colorado** — the law that *moved after training* (SB 24-205's duty stack was
+    delayed/amended by the Aug-2025 special session, SB 25B-004; the models still recite the original
+    impact-assessment / 90-day-AG-notice / reasonable-care stack) — but current on **Texas**, which was
+    enacted fresh in its pared-back "2.0" form, so sol's and fable's later cutoffs caught it and gemini
+    simply didn't reach it. **Do NOT write "frontier models are stale on new law."** The honest, stronger
+    claim: *you cannot know in advance which laws a given model is stale on — CO here, not TX — and
+    grounding removes the guessing.* The CO staleness is the realistic compliance-risk case (a statute
+    that changed post-training) and it is unanimous across three independent labs by a judge-free metric.
+  - Corroborates the §2 amendment's decision to DEMOTE currency to a footnote: it is one axis and it is
+    law-specific; cite-resolution + coverage carry the thesis.
+- **Deviations from this plan.** (1) Cost ~2x the §15 headline but on-forecast after step 7's reprice
+  (above). (2) `grounded-single` sol reconciled ~12% low on input pricing (above) — a stale-constant
+  bug, not a run defect. (3) No sol error-payload recurrence (step-7's open question) — all seven batches
+  ran clean, zero refusal retries consumed, so the Bug-1 mitigation was never exercised in anger. (4) The
+  Opus groundedness judge tier remains BUILT-NOT-RUN (D1): every finding above came from the free
+  deterministic metrics, so the ~$8–14 judged spend stays a separate, deferred decision — it answers only
+  the *pipeline-worth-it* question (deepseek≈patchwork on proxies), not the *corpus-is-the-moat* thesis
+  this run already proved.

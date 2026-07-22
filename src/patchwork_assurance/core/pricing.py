@@ -35,7 +35,10 @@ RATES: dict[str, tuple[float, float]] = {
     "anthropic/claude-sonnet-5": (2.0, 10.0),  # same intro-pricing caveat as the native key above
     "anthropic/claude-opus-4.8": (5.0, 25.0),
     "anthropic/claude-fable-5": (10.0, 50.0),
-    "openai/gpt-5.6-sol": (5.0, 30.0),
+    # Input corrected 5.0 -> 6.3 after the 2026-07-21 core run: the grounded-sol batch's actual
+    # OpenRouter bill ran ~12% over cost_summary() at (5.0, 30.0), reconciling to ~$6.3/M input
+    # (output ~$30/M held). cost_summary() is the §12 provenance record, so it must match the bill.
+    "openai/gpt-5.6-sol": (6.3, 30.0),
     "google/gemini-3.5-flash": (1.5, 9.0),
     "google/gemini-3.1-pro-preview": (2.0, 12.0),
     "x-ai/grok-4.5": (2.0, 6.0),
