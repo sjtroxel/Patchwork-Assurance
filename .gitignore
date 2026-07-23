@@ -55,3 +55,8 @@ corpus/_staging/
 # radar_summary.json = detection summary emitted per run, read by the workflow, not repo state
 .radar_store.json
 radar_summary.json
+
+# Phase 14 write-up carousel: rendered PNGs (out/) ARE tracked so the slides are viewable on GitHub.
+# Only the throwaway intermediate HTML is ignored; rebuild all with
+# `python3 build_slides.py && bash render.sh`.
+writeups/phase-14-grounding/carousel/_slide_*.html
