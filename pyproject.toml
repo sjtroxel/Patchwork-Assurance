@@ -39,7 +39,12 @@ dependencies = [
 [project.optional-dependencies]
 dev = [
     "pytest",
-    "ruff",
+    # Pinned, not floating: CI installs from here while local runs go through the pinned
+    # rev in .pre-commit-config.yaml. An unpinned ruff means CI silently drifts ahead of
+    # the machine you check on, and a formatter release fails a commit that was clean
+    # locally (0.16.0 did exactly that — it began formatting code blocks inside .md).
+    # Bump this and the pre-commit rev together, deliberately, never by surprise.
+    "ruff==0.15.17",
     "pre-commit",
 ]
 
