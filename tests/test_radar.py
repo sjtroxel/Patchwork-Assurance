@@ -22,6 +22,7 @@ from patchwork_assurance.core.agent.radar import (
     OpenStatesClient,
     RadarCandidate,
     RadarStore,
+    SourceQuotaExceeded,
     _candidate_summary,
     _retry_after_seconds,
     run_radar,
@@ -385,10 +386,12 @@ class _FakeOSHttp:
         self._pages = pages or {}
         self._bills = bills or {}
         self.captured: list[dict] = []
+        self.headers_seen: list[dict] = []
 
     def get(self, url, **kwargs):
         params = kwargs["params"]
         self.captured.append({"url": url, **params})
+        self.headers_seen.append(kwargs.get("headers", {}))
         if url == OPENSTATES_BASE:  # the light full-text search
             return _FakeResponse(self._pages[params["page"]])
         bill_id = url[len(OPENSTATES_BASE) + 1 :]  # detail: base + "/" + bill_id
@@ -436,7 +439,8 @@ def test_openstates_status_floor_fetches_bill_detail_with_actions():
     sent = http.captured[0]
     assert sent["url"] == f"{OPENSTATES_BASE}/ocd-bill/abc"  # single-bill detail endpoint
     assert sent["include"] == "actions"  # the actions the light search deliberately omitted
-    assert sent["apikey"] == "KEY"
+    assert "apikey" not in sent  # header auth on the detail path too, not just search
+    assert http.headers_seen[0]["X-API-KEY"] == "KEY"
     assert c.status_label == "became-law"
 
 
@@ -539,7 +543,10 @@ def test_openstates_search_is_light_no_actions():
 
     sent = http.captured[0]
     assert sent["url"] == OPENSTATES_BASE
-    assert sent["apikey"] == "SECRET"
+    # Key travels in the header, NOT the query string: httpx puts the full URL in HTTPStatusError
+    # text, which leaked a live key into a traceback on 2026-07-25.
+    assert "apikey" not in sent
+    assert http.headers_seen[0]["X-API-KEY"] == "SECRET"
     assert sent["q"] == "algorithmic discrimination"
     assert sent["classification"] == "bill"  # server-side: drop resolutions (default knob)
     assert "include" not in sent  # LIGHT search — actions are fetched per-bill, not bundled here
@@ -577,6 +584,87 @@ class _SeqOSHttp:
         return item
 
 
+def test_openstates_daily_quota_429_raises_immediately_without_retrying():
+    """A quota 429 is permanent until reset; retrying cannot succeed and each retry costs a request.
+
+    Regression: the 2026-07-25 run treated it as transient and spent 115 of 148 requests retrying
+    into a wall it could never clear.
+    """
+    quota = _FakeResponse({"detail": "exceeded limit of 250/day: 366"}, status_code=429)
+    http = _SeqOSHttp([quota, _FakeResponse(_os_page([]), status_code=200)])
+    waits: list[float] = []
+    client = OpenStatesClient("KEY", http_client=http, sleep=waits.append, min_interval=0)
+
+    with pytest.raises(SourceQuotaExceeded, match="250/day"):
+        client.search("q")
+
+    assert http.calls == 1  # stopped dead — did not spend a second request
+    assert waits == []  # and did not back off first
+
+
+def test_openstates_burst_429_still_retries():
+    """A 429 WITHOUT the quota marker is a burst throttle — still transient, still retried."""
+    ok = _os_page([_os_bill(title="Artificial Intelligence Act", classifications=("became-law",))])
+    http = _SeqOSHttp(
+        [
+            _FakeResponse({"detail": "too many requests"}, status_code=429),
+            _FakeResponse(ok, status_code=200),
+        ]
+    )
+    client = OpenStatesClient("KEY", http_client=http, sleep=lambda _: None, min_interval=0)
+
+    assert [c.bill_id for c in client.search("artificial intelligence")] == ["ocd-bill/abc"]
+    assert http.calls == 2
+
+
+def test_openstates_paces_requests_under_the_burst_limit():
+    """Requests are spaced proactively; backoff alone only reacts after quota is already spent."""
+    http = _FakeOSHttp(
+        pages={
+            1: _os_page([], max_page=3),
+            2: _os_page([], page=2, max_page=3),
+            3: _os_page([], page=3, max_page=3),
+        }
+    )
+    waits: list[float] = []
+    now = [1000.0]
+    client = OpenStatesClient(
+        "KEY",
+        http_client=http,
+        sleep=lambda s: (waits.append(s), now.__setitem__(0, now[0] + s)),
+        clock=lambda: now[0],
+        min_interval=6.5,
+    )
+
+    client.search("q")
+
+    assert len(http.captured) == 3
+    assert waits == [6.5, 6.5]  # first request is free; each subsequent one is paced
+
+
+def test_run_radar_aborts_on_quota_rather_than_counting_it_as_an_error():
+    """The status-floor loop swallows per-candidate hiccups — a spent budget must escape it."""
+
+    class _QuotaSource:
+        name = "fake"
+
+        def __init__(self):
+            self.checked = 0
+
+        def search(self, query):
+            return [_os_candidate(bill_id=f"ocd-bill/{query}-{i}") for i in range(3)]
+
+        def passes_status_floor(self, candidate):
+            self.checked += 1
+            raise SourceQuotaExceeded("exceeded limit of 250/day: 366")
+
+    source = _QuotaSource()
+    with pytest.raises(SourceQuotaExceeded):
+        run_radar(source, RadarStore(":memory:"), queries=("q",))
+
+    assert source.checked == 1  # stopped at the first wall, did not grind the rest
+
+
 def test_openstates_retries_on_429_then_succeeds():
     ok = _os_page([_os_bill(title="Artificial Intelligence Act", classifications=("became-law",))])
     http = _SeqOSHttp(
@@ -586,7 +674,7 @@ def test_openstates_retries_on_429_then_succeeds():
         ]
     )
     waits: list[float] = []
-    client = OpenStatesClient("KEY", http_client=http, sleep=waits.append)
+    client = OpenStatesClient("KEY", http_client=http, sleep=waits.append, min_interval=0)
 
     results = client.search("artificial intelligence")
 
@@ -601,7 +689,7 @@ def test_openstates_retries_on_5xx_gateway_then_succeeds():
     ok = _os_page([_os_bill(title="Artificial Intelligence Act")])
     http = _SeqOSHttp([_FakeResponse({}, status_code=502), _FakeResponse(ok, status_code=200)])
     waits: list[float] = []
-    client = OpenStatesClient("KEY", http_client=http, sleep=waits.append)
+    client = OpenStatesClient("KEY", http_client=http, sleep=waits.append, min_interval=0)
 
     results = client.search("artificial intelligence")
 
@@ -613,7 +701,9 @@ def test_openstates_retries_on_5xx_gateway_then_succeeds():
 def test_openstates_gives_up_after_max_retries():
     http = _SeqOSHttp([_FakeResponse({}, status_code=429) for _ in range(10)])
     waits: list[float] = []
-    client = OpenStatesClient("KEY", http_client=http, sleep=waits.append, max_retries=2)
+    client = OpenStatesClient(
+        "KEY", http_client=http, sleep=waits.append, max_retries=2, min_interval=0
+    )
 
     with pytest.raises(httpx.HTTPError):
         client.search("q")
@@ -627,7 +717,7 @@ def test_openstates_retries_on_transport_error_then_succeeds():
     ok = _os_page([_os_bill(title="Artificial Intelligence Act", classifications=("became-law",))])
     http = _SeqOSHttp([httpx.ReadTimeout("read timed out"), _FakeResponse(ok, status_code=200)])
     waits: list[float] = []
-    client = OpenStatesClient("KEY", http_client=http, sleep=waits.append)
+    client = OpenStatesClient("KEY", http_client=http, sleep=waits.append, min_interval=0)
 
     results = client.search("artificial intelligence")
 
@@ -639,7 +729,9 @@ def test_openstates_retries_on_transport_error_then_succeeds():
 def test_openstates_gives_up_after_transport_retries():
     http = _SeqOSHttp([httpx.ReadTimeout("timeout") for _ in range(10)])
     waits: list[float] = []
-    client = OpenStatesClient("KEY", http_client=http, sleep=waits.append, max_retries=2)
+    client = OpenStatesClient(
+        "KEY", http_client=http, sleep=waits.append, max_retries=2, min_interval=0
+    )
 
     with pytest.raises(httpx.TransportError):
         client.search("q")

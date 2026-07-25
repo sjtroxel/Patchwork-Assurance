@@ -225,6 +225,32 @@ RETRIABLE_STATUSES: frozenset[int] = frozenset({429, 500, 502, 503, 504})
 # The hard backstop against a *hung* (never-responding) connection is the workflow job's
 # `timeout-minutes`, not this — a request timeout can't tell "slow" from "hung", only a job cap can.
 OPENSTATES_TIMEOUT = httpx.Timeout(15.0, read=90.0)
+# Free tier is 250 requests/day (server-confirmed 2026-07-25: `exceeded limit of 250/day: 366`).
+# One full sweep is ~20 search requests + one per surviving candidate, so a sweep fits the day's
+# budget roughly ONCE. Space requests out to stay under the burst limit: unpaced, the search phase
+# fired 10 requests in 6s and was throttled at request #11 every single time (2026-07-25).
+OPENSTATES_MIN_INTERVAL = 6.5
+# The daily-quota 429 says so in its body; a burst 429 does not. The two need opposite responses.
+OPENSTATES_QUOTA_MARKER = "exceeded limit of"
+
+
+class SourceQuotaExceeded(Exception):
+    """A source's request budget is spent — the run must stop, not retry.
+
+    Source-agnostic on purpose (`run_radar` must not learn vendor names). Deliberately NOT a
+    subclass of RuntimeError/ValueError/httpx.HTTPError: those are caught per-candidate in
+    run_radar's status-floor loop, and a quota failure must escape that handler rather than be
+    counted as one more skippable hiccup. Quota 429s still consume quota, so retrying or
+    continuing digs the hole deeper — the 2026-07-25 run spent 115 of its 148 requests this way.
+    """
+
+
+def _is_quota_exhausted(response: httpx.Response) -> bool:
+    """True when a 429 is the daily-quota wall (permanent today) rather than a burst throttle."""
+    try:
+        return OPENSTATES_QUOTA_MARKER in response.json().get("detail", "")
+    except (ValueError, AttributeError):  # non-JSON or unexpected shape: treat as a burst 429
+        return False
 
 
 def _retry_after_seconds(response: httpx.Response, attempt: int) -> float:
@@ -268,6 +294,8 @@ class OpenStatesClient:
         require_title_match: bool = True,
         max_retries: int = 4,
         sleep: Callable[[float], None] = time.sleep,
+        min_interval: float = OPENSTATES_MIN_INTERVAL,
+        clock: Callable[[], float] = time.monotonic,
     ) -> None:
         self._api_key = api_key
         self._client = http_client
@@ -286,11 +314,30 @@ class OpenStatesClient:
         # crashing the run (sleep is injectable so tests don't actually wait).
         self._max_retries = max_retries
         self._sleep = sleep
+        # Proactive pacing (clock injectable so tests neither wait nor depend on wall time).
+        self._min_interval = min_interval
+        self._clock = clock
+        self._last_request = 0.0
+
+    def _throttle(self) -> None:
+        """Hold each request at least `min_interval` after the previous one.
+
+        Backoff alone cannot fix a burst limit: it only reacts *after* a 429 that has already
+        spent a request from the daily budget. Pacing keeps us under the limit instead.
+        """
+        if self._min_interval > 0:
+            wait = self._min_interval - (self._clock() - self._last_request)
+            if wait > 0:
+                self._sleep(wait)
+        self._last_request = self._clock()
 
     def _request(self, url: str, params: dict) -> dict:
         fetch = self._client.get if self._client else httpx.get
-        full = {**params, "apikey": self._api_key}
+        # Key rides in the header, never the query string: httpx echoes the full URL in
+        # HTTPStatusError text, which leaked a live key into a traceback on 2026-07-25.
+        headers = {**REQUEST_HEADERS, "X-API-KEY": self._api_key}
         for attempt in range(self._max_retries + 1):
+            self._throttle()
             # A transport error (ReadTimeout / ConnectError / ...) is raised *before* any response
             # and is transient — retry it with backoff, just like a 429, instead of crashing the run.
             # (Real GitHub-Actions failure 2026-07-13: Open States read-timed-out from the runner and
@@ -298,15 +345,22 @@ class OpenStatesClient:
             try:
                 response = fetch(
                     url,
-                    params=full,
+                    params=params,
                     timeout=OPENSTATES_TIMEOUT,
-                    headers=REQUEST_HEADERS,
+                    headers=headers,
                 )
             except httpx.TransportError:
                 if attempt < self._max_retries:
                     self._sleep(min(2.0**attempt, OPENSTATES_MAX_BACKOFF))
                     continue
                 raise
+            # The daily-quota wall is NOT retryable: it holds until the quota resets, and every
+            # retry spends another request against it. Abort the run and say so.
+            if response.status_code == 429 and _is_quota_exhausted(response):
+                raise SourceQuotaExceeded(
+                    f"Open States daily quota exhausted: {response.json().get('detail', '')}. "
+                    "The run cannot continue today; retry after the quota resets."
+                )
             # 429 and transient gateway/server 5xx (502/503/504) are retryable — honor Retry-After if
             # present, else exponential backoff (1, 2, 4, ... capped at 30s), then retry. Any other
             # error (401 auth, 404, ...) raises immediately.
@@ -546,6 +600,10 @@ def run_radar(
         try:
             if not source.passes_status_floor(candidate):
                 continue
+        except SourceQuotaExceeded:
+            # Explicit: a spent budget is not a per-candidate hiccup. Every remaining survivor
+            # would fail the same way while burning more of tomorrow's budget. Stop the run.
+            raise
         except (httpx.HTTPError, RuntimeError, ValueError):
             run.errors += 1
             continue
@@ -629,7 +687,13 @@ def main() -> None:
         sys.exit(1)
 
     store = RadarStore(os.environ.get("RADAR_STORE_PATH", ".radar_store.json"))
-    run = run_radar(source, store)
+    try:
+        run = run_radar(source, store)
+    except SourceQuotaExceeded as exc:
+        # A spent budget is an operational fact, not a crash: exit non-zero with a one-line reason
+        # so the workflow (or a human) sees "out of quota", not a traceback.
+        print(str(exc), file=sys.stderr)
+        sys.exit(2)
 
     summary = {
         "source": source.name,

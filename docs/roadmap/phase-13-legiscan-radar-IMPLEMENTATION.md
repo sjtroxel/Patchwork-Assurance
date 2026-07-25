@@ -13,6 +13,23 @@
 > API key never issued (registration 2026-07-11 stuck in manual review, presumed dead), and Open States is
 > **CI-unreachable** — GitHub's datacenter IPs get 502/504 gateway-errored on the heavy query, then 429
 > rate-limited on the light one (it serves residential IPs fine). No client-side fix. The weekly `schedule:`
+>
+> **CORRECTION 2026-07-25 — the "CI-unreachable / no client-side fix" diagnosis above was WRONG.**
+> There was never an IP problem. Two client bugs, both fixed today, fully explain the 7/13 failures:
+> (1) **no request pacing** — the search phase fired 10 requests in ~6s and was throttled at request #11
+> deterministically, from any IP; (2) **quota 429s treated as transient** — Open States' free tier is
+> **250 requests/day** (server-confirmed: `exceeded limit of 250/day: 366`), and a full sweep costs
+> ~85–150 requests (20 search + one bill-detail per surviving candidate), so a sweep fits the daily
+> budget roughly ONCE. Because each 429 retry *still spends a request*, the retry loop accelerated
+> exhaustion rather than riding it out — a 2026-07-25 run burned 115 of its 148 requests retrying into
+> a wall it could not clear. The 7/12 local runs had already eaten the day's quota, so the 7/13 CI runs
+> hit the wall immediately; "residential works, cloud doesn't" was an artifact of *which run went first*.
+> Fixes: proactive `min_interval` pacing, a non-retryable `SourceQuotaExceeded` that aborts the run, and
+> the API key moved from the query string to the `X-API-KEY` header (it leaked into an httpx traceback
+> on 2026-07-25 — rotate any key used before that date). Re-enabling the weekly cron is now a live
+> option, gated on one clean end-to-end run; the sweep must stay a **once-daily** job either way.
+>
+> The weekly `schedule:`
 > cron is therefore **disabled** in `radar.yml` (documented inline; `workflow_dispatch` kept); the radar runs
 > **on-demand locally** (`RADAR_SOURCE=openstates`) — the correct posture anyway, since a human gates every
 > corpus change. **DoD met via the local run:** one real Open States batch (126 → tuned to 13), **triaged
