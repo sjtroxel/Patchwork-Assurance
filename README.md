@@ -7,7 +7,7 @@
 <br>
 
 [![CI](https://github.com/sjtroxel/Patchwork-Assurance/actions/workflows/ci.yml/badge.svg)](https://github.com/sjtroxel/Patchwork-Assurance/actions/workflows/ci.yml)
-[![tests](https://img.shields.io/badge/tests-357%20passing-2f6f5f?style=flat-square)](tests/)
+[![tests](https://img.shields.io/badge/tests-513%20passing-2f6f5f?style=flat-square)](tests/)
 [![python](https://img.shields.io/badge/python-3.12+-2f4b5e?style=flat-square&logo=python&logoColor=white)](pyproject.toml)
 [![corpus](https://img.shields.io/badge/corpus-12%20laws%20%C2%B7%207%20jurisdictions-21304c?style=flat-square)](#the-corpus)
 [![license](https://img.shields.io/badge/license-all%20rights%20reserved-7c2f3b?style=flat-square)](LICENSE)
@@ -15,7 +15,7 @@
 [![FastAPI](https://img.shields.io/badge/FastAPI-2f4b5e?style=flat-square&logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com/)
 [![Streamlit](https://img.shields.io/badge/Streamlit-7c2f3b?style=flat-square&logo=streamlit&logoColor=white)](https://streamlit.io/)
 [![Chroma](https://img.shields.io/badge/Chroma-vector%20store-2f6f5f?style=flat-square)](https://www.trychroma.com/)
-[![Claude](https://img.shields.io/badge/Claude-Haiku%20%2F%20Sonnet-21304c?style=flat-square&logo=anthropic&logoColor=white)](https://www.anthropic.com/)
+[![Claude](https://img.shields.io/badge/Claude-Haiku%20%2F%20Sonnet%20%2F%20Opus-21304c?style=flat-square&logo=anthropic&logoColor=white)](https://www.anthropic.com/)
 [![MCP](https://img.shields.io/badge/MCP-server-d6a43e?style=flat-square&logoColor=black)](#use-it-as-an-mcp-tool)
 
 **[Launch the tool](https://app.patchworkassurance.com)** &nbsp;·&nbsp;
@@ -67,14 +67,14 @@ flowchart TB
         memo["Compliance memo<br/>(Streamlit)"]
         chat["Chat<br/>(Streamlit)"]
     end
-    api["FastAPI<br/>/analyze · /chat · /health · /meta"]
+    api["FastAPI<br/>/analyze · /analyze/stream (SSE)<br/>/chat · /health · /meta"]
     mcp["MCP server<br/>5 read-only tools"]
     eval["eval/ harness<br/>+ monitoring agent"]
 
     subgraph core["core/ — imports inward only"]
         scope["Deterministic<br/>scope gate"]
         retr["Retrieval<br/>Chroma + fastembed"]
-        gen["Grounded generation<br/>Haiku / Sonnet split"]
+        gen["Grounded generation<br/>Haiku chat · Sonnet analysts<br/>Opus reviewer"]
         scope --> retr --> gen
     end
 
@@ -181,15 +181,24 @@ confidently wrong.
 ### Staying current: the national radar
 
 Two layers keep the corpus from going stale, and both **gate on a human** — nothing is auto-ingested.
-The Phase 9 monitor watches the URLs of laws *already* tracked (fetch → hash → diff → pull request on a
-real change). The Phase 13 **national radar** watches for laws *not yet* tracked: a weekly job searches
-LegiScan across all 50 states and Congress for newly enrolled or passed AI-regulation bills, filters by
-relevance and status, and opens a GitHub **issue** per candidate for review. It is a radar that
-**surfaces candidates for human curation, not a claim to detect every AI law** — keyword recall is lossy
-in both directions, and the human issue-gate is a first-class part of the design, the same credibility
-boundary as the monitor's pull-request gate. Detection is deterministic Python with **no LLM calls**;
-bill data comes from LegiScan (CC BY 4.0), while statute text is always sourced from the official
+
+The Phase 9 **monitor** watches the URLs of laws *already* tracked (fetch → hash → diff → pull request
+on a real change). It runs on a daily cron and has been green since it shipped.
+
+The Phase 13 **national radar** watches for laws *not yet* tracked: it searches state legislatures for
+newly enrolled or passed AI-regulation bills, filters by relevance and status, and opens a GitHub
+**issue** per candidate for review. It is a radar that **surfaces candidates for human curation, not a
+claim to detect every AI law** — keyword recall is lossy in both directions, and the human issue-gate is
+a first-class part of the design, the same credibility boundary as the monitor's pull-request gate.
+Detection is deterministic Python with **no LLM calls**; bill data comes from the
+[Open States](https://openstates.org/) API, while statute text is always sourced from the official
 publication.
+
+> [!NOTE]
+> The radar currently runs **on demand** (`workflow_dispatch`), not on a schedule. The weekly cron is
+> disabled: the free Open States tier allows 250 requests/day and a full 50-state sweep spends a
+> meaningful slice of that, so sweeps are run deliberately rather than automatically. The client paces
+> its own requests and aborts cleanly on a quota response rather than burning the budget on retries.
 
 ## Stack
 
@@ -197,9 +206,11 @@ Python end to end, on purpose (a deliberate GitHub signal — no JS/TS frontend)
 
 - **FastAPI** (`api/`) and **Streamlit** (`ui/`) over a pure-Python **`core/`**.
 - **Chroma** (local, persistent) for vectors behind a thin retrieval interface; **fastembed**
-  (`BAAI/bge-small`, ONNX) for embeddings; a **Claude Haiku / Sonnet** split for generation (fast +
-  cheap for chat, stronger for memos).
-- `src/` layout, one installable package. Quality gates are **`ruff`** and **`pytest`** (357 tests),
+  (`BAAI/bge-small`, ONNX) for embeddings.
+- A **tiered Claude split** for generation: Haiku for chat (fast, cheap, unlimited), Sonnet for the
+  per-law memo analysts, and Opus as the reviewer that hedges and prunes the assembled memo. The
+  multi-agent memo pipeline is the shipped default; a single-pass pipeline remains selectable.
+- `src/` layout, one installable package. Quality gates are **`ruff`** and **`pytest`** (513 tests),
   run locally via `pre-commit` and in CI.
 
 ## Run it locally
@@ -268,6 +279,38 @@ improved groundedness and citation accuracy over the single-pass baseline.
 Spend is gated behind an explicit confirmation step (`eval/safety.py`) after an early accidental-cost
 incident — see [`docs/SPENDING_SAFETY.md`](docs/SPENDING_SAFETY.md).
 
+### Does the grounding actually earn its keep?
+
+The fair skeptical question about any RAG tool is whether it beats just asking a frontier model. Phase
+14 tested that directly: **seven arms, the same compliance questions, the same twelve laws.** Some arms
+wrapped a model in this system's retrieval, corpus, and scope gate; others asked the same models the
+same questions raw. Full design, per-arm results, and cost reconciliation are in
+[`docs/roadmap/phase-14-benchmark-vs-frontier-IMPLEMENTATION.md`](docs/roadmap/phase-14-benchmark-vs-frontier-IMPLEMENTATION.md).
+
+| | Citations resolving to a governing statute | Gold-obligation coverage | Currency probes stale |
+|---|---|---|---|
+| **Grounded arms** (4) | 98–100% | 20–23 / 24 | 0 / 2 |
+| **Raw arms** (3) | 20–43% | 4–16 / 24 | 1–2 / 2 |
+
+The separation held across a ~50x cost range: a model costing about **one cent per memo**, run through
+the system, landed in the same band as the most expensive frontier arm. **The finding is that grounding,
+not model tier, determines quality on this task.**
+
+Three honest calibrations, because they matter more than the headline:
+
+- **An unresolvable citation is not a hallucination.** All 454 were hand-adjudicated; only **5** were
+  fabricated. The other 449 were real law — Title VII, state civil-rights codes, local ordinances —
+  just not the statute that governs the question. The failure is focus and currency, not invention.
+- **Raw coverage is inflated by verbosity.** The raw arms emitted up to 27 obligations per case against
+  the grounded arms' ~8, which clears a word-overlap threshold by volume. Coverage is only meaningful
+  read alongside citation resolution.
+- **The raw arms were not browsing**, and n is small (12–13 cases). This is a defensible in-house
+  benchmark, not a published study.
+
+The fairness control is the part that makes it hold up: the *same* models go stale on recently amended
+law without the corpus and clean with it, so the honest conclusion is "a raw API call cannot know the
+law changed," not "frontier models are bad at law."
+
 ## Project layout
 
 <details>
@@ -276,7 +319,7 @@ incident — see [`docs/SPENDING_SAFETY.md`](docs/SPENDING_SAFETY.md).
 ```
 src/patchwork_assurance/
   core/        retrieval, corpus loading, scope, memo + chat logic (imports inward only)
-  api/         FastAPI transport: /analyze, /chat (SSE), /health, /meta, /memo-quota
+  api/         FastAPI transport: /analyze, /analyze/stream (SSE), /chat, /health, /meta, /memo-quota
   ui/          Streamlit memo + chat surfaces, shared legal chrome
   mcp/         MCP server: five read-only tools wrapping core/
 corpus/        cleaned statute text + metadata records (the only place laws live)

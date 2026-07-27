@@ -300,3 +300,27 @@ carrying the full tech-neutral statute — the honest fix is a §7 amendment, no
 Apr-2026 7th Cir. retroactivity ruling; CUBI — TX AG AI-focused enforcement), but *applied-to-AI ≠
 AI-specific statute*, which is exactly the §7.2.1 line. **QA follow-up:** verify our `tx-traiga` file carries
 the HB 149 § 503.001 amendment (the within-corpus section-coverage question the benchmark also raised).
+
+### 7.8 Triage decisions — second Open States sweep (2026-07-26)
+The first clean `RADAR_SOURCE=openstates` sweep after the 2026-07-25 radar fixes (request pacing +
+daily-quota abort, commit `3dc5aea`): exit 0, **12 NEW / 0 changed / 0 errors**. Ten of the twelve were the
+§7.6 batch re-surfacing — `.radar_store.json` is not held locally (it only ever lived in the Actions cache),
+so a local run has no memory of prior sweeps. That is expected behavior, not a finding. RI HB 7350 was a new
+bill *number* only: the House companion to RI SB 2195, already OUT at §7.6. Four of the §7.6 thirteen did not
+re-surface (CO HB 1139, CO HB 1195, CT SB 417, CT HB 5222) — query-window drift; their §7.6 calls stand.
+
+**Two genuinely new candidates, both Hawaii, both signed ~2026-07-16. Both OUT; zero corpus adds.**
+
+| Bill | Call | Why |
+|---|---|---|
+| HI HB 2137 — AI "realistic digital imitations" | OUT | §7.3 **deepfake / synthetic media**. Prohibits unauthorized realistic AI imitation of a person's face, voice, or likeness for advertising, fraud, defamation, or harassment; private right of action (up to $25k per advertisement, punitive damages, fees); parody/news/political exemptions. Real duty structure, but fails §7.2.2 — no consequential decision about an individual. Same bucket as LA HB 119 / SB 42. |
+| HI SB 3001 — "Artificial Intelligence Disclosure and Safety Act" | OUT | §7.3 **chatbot / AI-companion disclosure**. Binds *operators of AI companions*: disclose the system is not human, persistent disclaimers for known minors, self-harm/suicidal-ideation crisis protocols, bans on variable-reward engagement design and sexually explicit content toward minors, DOH annual reports from 2028-01-01, enforced as an unfair or deceptive practice. Verified against the CD1 text: reaches no consequential-decision domain. Fails §7.2.2. |
+
+**Bottom line:** both clear §7.2.1 (AI-specific) and §7.2.4 (enacted) and fail on §7.2.2, which is the gate
+that carries the thesis. **Hawaii remains a non-jurisdiction for this corpus** — recorded here so the radar
+does not re-chase either bill. §7.4 is not reached.
+
+**One process note banked:** the sweep is now the trustworthy signal it was supposed to be — the 7/13
+"CI-unreachable" diagnosis that disabled the weekly `schedule:` cron in `.github/workflows/radar.yml` was
+wrong, and this clean run was the gate for re-enabling it. Re-enable is a live option; the sweep must stay at
+most once-daily either way (Open States free tier = 250 requests/day; a full sweep costs ~85–150).
